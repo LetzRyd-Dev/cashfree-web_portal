@@ -1,0 +1,84 @@
+/* =========================================================
+   LETZRYD BRAND DESIGN SYSTEM TYPOGRAPHY
+   Header / Brand Titles: Poppins (Bold, Geometric Sans)
+   Subheadings / Section Titles: Montserrat
+   Body / UI & Numbers: Plus Jakarta Sans
+   ========================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Poppins:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Poppins", sans-serif;
+  --font-subheading: "Montserrat", sans-serif;
+  --font-mono: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-primary:       #0A1650;   /* navy */
+  --color-primary-hover: #0d1d6e;
+  --color-green:         #069128;   /* brand green */
+  --color-green-light:   #e6f7ea;
+  --color-amber:         #b45309;
+  --color-yellow-light:  #fffbeb;
+
+  --color-bg:      #FCFCFC;
+  --color-surface: #FFFFFF;
+  --color-border:  #E5E7EB;
+
+  --color-text:       #0A1650;
+  --color-text-muted: #485342;
+  --color-text-dim:   #9CA3AF;
+}
+
+:root {
+  --bg-base: #FCFCFC;
+  --bg-surface: #FFFFFF;
+  --border-subtle: #E5E7EB;
+  --text-main: #0A1650;
+  --text-muted: #485342;
+}
+
+/* Base Body Font: Plus Jakarta Sans */
+body, input, button, select, textarea, div, span, p {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  font-size: 96%;
+}
+
+body {
+  background-color: #E2E8F0;
+  color: #0A1650;
+  font-size: 12.5px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headings & Brand Titles: Poppins */
+h1, h2, h3, h4, .font-poppins, .font-heading {
+  font-family: "Poppins", sans-serif !important;
+}
+
+/* Subheadings & Section Subtitles: Montserrat */
+h5, h6, .font-montserrat, .font-subheading {
+  font-family: "Montserrat", sans-serif !important;
+}
+
+/* Body & UI Text: Plus Jakarta Sans */
+.font-jakarta, .font-body {
+  font-family: "Plus Jakarta Sans", sans-serif !important;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #069128 !important;
+  box-shadow: 0 0 0 3px rgba(6, 145, 40, 0.15) !important;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

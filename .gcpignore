@@ -1,0 +1,16 @@
+# GCP gcloud build ignore file
+node_modules/
+venv/
+__pycache__/
+*.pyc
+ola-sync/ola_downloads/
+.env
+.git/
+.gitignore
+*.md
+*.docx
+*.xlsx
+*.pdf
+*.png
+*.jpg
+*.jpeg

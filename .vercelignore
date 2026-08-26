@@ -1,0 +1,7 @@
+*.py
+app/
+requirements.txt
+Dockerfile
+docker-compose.yml
+docs/
+api.py

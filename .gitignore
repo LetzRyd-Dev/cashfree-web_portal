@@ -1,0 +1,26 @@
+# Dependencies and build outputs
+node_modules/
+build/
+dist/
+coverage/
+
+# Python Virtual Environments & Caches
+venv/
+__pycache__/
+*.pyc
+ola-sync/venv/
+ola-sync/__pycache__/
+
+# Runtime Downloads & Chrome Profiles
+ola-sync/ola_chrome_profile/
+ola-sync/ola_downloads/
+
+# Secrets & Environment Files
+.env
+.env.*
+!.env.example
+
+# Spreadsheets & OS files
+*.xlsx
+.DS_Store
+*.log

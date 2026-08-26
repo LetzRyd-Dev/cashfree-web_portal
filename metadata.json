@@ -1,0 +1,6 @@
+{
+  "name": "LetzRyd Portal",
+  "description": "An interactive, polished, and fully translated Driver & Operator Portal for LetzRyd Fleet Management. Features weekly Hisaab breakdowns, active vehicle/fleet tracking, compliance alerts, support tickets, and interactive SOS controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

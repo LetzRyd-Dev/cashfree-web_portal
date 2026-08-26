@@ -1,0 +1,23 @@
+# Virtual environment and node modules
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Runtime directories and sensitive files
+ola-sync/ola_downloads/
+.env
+
+# Git & IDE files
+.git/
+.gitignore
+.antigravity/
+
+# Documentation and Spreadsheet binary files
+*.md
+*.docx
+*.xlsx
+*.pdf
+*.png
+*.jpg
+*.jpeg

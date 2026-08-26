@@ -1,0 +1,51 @@
+{
+  "_comment": "Maps column headers from Ola downloaded statements to our Postgres column names.",
+
+  "raw_sheet": {
+    "Date":                         "stmt_date",
+    "Car number":                   "vehicle_number",
+    "Car Number":                   "vehicle_number",
+    "Vehicle":                      "vehicle_number",
+    "Driver name":                  "driver_name",
+    "Driver number":                "driver_number",
+    "CRN":                          "crn",
+    "Completion Status":            "completion_status",
+    "Customer Bill Raw":            "customer_bill_raw",
+    "Paid by ola money Raw":        "paid_by_ola_money_raw",
+    "Operator Bill Raw":            "operator_bill_raw",
+    "Peak Pricing Raw":             "peak_pricing_raw",
+    "Ride earnings Raw":            "ride_earnings_raw",
+    "TDS Raw":                      "tds_raw",
+    "Toll/ Parking Raw":            "toll_parking_raw",
+    "Toll/Parking Raw":             "toll_parking_raw",
+    "Cash collected by driver Raw": "cash_collected_by_driver_raw",
+    "Ola to Pay":                   "ola_to_pay",
+    "Category":                     "category",
+    "Pick up time":                 "pickup_time",
+    "Actual Kms Raw":               "actual_kms_raw",
+    "Trip Time Raw":                "trip_time_raw",
+    "Fare Raw":                     "fare_raw",
+    "Share OSNs":                   "share_osns",
+    "Number of share OSNs":         "number_of_share_osns",
+    "Bookings Completed Raw":       "bookings_completed_raw",
+    "Ride Type":                    "ride_type",
+    "PickUp Location":              "pickup_location",
+    "Drop Location":                "drop_location"
+  },
+
+  "incentive_sheet": {
+    "Vehicle":               "vehicle_number",
+    "Vehicle Number":        "vehicle_number",
+    "Car number":            "vehicle_number",
+    "Car Number":            "vehicle_number",
+    "Trips":                 "trips",
+    "Completed Trips":       "trips",
+    "Received Incentive":    "received_incentive",
+    "Incentive Received":    "received_incentive",
+    "Expected Incentive":    "expected_incentive",
+    "Difference":            "difference",
+    "Slab":                  "slab",
+    "Slab Amount":           "slab_amount",
+    "After TDS":             "after_tds"
+  }
+}

@@ -1,0 +1,6 @@
+# ola-sync/requirements.txt
+playwright==1.40.0
+pandas>=2.0
+openpyxl>=3.1
+psycopg2-binary>=2.9
+requests>=2.31
