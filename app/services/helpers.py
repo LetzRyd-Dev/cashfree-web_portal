@@ -45,12 +45,13 @@ def resolve_driver(phone_or_id: str, db: Session) -> Optional[AppDrivers]:
             if driver:
                 return driver
 
-    # 3. Numeric ID match (app_driver_id or driver_id)
+    # 3. Numeric ID match: Prioritize app_driver_id (Primary Key / Foreign Key in hisaabs)
     if str(phone_or_id).isdigit():
         num_id = int(phone_or_id)
-        driver = db.query(AppDrivers).filter(
-            (AppDrivers.app_driver_id == num_id) | (AppDrivers.driver_id == num_id)
-        ).first()
+        driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == num_id).first()
+        if driver:
+            return driver
+        driver = db.query(AppDrivers).filter(AppDrivers.driver_id == num_id).first()
         if driver:
             return driver
 
@@ -73,12 +74,13 @@ def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
             if op:
                 return op
 
-    # 3. Numeric ID match (app_operator_id or operator_id)
+    # 3. Numeric ID match: Prioritize app_operator_id (Primary Key / Foreign Key)
     if str(phone_or_id).isdigit():
         num_id = int(phone_or_id)
-        op = db.query(AppOperators).filter(
-            (AppOperators.app_operator_id == num_id) | (AppOperators.operator_id == num_id)
-        ).first()
+        op = db.query(AppOperators).filter(AppOperators.app_operator_id == num_id).first()
+        if op:
+            return op
+        op = db.query(AppOperators).filter(AppOperators.operator_id == num_id).first()
         if op:
             return op
 

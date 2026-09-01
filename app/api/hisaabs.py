@@ -105,6 +105,8 @@ def _map_hisaab(h: AppHisaabs) -> HisaabBreakdownResponse:
         to_pay=float(h.to_pay or 0.0),
         letzryd_earning=float(h.letzryd_earning or 0.0),
         notes=h.notes or "",
-        last_refreshed_at=str(h.last_refreshed_at) if h.last_refreshed_at else None
+        last_refreshed_at=str(h.last_refreshed_at) if h.last_refreshed_at else None,
+        paid_amount=float(h.paid_amount or 0.0),
+        payment_status=h.payment_status or "unpaid"
     )
 

@@ -200,6 +200,8 @@ class HisaabBreakdownResponse(BaseSchema):
     letzryd_earning: float = 0.0
     notes: str = ""
     last_refreshed_at: Optional[str] = None
+    paid_amount: float = 0.0
+    payment_status: str = "unpaid"
 
 # Payment Schemas
 class InitiatePaymentRequest(BaseSchema):
@@ -222,6 +224,9 @@ class CreateOrderRequest(BaseSchema):
     driverPhone: Optional[str] = "9999999999"
     driverId: Optional[Union[str, int]] = "driver_001"
     weekRange: Optional[str] = ""
+    app_hisaab_id: Optional[int] = None      # Link payment to specific hisaab
+    payer_type: Optional[str] = "driver"     # driver | operator
+    operator_id: Optional[int] = None        # For operator payments
 
 class CreateOrderResponse(BaseSchema):
     payment_session_id: str

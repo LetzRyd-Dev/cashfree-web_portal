@@ -266,6 +266,8 @@ class AppHisaabs(Base):
     last_refreshed_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), nullable=True)
     notes = Column(Text, nullable=True)
     last_synced_at = Column(DateTime(timezone=True), nullable=True)
+    paid_amount = Column(Numeric(12,2), nullable=True, default=0.0)  # Cumulative amount paid via Cashfree
+    payment_status = Column(String(20), nullable=True, default='unpaid')  # unpaid | partial | settled
     created_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), onupdate=func.now(), nullable=False)
 

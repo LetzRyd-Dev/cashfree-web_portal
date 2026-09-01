@@ -251,6 +251,7 @@ export const SURESH_RENTAL_PLAN_DATA: RentalPlan = {
 
 export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
   {
+    app_hisaab_id: 4,
     weekNumber: 30,
     hisaabNumber: "HIS-2026-030-EV8812",
     weekStart: "2026-07-21",
@@ -296,6 +297,7 @@ export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
     notes: "Current active week statement. Balance due ₹1,850.00 owed to LetzRyd."
   },
   {
+    app_hisaab_id: 5,
     weekNumber: 29,
     hisaabNumber: "HIS-2026-029-EV8812",
     weekStart: "2026-07-14",

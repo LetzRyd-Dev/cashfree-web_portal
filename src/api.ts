@@ -143,6 +143,10 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
     toPay: h.to_pay || 0,
     letzrydEarning: h.letzryd_earning || 0,
     notes: h.notes || '',
+    // Payment tracking from DB
+    paidAmount: h.paid_amount || 0,
+    paymentStatus: (h.payment_status as any) || 'unpaid',
+    app_hisaab_id: h.app_hisaab_id || undefined,
   };
 }
 
@@ -194,9 +198,11 @@ export async function getOperatorByPhone(phone: string): Promise<any> {
   return apiCall(`/api/operators/by-phone/${phone}`);
 }
 
-export async function getDriverHisaabs(driverId: number): Promise<any> {
+export async function getDriverHisaabs(driverId: number): Promise<any[]> {
   const res: any = await apiCall(`/api/hisaabs/driver/${driverId}`);
-  return res.data || res;
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  return [];
 }
 
 export async function getNotifications(targetId: number): Promise<any> {

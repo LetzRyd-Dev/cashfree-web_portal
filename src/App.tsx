@@ -18,6 +18,7 @@ import {
   LogOut,
   TriangleAlert,
   AlertTriangle,
+  AlertCircle,
   Car,
   CreditCard,
   Wallet,
@@ -415,6 +416,10 @@ export default function App() {
               vehicles: mappedVehicles,
             };
             setOperatorFleet(mappedFleet);
+            if (mappedVehicles.length > 0 && mappedVehicles[0].hisaabWeeks.length > 0) {
+              setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
+              setSelectedVehicleNumber(mappedVehicles[0].number);
+            }
             if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
             setLoginType('operator');
             backendSuccess = true;
@@ -573,6 +578,10 @@ export default function App() {
   const handleSelectVehicleForHisaab = (number: string) => {
     setSelectedVehicleNumber(number);
     setOperatorVehicleWeekIndex(0);
+    const targetVeh = operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === number.replace(/\s+/g, '') || v.number === number);
+    if (targetVeh && targetVeh.hisaabWeeks && targetVeh.hisaabWeeks.length > 0) {
+      setHisaabWeeks(targetVeh.hisaabWeeks);
+    }
     navigateTo('operatorVehicle');
   };
 
@@ -589,23 +598,68 @@ export default function App() {
       .catch(() => triggerToast(`Referral Code: ${code}`, 'info'));
   };
 
-  const handleConfirmPayment = () => {
-    setHisaabWeeks(prev => {
-      const updated = [...prev];
-      if (updated[driverWeekIndex]) {
-        updated[driverWeekIndex] = {
-          ...updated[driverWeekIndex],
-          status: 'settled_pay',
-          toCollect: 0,
-          toPay: 0,
-          currentWeekOs: 0,
-          notes: 'Settled via driver Cashfree checkout.'
-        };
+  const handleConfirmPayment = async () => {
+    // Re-fetch live profile + hisaabs from DB so all pages show real updated values
+    try {
+      if (loginType === 'driver') {
+        const driverProfile = await getDriverByPhone(driverUser.phone).catch(() => null);
+        if (driverProfile) {
+          const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id).catch(() => null);
+          setDriverUser(mapDriverToUser(driverProfile));
+          setDriverVehicle(mapDriverToVehicle(driverProfile));
+          setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
+          if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+        }
+      } else {
+        const opProfile = await getOperatorByPhone(driverUser.phone).catch(() => null);
+        if (opProfile) {
+          const fleetData = await getOperatorFleet(opProfile.app_operator_id).catch(() => null);
+          if (fleetData) {
+            const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData.vehicles || []).map(async (v: any) => {
+              let vehicleHisaabs: HisaabWeek[] = [];
+              if (v.driver_id) {
+                try {
+                  const hisaabs = await getDriverHisaabs(v.driver_id);
+                  vehicleHisaabs = (hisaabs || []).map(mapHisaabToWeek);
+                } catch (e) {}
+              }
+              return {
+                number: v.vehicle_number,
+                make: v.vehicle_make,
+                model: v.vehicle_model,
+                driverName: v.driver_name,
+                plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
+                currentWeekOs: v.current_week_os || 0,
+                status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
+                hisaabWeeks: vehicleHisaabs,
+              };
+            }));
+            setOperatorFleet({
+              operatorCode: fleetData.operator_code,
+              operatorName: fleetData.company_name,
+              depositTotalRequired: fleetData.deposit_total_req,
+              depositPaidSoFar: fleetData.deposit_paid,
+              depositPending: fleetData.deposit_pending,
+              vehicles: mappedVehicles,
+            });
+            const selVeh = mappedVehicles.find(v => v.number === selectedVehicleNumber || v.number.replace(/\s+/g, '') === (selectedVehicleNumber || '').replace(/\s+/g, '')) || mappedVehicles[0];
+            if (selVeh && selVeh.hisaabWeeks && selVeh.hisaabWeeks.length > 0) {
+              setHisaabWeeks(selVeh.hisaabWeeks);
+            }
+          }
+          setDriverUser(prev => ({
+            ...prev,
+            depositPaidSoFar: opProfile.deposit_paid,
+            depositPending: opProfile.deposit_pending,
+            cumulativeOwed: opProfile.cw_to_collect || 0
+          }));
+        }
       }
-      return updated;
-    });
+    } catch (err) {
+      console.warn('[handleConfirmPayment] Re-fetch after payment failed:', err);
+    }
 
-    triggerToast(t('payment.noted', 'Payment verified! Settle balance updated to ₹0.'), 'success');
+    triggerToast(t('payment.noted', 'Payment verified! Balance updated.'), 'success');
     navigateTo('settle');
   };
 
@@ -945,6 +999,10 @@ export default function App() {
                                     depositPending: fleetData.deposit_pending,
                                     vehicles: mappedVehicles,
                                   });
+                                  if (mappedVehicles.length > 0 && mappedVehicles[0].hisaabWeeks.length > 0) {
+                                    setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
+                                    setSelectedVehicleNumber(mappedVehicles[0].number);
+                                  }
                                 }
                                 if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
                               } catch (err) {}
@@ -958,7 +1016,7 @@ export default function App() {
                               </div>
                               <div className="text-[10px] text-text-muted">
                                 {p.fleet
-                                  ? `${p.fleet.vehicles.length} Vehicles • ₹${Math.abs(p.fleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })} To Pay`
+                                  ? `${p.fleet.vehicles.length} Vehicles • ₹${Math.abs(p.fleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(p.fleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })} To Pay`
                                   : 'Fleet Operator'}
                               </div>
                             </div>
@@ -1142,9 +1200,20 @@ export default function App() {
                           <div className="flex justify-between items-center gap-2 pt-0.5">
                             <div>
                               <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{t('home.estimatedPayout', 'ESTIMATED PAYOUT')}</div>
-                              <div className={`font-sans text-2xl font-black mt-0.5 ${activeWeek.currentWeekOs < 0 ? 'text-green' : activeWeek.currentWeekOs > 0 ? 'text-red-600' : 'text-text'}`}>
-                                {activeWeek.currentWeekOs === 0 ? '₹0' : `${activeWeek.currentWeekOs < 0 ? '+₹' : '-₹'}${Math.abs(activeWeek.currentWeekOs).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-                              </div>
+                              {(() => {
+                                const rawDue = activeWeek.toCollect || (activeWeek.currentWeekOs > 0 ? activeWeek.currentWeekOs : 0);
+                                const paid = activeWeek.paidAmount || 0;
+                                const isSettled = activeWeek.status === 'settled' || activeWeek.paymentStatus === 'settled' || (paid >= rawDue && rawDue > 0);
+                                const isPayout = activeWeek.currentWeekOs < 0 || (activeWeek.toPay && activeWeek.toPay > 0);
+                                const val = isPayout 
+                                  ? (activeWeek.toPay || Math.abs(activeWeek.currentWeekOs))
+                                  : (isSettled ? 0 : Math.max(0, rawDue - paid));
+                                return (
+                                  <div className={`font-sans text-2xl font-black mt-0.5 ${isPayout ? 'text-green' : isSettled ? 'text-green' : 'text-red-600'}`}>
+                                    {isSettled && !isPayout ? '₹0' : `${isPayout ? '+₹' : '-₹'}${val.toLocaleString('en-IN', { minimumFractionDigits: val % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`}
+                                  </div>
+                                );
+                              })()}
                             </div>
                             {/* Growth Trend Badge */}
                             <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
@@ -1210,7 +1279,7 @@ export default function App() {
                             <div>
                               <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Fleet Payout</div>
                               <div className="font-sans text-2xl font-black text-green mt-0.5">
-                                +₹{Math.abs(operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                +₹{Math.abs(operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </div>
                             </div>
                             <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
@@ -1283,7 +1352,7 @@ export default function App() {
                                 </span>
                               </div>
 
-                              {prevWeek.isLocked || prevWeek.status === 'settled_pay' ? (
+                              {prevWeek.paymentStatus === 'settled' || prevWeek.status === 'settled_pay' || ((prevWeek.toCollect || 0) <= 0 && (prevWeek.currentWeekOs || 0) <= 0) ? (
                                 <div className="flex justify-between items-center gap-2 pt-0.5">
                                   <div>
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.balanceDue', 'Balance Due')}</div>
@@ -1301,7 +1370,13 @@ export default function App() {
                                   <div>
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Total Outstanding Due</div>
                                     <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5">
-                                      -₹{(prevWeek.currentWeekOs + (prevWeek.pendingDeposit || 0)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                      -₹{(() => {
+                                        const due = Math.max(0, (prevWeek.toCollect || prevWeek.currentWeekOs || 0) - (prevWeek.paidAmount || 0)) + (driverUser.depositPending || 0);
+                                        return due.toLocaleString('en-IN', {
+                                          minimumFractionDigits: due % 1 !== 0 ? 2 : 0,
+                                          maximumFractionDigits: 2,
+                                        });
+                                      })()}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -1309,7 +1384,10 @@ export default function App() {
                                       Due
                                     </span>
                                     <button
-                                      onClick={() => navigateTo('settle')}
+                                      onClick={() => {
+                                        setDriverWeekIndex(1); // Point to Last Week (Week 29)
+                                        navigateTo('settle');
+                                      }}
                                       className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
                                     >
                                       Pay
@@ -1327,10 +1405,10 @@ export default function App() {
                             </span>
                             <div className="flex items-center gap-2 text-[10px] font-sans">
                               <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                               <span className={`px-2.5 py-0.5 rounded-full font-bold border ${(driverUser.depositPending || 0) > 0 ? 'bg-amber-50 text-amber-700 border-amber-200/70' : 'bg-green-50 text-green-700 border-green-200/70'}`}>
-                                {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPending || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                           </div>
@@ -1340,39 +1418,41 @@ export default function App() {
                           onClick={() => navigateTo('operator')}
                           className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
                         >
-                          {prevWeek && (
-                            <>
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="font-semibold text-text flex items-center gap-1.5">
-                                  <Clock className="h-3.5 w-3.5 text-text-muted" />
-                                  {t('home.lastWeekHisaab', 'Last Week Hisaab')}
-                                </span>
-                                <span className="text-[11px] font-mono text-text-muted">
-                                  Week #{prevWeek.weekNumber} • {prevWeek.hisaabNumber}
-                                </span>
-                              </div>
+                          <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
+                            <span className="font-bold text-text flex items-center gap-1.5 uppercase tracking-wider text-[10px] group-hover:text-primary transition-colors">
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                              FLEET COLLECTION DUES
+                            </span>
+                            <span className="text-[10px] font-mono text-text-muted bg-bg px-2 py-0.5 rounded-md border border-border/50">
+                              Week #{activeWeek.weekNumber} • {operatorFleet.operatorCode || 'FLEET'}
+                            </span>
+                          </div>
 
-                              <div className="flex justify-between items-center gap-2 pt-0.5">
-                                <div>
-                                  <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Total Outstanding Due</div>
-                                  <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5">
-                                    -₹{(operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) + (operatorFleet.depositPending || 5000)).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                  <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
-                                    Due
-                                  </span>
-                                  <button
-                                    onClick={() => navigateTo('settle')}
-                                    className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
-                                  >
-                                    Pay
-                                  </button>
-                                </div>
+                          <div className="flex justify-between items-center gap-2 pt-0.5">
+                            <div>
+                              <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Total Outstanding Due</div>
+                              <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5">
+                                -₹{(() => {
+                                  const opDue = (operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) + (operatorFleet.depositPending ?? 0));
+                                  return opDue.toLocaleString('en-IN', {
+                                    minimumFractionDigits: opDue % 1 !== 0 ? 2 : 0,
+                                    maximumFractionDigits: 2,
+                                  });
+                                })()}
                               </div>
-                            </>
-                          )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+                                Due
+                              </span>
+                              <button
+                                onClick={() => navigateTo('settle')}
+                                className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
+                              >
+                                Pay
+                              </button>
+                            </div>
+                          </div>
 
                           {/* Merged Security Deposit Strip for Operator */}
                           <div className="border-t border-border/60 pt-2.5 flex items-center justify-between text-xs">
@@ -1381,10 +1461,10 @@ export default function App() {
                             </span>
                             <div className="flex items-center gap-2 text-[10px] font-sans">
                               <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                Paid: ₹{(operatorFleet.depositPaidSoFar || 20000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                Paid: ₹{(operatorFleet.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                               <span className="bg-amber-50 text-amber-700 border border-amber-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                Pending: ₹{(operatorFleet.depositPending || 5000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                                Pending: ₹{(operatorFleet.depositPending ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPending ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                           </div>
@@ -1463,43 +1543,69 @@ export default function App() {
                     </motion.div>
                   )}
 
-                  {currentScreen === 'hisaab' && (
-                    <HisaabScreen
-                      weeks={hisaabWeeks}
-                      weekIndex={driverWeekIndex}
-                      onPrevWeek={() => setDriverWeekIndex(prev => Math.min(prev + 1, hisaabWeeks.length - 1))}
-                      onNextWeek={() => setDriverWeekIndex(prev => Math.max(prev - 1, 0))}
-                      loginType={loginType}
-                      onPayClick={() => navigateTo('settle')}
-                      t={t}
-                    />
-                  )}
+                  {currentScreen === 'hisaab' && (() => {
+                    const currentVeh = loginType === 'operator'
+                      ? (selectedVehicleObj || operatorFleet.vehicles[0])
+                      : null;
+                    const activeWeeks = (loginType === 'operator' && currentVeh?.hisaabWeeks && currentVeh.hisaabWeeks.length > 0)
+                      ? currentVeh.hisaabWeeks
+                      : hisaabWeeks;
 
-                  {currentScreen === 'settle' && (
-                    <SettleScreen
-                      amount={
-                        loginType === 'operator'
-                          ? operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) + (operatorFleet.depositPending || 5000)
-                          : (hisaabWeeks[driverWeekIndex]?.currentWeekOs > 0 ? hisaabWeeks[driverWeekIndex].currentWeekOs : 0) + (driverUser.depositPending || 0) + (hisaabWeeks[driverWeekIndex]?.challan || 0)
-                      }
-                      hisaabAmount={
-                        loginType === 'operator'
-                          ? operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0)
-                          : (hisaabWeeks[driverWeekIndex]?.currentWeekOs > 0 ? hisaabWeeks[driverWeekIndex].currentWeekOs : 0)
-                      }
-                      pendingDeposit={loginType === 'operator' ? (operatorFleet.depositPending || 5000) : (driverUser.depositPending || 0)}
-                      challansAmount={loginType === 'operator' ? 0 : (hisaabWeeks[driverWeekIndex]?.challan || 0)}
-                      weekRange={`${hisaabWeeks[driverWeekIndex]?.weekStart} to ${hisaabWeeks[driverWeekIndex]?.weekEnd}`}
-                      upiId={LETZRYD_UPI_ID}
-                      driverName={driverUser.name}
-                      driverPhone={driverUser.phone}
-                      driverId={driverUser.id}
-                      onCopyUpi={handleCopyUpiId}
-                      onConfirmPayment={handleConfirmPayment}
-                      onBack={() => navigateTo(loginType === 'operator' ? 'operator' : 'hisaab')}
-                      t={t}
-                    />
-                  )}
+                    return (
+                      <HisaabScreen
+                        weeks={activeWeeks}
+                        weekIndex={driverWeekIndex}
+                        onPrevWeek={() => setDriverWeekIndex(prev => Math.min(prev + 1, activeWeeks.length - 1))}
+                        onNextWeek={() => setDriverWeekIndex(prev => Math.max(prev - 1, 0))}
+                        loginType={loginType}
+                        fleetVehicles={operatorFleet.vehicles}
+                        selectedVehicleNumber={selectedVehicleNumber || operatorFleet.vehicles[0]?.number}
+                        onSelectVehicle={(num) => {
+                          setSelectedVehicleNumber(num);
+                          setDriverWeekIndex(0);
+                          const target = operatorFleet.vehicles.find(v => v.number === num || v.number.replace(/\s+/g, '') === num.replace(/\s+/g, ''));
+                          if (target && target.hisaabWeeks && target.hisaabWeeks.length > 0) {
+                            setHisaabWeeks(target.hisaabWeeks);
+                          }
+                        }}
+                        onPayClick={() => navigateTo('settle')}
+                        t={t}
+                      />
+                    );
+                  })()}
+
+                  {currentScreen === 'settle' && (() => {
+                    const currentH = hisaabWeeks[driverWeekIndex];
+                    const rawDue = currentH ? Math.max(0, (currentH.toCollect || currentH.currentWeekOs || 0)) : 0;
+                    const paidSoFar = currentH?.paidAmount || 0;
+                    const remainingHisaabDue = Math.max(0, rawDue - paidSoFar);
+                    const pendingDep = loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0);
+                    const challanAmt = loginType === 'operator' ? 0 : (currentH?.challan || 0);
+
+                    const totalOperatorDue = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
+                    const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : remainingHisaabDue;
+                    const finalTotalAmount = finalHisaabAmount + pendingDep + challanAmt;
+
+                    return (
+                      <SettleScreen
+                        amount={finalTotalAmount}
+                        hisaabAmount={finalHisaabAmount}
+                        pendingDeposit={pendingDep}
+                        challansAmount={challanAmt}
+                        weekRange={`${currentH?.weekStart} to ${currentH?.weekEnd}`}
+                        upiId={LETZRYD_UPI_ID}
+                        driverName={driverUser.name}
+                        driverPhone={driverUser.phone}
+                        driverId={driverUser.id}
+                        hisaabId={currentH?.app_hisaab_id}
+                        payerType={loginType}
+                        onCopyUpi={handleCopyUpiId}
+                        onConfirmPayment={handleConfirmPayment}
+                        onBack={() => navigateTo(loginType === 'operator' ? 'operator' : 'hisaab')}
+                        t={t}
+                      />
+                    );
+                  })()}
 
                   {currentScreen === 'vehicle' && (
                     <VehicleScreen

@@ -134,6 +134,10 @@ export interface HisaabWeek {
   toPay: number;
   letzrydEarning: number;
   notes: string;
+  // Payment tracking fields (from backend)
+  paidAmount?: number;
+  paymentStatus?: 'unpaid' | 'partial' | 'settled';
+  app_hisaab_id?: number;
 }
 
 export interface FleetVehicle {

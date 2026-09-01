@@ -421,6 +421,9 @@ interface HisaabScreenProps {
   onPayClick: (amount: number) => void;
   t: (key: string, fallback: string) => string;
   olaSyncStatusText?: string;
+  fleetVehicles?: FleetVehicle[];
+  selectedVehicleNumber?: string | null;
+  onSelectVehicle?: (number: string) => void;
 }
 
 export const HisaabScreen: React.FC<HisaabScreenProps> = ({
@@ -431,7 +434,10 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
   loginType,
   onPayClick,
   t,
-  olaSyncStatusText
+  olaSyncStatusText,
+  fleetVehicles,
+  selectedVehicleNumber,
+  onSelectVehicle
 }) => {
   const [uberOpen, setUberOpen] = useState(false);
   const [olaOpen, setOlaOpen] = useState(false);
@@ -442,9 +448,35 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
 
   if (weeks.length === 0) {
     return (
-      <div className="py-12 text-center text-text-muted flex flex-col items-center justify-center font-sans">
-        <Activity className="w-12 h-12 opacity-35 mb-3" />
-        <p className="text-sm font-semibold">{t('hisaab.noData', 'No records found')}</p>
+      <div className="space-y-3 font-sans text-left">
+        {loginType === 'operator' && fleetVehicles && fleetVehicles.length > 0 && (
+          <div className="bg-surface border border-border/80 rounded-2xl p-3 shadow-xs space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-text uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                <Car className="w-3.5 h-3.5 text-primary" />
+                Select Fleet Driver / Vehicle:
+              </span>
+              <span className="text-[10px] font-semibold text-text-muted">
+                {fleetVehicles.length} Vehicles
+              </span>
+            </div>
+            <select
+              value={selectedVehicleNumber || fleetVehicles[0]?.number}
+              onChange={(e) => onSelectVehicle && onSelectVehicle(e.target.value)}
+              className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs font-bold text-text focus:outline-none focus:border-primary cursor-pointer"
+            >
+              {fleetVehicles.map(v => (
+                <option key={v.number} value={v.number}>
+                  {v.driverName} — {v.number} ({v.model}) [{v.currentWeekOs < 0 ? `+₹${Math.abs(v.currentWeekOs).toLocaleString('en-IN')}` : v.currentWeekOs > 0 ? `-₹${v.currentWeekOs.toLocaleString('en-IN')}` : '₹0'}]
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div className="py-12 text-center text-text-muted flex flex-col items-center justify-center font-sans">
+          <Activity className="w-12 h-12 opacity-35 mb-3" />
+          <p className="text-sm font-semibold">{t('hisaab.noData', 'No records found for this vehicle')}</p>
+        </div>
       </div>
     );
   }
@@ -568,11 +600,37 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
 
   return (
     <div className="space-y-3.5 text-left font-sans pb-4">
+      {/* OPERATOR FLEET VEHICLE SWITCHER */}
+      {loginType === 'operator' && fleetVehicles && fleetVehicles.length > 0 && (
+        <div className="bg-surface border border-border/80 rounded-2xl p-3 shadow-xs space-y-2 font-sans">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-text uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+              <Car className="w-3.5 h-3.5 text-primary" />
+              Select Fleet Driver / Vehicle:
+            </span>
+            <span className="text-[10px] font-semibold text-text-muted">
+              {fleetVehicles.length} Vehicles
+            </span>
+          </div>
+          <select
+            value={selectedVehicleNumber || fleetVehicles[0]?.number}
+            onChange={(e) => onSelectVehicle && onSelectVehicle(e.target.value)}
+            className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs font-bold text-text focus:outline-none focus:border-primary cursor-pointer"
+          >
+            {fleetVehicles.map(v => (
+              <option key={v.number} value={v.number}>
+                {v.driverName} — {v.number} ({v.model}) [{v.currentWeekOs < 0 ? `+₹${Math.abs(v.currentWeekOs).toLocaleString('en-IN')}` : v.currentWeekOs > 0 ? `-₹${v.currentWeekOs.toLocaleString('en-IN')}` : '₹0'}]
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* 1. WEEK SELECTOR & DATE NAVIGATOR CARD */}
       <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs space-y-3 font-sans">
         <div className="border-b border-border/60 pb-2.5 space-y-1">
           <div className="flex justify-between items-center">
-            <div className="font-sans text-xs flex items-center gap-2">
+            <div className="font-sans text-xs flex items-center gap-2 flex-wrap">
               <span className="font-extrabold text-text text-sm">{t('hisaab.weekLabel', 'Week')} #{w.weekNumber}</span>
               <span className="text-[10px] font-bold text-text-muted font-mono bg-bg px-2 py-0.5 rounded-md border border-border/50">
                 {w.hisaabNumber}
@@ -580,10 +638,20 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
 
             <div className="text-right flex items-center">
-              {w.weekNumber < 30 || w.isLocked || w.status !== 'in_progress' ? (
+              {w.paymentStatus === 'settled' || w.status === 'settled_pay' ? (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-green bg-green-light border border-green-200/50 px-2.5 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3 text-green" />
-                  {t('hisaab.completed', 'Completed')}
+                  Settled
+                </span>
+              ) : w.paymentStatus === 'partial' ? (
+                <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-full">
+                  <Clock className="w-3 h-3 text-amber-600" />
+                  Partial Paid
+                </span>
+              ) : w.weekNumber < 30 || w.isLocked ? (
+                <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-full">
+                  <AlertCircle className="w-3 h-3 text-red-600" />
+                  Payment Due
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-full">
@@ -695,19 +763,57 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
               </div>
             </div>
 
-            <div className="pt-3 border-t border-dashed border-border/80 flex items-center justify-between">
-              <div>
-                <span className="font-sans text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                  {w.currentWeekOs < 0 ? t('hisaab.netPayout', 'NET DRIVER PAYOUT') : t('hisaab.netDue', 'OUTSTANDING DEBT DUE')}
-                </span>
-                <p className="font-sans text-[11px] text-text-muted mt-0.5">
-                  {w.currentWeekOs < 0 ? t('home.payoutToDriver', 'LetzRyd payout to driver') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')} • <strong className="text-text">{w.activeDays} {t('home.daysActive', 'Days Active')}</strong>
-                </p>
+            {(() => {
+              const rawDue = w.toCollect || (w.currentWeekOs > 0 ? w.currentWeekOs : 0);
+              const paid = w.paidAmount || 0;
+              const remainingDue = Math.max(0, rawDue - paid);
+              const isPayout = w.currentWeekOs < 0;
+
+              return (
+                <div className="pt-3 border-t border-dashed border-border/80 flex items-center justify-between">
+                  <div>
+                    <span className="font-sans text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                      {isPayout ? t('hisaab.netPayout', 'NET DRIVER PAYOUT') : t('hisaab.netDue', 'OUTSTANDING DEBT DUE')}
+                    </span>
+                    <p className="font-sans text-[11px] text-text-muted mt-0.5">
+                      {isPayout ? t('home.payoutToDriver', 'LetzRyd payout to driver') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')} • <strong className="text-text">{w.activeDays} {t('home.daysActive', 'Days Active')}</strong>
+                    </p>
+                  </div>
+                  <div className={`font-mono text-sm font-black ${isPayout ? 'text-green' : remainingDue === 0 ? 'text-green' : 'text-red-600'}`}>
+                    {isPayout
+                      ? `+₹${Math.abs(w.currentWeekOs).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(w.currentWeekOs) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`
+                      : remainingDue === 0
+                      ? '₹0'
+                      : `-₹${remainingDue.toLocaleString('en-IN', { minimumFractionDigits: remainingDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Payment Tracking Row — shows live DB paid amount + status */}
+            {(w.paidAmount !== undefined || w.paymentStatus) && (
+              <div className="pt-2 border-t border-dashed border-border/60 flex items-center justify-between text-[10px]">
+                <div className="flex items-center gap-1.5 font-medium text-text-muted">
+                  <span>💳 Payment Received:</span>
+                  <span className="font-mono font-bold text-text">₹{(w.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: (w.paidAmount || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}</span>
+                </div>
+                {w.paymentStatus === 'settled' && (
+                  <span className="flex items-center gap-1 font-bold text-green bg-green-light border border-green-200/50 px-2 py-0.5 rounded-full">
+                    <CheckCircle2 className="w-3 h-3" /> Settled
+                  </span>
+                )}
+                {w.paymentStatus === 'partial' && (
+                  <span className="flex items-center gap-1 font-bold text-amber-600 bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded-full">
+                    <Clock className="w-3 h-3" /> Partial
+                  </span>
+                )}
+                {(!w.paymentStatus || w.paymentStatus === 'unpaid') && w.currentWeekOs > 0 && (
+                  <span className="flex items-center gap-1 font-bold text-red-600 bg-red-50 border border-red-200/50 px-2 py-0.5 rounded-full">
+                    Unpaid
+                  </span>
+                )}
               </div>
-              <div className={`font-mono text-sm font-black ${w.currentWeekOs < 0 ? 'text-green' : 'text-red-600'}`}>
-                {w.currentWeekOs < 0 ? '+₹' : '-₹'}{Math.abs(w.currentWeekOs).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </div>
-            </div>
+            )}
           </div>
         );
       })()}
@@ -840,12 +946,12 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
             <div className="flex justify-between items-center text-[10px] text-text-muted">
               <span>{t('hisaab.paid', 'Paid:')}</span>
-              <span className="font-bold text-green font-mono">₹{(w.paidDeposit || 5000).toLocaleString('en-IN')}</span>
+              <span className="font-bold text-green font-mono">₹{(w.paidDeposit ?? 0).toLocaleString('en-IN')}</span>
             </div>
             <div className="flex justify-between items-center text-[10px]">
               <span className="text-text-muted">{t('hisaab.pending', 'Pending:')}</span>
-              <span className={`font-bold font-mono ${(w.pendingDeposit ?? 1000) > 0 ? 'text-amber-700 font-extrabold' : 'text-green'}`}>
-                ₹{(w.pendingDeposit ?? 1000).toLocaleString('en-IN')}
+              <span className={`font-bold font-mono ${(w.pendingDeposit ?? 0) > 0 ? 'text-amber-700 font-extrabold' : 'text-green'}`}>
+                ₹{(w.pendingDeposit ?? 0).toLocaleString('en-IN')}
               </span>
             </div>
           </div>
@@ -892,6 +998,8 @@ interface SettleScreenProps {
   driverName?: string;
   driverPhone?: string;
   driverId?: string;
+  hisaabId?: number;        // NEW: links payment to specific hisaab in DB
+  payerType?: 'driver' | 'operator';  // NEW: driver vs operator payment
   onCopyUpi: () => void;
   onConfirmPayment: () => void;
   onBack: () => void;
@@ -908,6 +1016,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   driverName,
   driverPhone,
   driverId,
+  hisaabId,
+  payerType = 'driver',
   onCopyUpi,
   onConfirmPayment,
   onBack,
@@ -1008,7 +1118,9 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           driverName: driverName || 'Driver Partner',
           driverPhone: driverPhone || '9999999999',
           driverId: driverId || '1',
-          weekRange
+          weekRange,
+          app_hisaab_id: hisaabId || null,   // Link to specific hisaab
+          payer_type: payerType || 'driver',  // driver or operator
         })
       });
 
@@ -1196,7 +1308,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           </div>
 
           <span className="font-mono text-xs font-black text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
-            ₹{activePayAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            ₹{activePayAmount.toLocaleString('en-IN', { minimumFractionDigits: activePayAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
           </span>
         </div>
 
@@ -1208,7 +1320,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         >
           <div className="flex flex-col items-center justify-center space-y-2 p-6 text-center">
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            <span className="text-xs font-semibold text-text-muted">Loading Cashfree checkout for ₹{activePayAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}...</span>
+            <span className="text-xs font-semibold text-text-muted">Loading Cashfree checkout for ₹{activePayAmount.toLocaleString('en-IN', { minimumFractionDigits: activePayAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}...</span>
           </div>
         </div>
 
@@ -1270,7 +1382,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             Initializing Secure Checkout
           </h3>
           <p className="font-sans text-xs text-text-muted max-w-[220px]">
-            Creating Cashfree order for ₹{activePayAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}...
+            Creating Cashfree order for ₹{activePayAmount.toLocaleString('en-IN', { minimumFractionDigits: activePayAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}...
           </p>
         </div>
       </div>
@@ -1310,25 +1422,43 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             {t('home.totalOutstandingDue', 'Total Outstanding Due')}
           </span>
           <span className="font-sans text-xl font-black text-red-600">
-            ₹{totalDueAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+            ₹{totalDueAmount.toLocaleString('en-IN', {
+              minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0,
+              maximumFractionDigits: 2,
+            })}
           </span>
         </div>
 
         <div className="space-y-1.5 px-1 font-sans text-xs border-b border-border/60 pb-3">
           <div className="flex justify-between items-center text-text">
             <span className="text-text-muted font-medium">{t('settle.weeklyHisaabDue', 'Weekly Hisaab Due:')}</span>
-            <span className="font-bold text-text">₹{pastWeekAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+            <span className="font-bold text-text">
+              ₹{pastWeekAmount.toLocaleString('en-IN', {
+                minimumFractionDigits: pastWeekAmount % 1 !== 0 ? 2 : 0,
+                maximumFractionDigits: 2,
+              })}
+            </span>
           </div>
           {challansAmount > 0 && (
             <div className="flex justify-between items-center text-text">
               <span className="text-text-muted font-medium">{t('settle.challansAndPenalties', 'Challans & Penalties:')}</span>
-              <span className="font-bold text-red-600">₹{challansAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="font-bold text-red-600">
+                ₹{challansAmount.toLocaleString('en-IN', {
+                  minimumFractionDigits: challansAmount % 1 !== 0 ? 2 : 0,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
             </div>
           )}
           {pendingDeposit > 0 && (
             <div className="flex justify-between items-center text-text">
               <span className="text-text-muted font-medium">{t('hisaab.pendingDeposit', 'Pending Deposit')}:</span>
-              <span className="font-bold text-amber-700">₹{pendingDeposit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+              <span className="font-bold text-amber-700">
+                ₹{pendingDeposit.toLocaleString('en-IN', {
+                  minimumFractionDigits: pendingDeposit % 1 !== 0 ? 2 : 0,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
             </div>
           )}
         </div>
@@ -1386,13 +1516,13 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           {paymentOption === 'advance' && isAdvanceInvalid && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}).
+              ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).
             </p>
           )}
 
           {paymentOption === 'part' && activePayAmount >= totalDueAmount && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              ⚠️ {t('settle.partError', 'Part payment must be less than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}). {t('settle.useFullPay', 'Use Full Pay for full settlement.')}
+              ⚠️ {t('settle.partError', 'Part payment must be less than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). {t('settle.useFullPay', 'Use Full Pay for full settlement.')}
             </p>
           )}
 
@@ -2008,8 +2138,10 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
   const activeList = activeTab === 'drivers' ? driverVehicles : vehicleFleetList;
 
   const formatCurrency = (val: number) => {
+    const hasDecimals = val % 1 !== 0;
     return '₹' + Math.abs(val).toLocaleString('en-IN', {
-      maximumFractionDigits: 0
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: 2,
     });
   };
 
@@ -2053,13 +2185,13 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
             <span>
               <span className="text-text-muted font-medium">{t('hisaab.paid', 'Paid:')} </span>
               <span className="font-bold text-green">
-                ₹{(fleet.depositPaidSoFar || 20000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                ₹{(fleet.depositPaidSoFar || 20000).toLocaleString('en-IN', { minimumFractionDigits: (fleet.depositPaidSoFar || 20000) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
               </span>
             </span>
             <span>
               <span className="text-text-muted font-medium">{t('hisaab.pending', 'Pending:')} </span>
               <span className="font-bold text-amber-700">
-                ₹{(fleet.depositPending || 5000).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                ₹{(fleet.depositPending ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (fleet.depositPending ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
               </span>
             </span>
           </div>
