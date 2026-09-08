@@ -63,6 +63,7 @@ import {
 
 import { User as UserType, Vehicle, HisaabWeek, Fleet, Ticket, Notification, RentalPlan, FleetVehicle, Announcement, Language } from '../types';
 import { USER_DATA, VEHICLE_DATA, LETZRYD_UPI_ID, ANNOUNCEMENTS_DATA } from '../data';
+import { BACKEND_URL } from '../api';
 
 declare const Cashfree: (config: { mode: string }) => {
   checkout: (options: {
@@ -1109,8 +1110,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     const generatedOrderId = `ORDER_LR_${Date.now()}`;
 
     try {
-      // Call local backend endpoint which uses real Cashfree App ID & Secret
-      const res = await fetch('/api/create-order', {
+      // Call backend endpoint which uses real Cashfree App ID & Secret
+      const res = await fetch(`${BACKEND_URL}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1123,6 +1124,16 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           payer_type: payerType || 'driver',  // driver or operator
         })
       });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        let errorDetail = `Payment server error (${res.status})`;
+        try {
+          const parsed = JSON.parse(errText);
+          errorDetail = parsed?.detail || parsed?.error || errorDetail;
+        } catch {}
+        throw new Error(errorDetail);
+      }
 
       const sessionData = await res.json();
 
@@ -1163,7 +1174,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     const checkId = targetOrderId || currentOrderId;
     if (!checkId) return;
     try {
-      const res = await fetch(`/api/payments/verify/${checkId}`);
+      const res = await fetch(`${BACKEND_URL}/api/payments/verify/${checkId}`);
+      if (!res.ok) return;
       const data = await res.json();
       if (data?.is_success || data?.status === 'SUCCESS') {
         handlePaymentSuccess();

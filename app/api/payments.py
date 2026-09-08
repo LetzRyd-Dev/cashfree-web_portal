@@ -397,8 +397,12 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
         },
         initiated_at=now
     )
-    db.add(payment)
-    db.commit()
+    try:
+        db.add(payment)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"[WARN] Failed to persist payment record in DB: {e}")
 
     return CreateOrderResponse(
         payment_session_id=session_id or f"session_lr_{uuid.uuid4().hex}",
@@ -483,8 +487,9 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
         payment.payment_mode = payment_mode
         # Cascade update to all related records
         cascade_result = _apply_payment_success(payment, db)
-    elif payment and is_success:
+    elif payment and (is_success or payment.status == "SUCCESS"):
         # Already processed — return current state
+        is_success = True
         cascade_result = {"note": "Already processed previously"}
 
     return {
@@ -492,7 +497,7 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
         "is_success": is_success,
         "status": "SUCCESS" if is_success else "PENDING",
         "payment_mode": payment_mode,
-        "cf_payment_id": cf_payment_id,
+        "cf_payment_id": cf_payment_id or (payment.cf_payment_id if payment else None),
         "data": payments_data,
         "cascade_updates": cascade_result,
     }

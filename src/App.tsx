@@ -81,6 +81,7 @@ import {
   mapHisaabToWeek,
   mapNotification,
   mapTicket,
+  BACKEND_URL,
 } from './api';
 
 declare global {
@@ -669,8 +670,8 @@ export default function App() {
     const orderId = searchParams.get('order_id');
     if (orderId) {
       window.history.replaceState({}, document.title, window.location.pathname);
-      fetch(`/api/payments/verify/${orderId}`)
-        .then(res => res.json())
+      fetch(`${BACKEND_URL}/api/payments/verify/${orderId}`)
+        .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.is_success || data?.status === 'SUCCESS') {
             handleConfirmPayment();
