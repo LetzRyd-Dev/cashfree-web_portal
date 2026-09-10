@@ -1110,20 +1110,30 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     const generatedOrderId = `ORDER_LR_${Date.now()}`;
 
     try {
-      // Call backend endpoint which uses real Cashfree App ID & Secret
-      const res = await fetch(`${BACKEND_URL}/api/create-order`, {
+      const orderPayload = {
+        amount: activePayAmount.toFixed(2),
+        driverName: driverName || 'Driver Partner',
+        driverPhone: driverPhone || '9999999999',
+        driverId: driverId || '1',
+        weekRange,
+        app_hisaab_id: hisaabId || null,   // Link to specific hisaab
+        payer_type: payerType || 'driver',  // driver or operator
+      };
+
+      // Call backend endpoint (try primary alias, fallback to router path if needed)
+      let res = await fetch(`${BACKEND_URL}/api/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: activePayAmount.toFixed(2),
-          driverName: driverName || 'Driver Partner',
-          driverPhone: driverPhone || '9999999999',
-          driverId: driverId || '1',
-          weekRange,
-          app_hisaab_id: hisaabId || null,   // Link to specific hisaab
-          payer_type: payerType || 'driver',  // driver or operator
-        })
+        body: JSON.stringify(orderPayload)
       });
+
+      if (res.status === 404 || res.status === 405) {
+        res = await fetch(`${BACKEND_URL}/api/payments/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(orderPayload)
+        });
+      }
 
       if (!res.ok) {
         const errText = await res.text();
