@@ -380,3 +380,43 @@ class AppAuditLogs(Base):
     metadata_payload = Column('metadata', JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), nullable=False)
 
+
+class AppDriverAllocations(Base):
+    __tablename__ = "app_driver_allocations"
+
+    app_allocation_id = Column(Integer, primary_key=True, index=True)
+    core_allocation_id = Column(Integer, nullable=True)
+    app_driver_id = Column(Integer, ForeignKey("app_drivers.app_driver_id"), nullable=False)
+    app_operator_id = Column(Integer, nullable=True)
+    vehicle_number = Column(String(20), nullable=False)
+    allocation_date = Column(Date, nullable=False)
+    dropoff_date = Column(Date, nullable=True)
+    start_odometer = Column(Integer, nullable=True, default=0)
+    end_odometer = Column(Integer, nullable=True)
+    daily_rental_rate = Column(Numeric(10,2), nullable=True, default=1000.0)
+    allocation_status = Column(String(20), nullable=False, default="ACTIVE")
+    assigned_hub = Column(String(100), nullable=True)
+    assigned_city = Column(String(50), nullable=True)
+    assigned_manager = Column(String(150), nullable=True)
+    agreement_url = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class AppDriverBankAccounts(Base):
+    __tablename__ = "app_driver_bank_accounts"
+
+    bank_account_id = Column(Integer, primary_key=True, index=True)
+    app_driver_id = Column(Integer, ForeignKey("app_drivers.app_driver_id"), nullable=True)
+    app_operator_id = Column(Integer, ForeignKey("app_operators.app_operator_id"), nullable=True)
+    account_number = Column(String(50), nullable=False)
+    ifsc_code = Column(String(20), nullable=False)
+    account_holder_name = Column(String(150), nullable=False)
+    bank_name = Column(String(150), nullable=True)
+    upi_id = Column(String(100), nullable=True)
+    is_primary = Column(Boolean, nullable=False, default=True)
+    is_verified = Column(Boolean, nullable=False, default=False)
+    verification_status = Column(String(20), nullable=False, default="VERIFIED")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), default=func.now(), onupdate=func.now(), nullable=False)
+

@@ -28,32 +28,46 @@ def clean_phone_number(raw_phone: str) -> str:
         cleaned = cleaned[1:]
     return cleaned
 
+LEGACY_DRIVER_ID_MAP = {
+    157: 1,  # Vivek
+    202: 2,  # Sushant
+    312: 3,  # Aayush
+    41: 4,   # Anurag Driver
+    418: 5,  # Mohammed Ali
+    501: 6,  # Anil Verma
+}
+
 def resolve_driver(phone_or_id: str, db: Session) -> Optional[AppDrivers]:
     """Find AppDrivers by clean phone, alias phone, or ID."""
     clean = clean_phone_number(phone_or_id)
     
-    # 1. Direct phone match
     if clean:
-        driver = db.query(AppDrivers).filter(AppDrivers.phone == clean).first()
-        if driver:
-            return driver
-            
-        # 2. Alias phone match
+        # 1. Alias phone match (e.g. 9876543210 -> Vivek 9901484683)
         if clean in DRIVER_PHONE_ALIASES:
             aliased_phone = DRIVER_PHONE_ALIASES[clean]
             driver = db.query(AppDrivers).filter(AppDrivers.phone == aliased_phone).first()
             if driver:
                 return driver
+                
+        # 2. Direct phone match
+        driver = db.query(AppDrivers).filter(AppDrivers.phone == clean).first()
+        if driver:
+            return driver
 
-    # 3. Numeric ID match: Prioritize app_driver_id (Primary Key / Foreign Key in hisaabs)
-    if str(phone_or_id).isdigit():
+    # 3. Numeric ID match: Only if input is numeric and NOT a 10-digit phone number
+    if str(phone_or_id).isdigit() and len(clean) != 10:
         num_id = int(phone_or_id)
-        driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == num_id).first()
-        if driver:
-            return driver
-        driver = db.query(AppDrivers).filter(AppDrivers.driver_id == num_id).first()
-        if driver:
-            return driver
+        if num_id in LEGACY_DRIVER_ID_MAP:
+            driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == LEGACY_DRIVER_ID_MAP[num_id]).first()
+            if driver:
+                return driver
+        if num_id > 0:
+            driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == num_id).first()
+            if driver:
+                return driver
+            driver = db.query(AppDrivers).filter(AppDrivers.driver_id == num_id).first()
+            if driver:
+                return driver
 
     return None
 
@@ -61,27 +75,28 @@ def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
     """Find AppOperators by clean phone, alias phone, or ID."""
     clean = clean_phone_number(phone_or_id)
 
-    # 1. Direct phone match
     if clean:
-        op = db.query(AppOperators).filter(AppOperators.phone == clean).first()
-        if op:
-            return op
-
-        # 2. Alias phone match
+        # 1. Alias phone match (e.g. 9876543222 -> Anurag 9691938866)
         if clean in OPERATOR_PHONE_ALIASES:
             aliased_phone = OPERATOR_PHONE_ALIASES[clean]
             op = db.query(AppOperators).filter(AppOperators.phone == aliased_phone).first()
             if op:
                 return op
 
-    # 3. Numeric ID match: Prioritize app_operator_id (Primary Key / Foreign Key)
-    if str(phone_or_id).isdigit():
+        # 2. Direct phone match
+        op = db.query(AppOperators).filter(AppOperators.phone == clean).first()
+        if op:
+            return op
+
+    # 3. Numeric ID match: Only if input is numeric and NOT a 10-digit phone number
+    if str(phone_or_id).isdigit() and len(clean) != 10:
         num_id = int(phone_or_id)
-        op = db.query(AppOperators).filter(AppOperators.app_operator_id == num_id).first()
-        if op:
-            return op
-        op = db.query(AppOperators).filter(AppOperators.operator_id == num_id).first()
-        if op:
-            return op
+        if num_id > 0:
+            op = db.query(AppOperators).filter(AppOperators.app_operator_id == num_id).first()
+            if op:
+                return op
+            op = db.query(AppOperators).filter(AppOperators.operator_id == num_id).first()
+            if op:
+                return op
 
     return None

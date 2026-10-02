@@ -1002,7 +1002,7 @@ interface SettleScreenProps {
   hisaabId?: number;        // NEW: links payment to specific hisaab in DB
   payerType?: 'driver' | 'operator';  // NEW: driver vs operator payment
   onCopyUpi: () => void;
-  onConfirmPayment: () => void;
+  onConfirmPayment: (paidAmt?: number) => void;
   onBack: () => void;
   t: (key: string, fallback: string) => string;
 }
@@ -1051,27 +1051,51 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   // Mount Cashfree's official inline checkout to flush session and avoid stale cache
   useEffect(() => {
     if (paymentState === 'checkout' && paymentSessionId && checkoutContainerRef.current) {
-      if (typeof (window as any).Cashfree === 'function') {
-        try {
-          const cashfree = (window as any).Cashfree({ mode: 'sandbox' });
-          checkoutContainerRef.current.innerHTML = '';
-          cashfree.checkout({
-            paymentSessionId: paymentSessionId,
-            redirectTarget: checkoutContainerRef.current,
-            appearance: {
-              width: '100%',
-              height: '520px'
+      const initCashfreeCheckout = () => {
+        if (typeof (window as any).Cashfree === 'function') {
+          try {
+            const cashfree = (window as any).Cashfree({ mode: 'sandbox' });
+            if (checkoutContainerRef.current) {
+              checkoutContainerRef.current.innerHTML = '';
+              cashfree.checkout({
+                paymentSessionId: paymentSessionId,
+                redirectTarget: checkoutContainerRef.current,
+                appearance: {
+                  width: '100%',
+                  height: '520px'
+                }
+              }).then((result: any) => {
+                if (result && result.paymentDetails) {
+                  handleVerifyOrder();
+                }
+              }).catch((err: any) => {
+                console.warn('Cashfree inline checkout error, falling back to modal:', err);
+                try {
+                  cashfree.checkout({
+                    paymentSessionId: paymentSessionId,
+                    redirectTarget: '_modal'
+                  });
+                } catch (modalErr) {
+                  console.error('Cashfree modal checkout error:', modalErr);
+                }
+              });
             }
-          }).then((result: any) => {
-            if (result && result.paymentDetails) {
-              handleVerifyOrder();
-            }
-          }).catch((err: any) => {
-            console.warn('Cashfree inline checkout error:', err);
-          });
-        } catch (e) {
-          console.warn('Cashfree checkout initialization failed:', e);
+            return true;
+          } catch (e) {
+            console.warn('Cashfree checkout initialization failed:', e);
+            return false;
+          }
         }
+        return false;
+      };
+
+      if (!initCashfreeCheckout()) {
+        const interval = setInterval(() => {
+          if (initCashfreeCheckout()) {
+            clearInterval(interval);
+          }
+        }, 250);
+        return () => clearInterval(interval);
       }
     }
   }, [paymentState, paymentSessionId]);
@@ -1118,21 +1142,43 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         weekRange,
         app_hisaab_id: hisaabId || null,   // Link to specific hisaab
         payer_type: payerType || 'driver',  // driver or operator
+        return_url: typeof window !== 'undefined' ? `${window.location.origin}/?order_id={order_id}` : undefined,
       };
 
-      // Call backend endpoint (try primary alias, fallback to router path if needed)
-      let res = await fetch(`${BACKEND_URL}/api/create-order`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload)
-      });
+      // Call backend endpoint with automatic fallback across relative & direct host paths
+      const endpointsToTry = [
+        `${BACKEND_URL}/api/create-order`,
+        '/api/create-order',
+        'http://127.0.0.1:8000/api/create-order',
+        'http://localhost:8000/api/create-order',
+        `${BACKEND_URL}/api/payments/create-order`,
+        '/api/payments/create-order',
+      ].filter(Boolean);
 
-      if (res.status === 404 || res.status === 405) {
-        res = await fetch(`${BACKEND_URL}/api/payments/create-order`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(orderPayload)
-        });
+      let res: Response | null = null;
+      let lastNetworkError: any = null;
+
+      for (const endpoint of endpointsToTry) {
+        try {
+          const attempt = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+          });
+          if (attempt.ok) {
+            res = attempt;
+            break;
+          } else if (attempt.status !== 404 && attempt.status !== 405) {
+            res = attempt;
+            break;
+          }
+        } catch (e) {
+          lastNetworkError = e;
+        }
+      }
+
+      if (!res) {
+        throw new Error(lastNetworkError?.message || 'Could not connect to payment backend.');
       }
 
       if (!res.ok) {
@@ -1176,7 +1222,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     setPaymentState('form');
     setPaymentSessionId('');
     setCurrentOrderId('');
-    onConfirmPayment();
+    onConfirmPayment(activePayAmount);
   };
 
   // Verify real order with backend (Only triggers success if truly verified by Cashfree)
@@ -1188,6 +1234,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       if (!res.ok) return;
       const data = await res.json();
       if (data?.is_success || data?.status === 'SUCCESS') {
+        const verifiedAmount = data?.amount || data?.paid_amount || activePayAmount;
+        onConfirmPayment(verifiedAmount);
         handlePaymentSuccess();
       }
     } catch (e) {

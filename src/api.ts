@@ -2,7 +2,7 @@ import { User, HisaabWeek, Ticket, Notification, Vehicle, RentalPlan } from './t
 
 const envBackend = import.meta.env.VITE_BACKEND_URL;
 export const BACKEND_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-  ? (envBackend && envBackend.includes('localhost') ? envBackend : 'http://127.0.0.1:8000')
+  ? (envBackend && envBackend.includes('localhost') ? envBackend : '')
   : (envBackend && !envBackend.includes('cashfree-web-portal-925756819101')
       ? envBackend 
       : 'https://letzryd-portal-925756819101.asia-south1.run.app');
@@ -101,50 +101,53 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
   const lastRefreshed = h.last_refreshed_at
     ? new Date(h.last_refreshed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' } as any)
     : '';
-  return {
-    weekNumber: h.week_number,
-    hisaabNumber: h.hisaab_number,
-    weekStart: h.period_start,
-    weekEnd: h.period_end,
-    status,
-    isLocked: h.is_locked || false,
-    activeDays: h.days_count || 0,
-    growthPct: h.growth_pct || 0,
-    platforms: {
-      uber: { trips: h.uber_trips, revenue: h.uber_revenue, cashCollection: -Math.abs(h.uber_cash), toll: h.uber_toll, incentive: h.uber_incentive, subscription: -Math.abs(h.uber_subscription), km: h.uber_km },
-      ola: { trips: h.ola_trips, revenue: h.ola_revenue, cashCollection: -Math.abs(h.ola_cash), toll: h.ola_toll, incentive: h.ola_incentive, subscription: -Math.abs(h.ola_subscription), km: h.ola_km },
-      rapido: { trips: h.rapido_trips, revenue: h.rapido_revenue, cashCollection: -Math.abs(h.rapido_cash), toll: h.rapido_toll, incentive: h.rapido_incentive, subscription: -Math.abs(h.rapido_subscription), km: h.rapido_km },
-    },
-    rent: { dailyRate: h.vehicle_daily_rate || 1000, netWeeklyRent: h.vehicle_rent || 0 },
-    dailyMaintenance: h.maintenance_charge || 0,
-    previousAdjustments: h.other_adjustment || 0,
-    tds: h.tds_amount || 0,
-    challan: h.challan_amount || 0,
-    accident: h.accident_charge || 0,
-    adjustment: h.other_adjustment || 0,
-    paidDeposit: 0,
-    pendingDeposit: 0,
-    joiningFeePaid: 0,
-    pendingJoiningFee: 0,
-    previousOutstanding: h.previous_outstanding || 0,
-    pendingSinceDate: h.period_start || '',
-    gps: {
-      totalGpsKm: h.gps_total_km || 0,
-      idealGpsKm: h.gps_ideal_km || 0,
-      deadMile: h.gps_dead_km || 0,
-      deadMilePct: h.gps_dead_pct || 0,
-      deadKmPenalty: h.gps_dead_penalty || 0,
-      allowedFreeDeadKmPct: h.gps_free_dead_pct || 20,
-      penaltyRatePerKm: h.gps_penalty_rate || 5,
-    },
-    lastRefreshedTime: lastRefreshed,
-    currentWeekOs: h.current_period_os || 0,
-    pendingDue: h.to_collect || 0,
-    totalOs: h.current_period_os || 0,
-    toCollect: h.to_collect || 0,
-    toPay: h.to_pay || 0,
-    letzrydEarning: h.letzryd_earning || 0,
-    notes: h.notes || '',
+    const currentWeekOs = Number(h.current_period_os) || 0;
+    const toCollect = currentWeekOs > 0 ? currentWeekOs : (h.to_collect && h.to_collect > 0 && currentWeekOs >= 0 ? Number(h.to_collect) : 0);
+    const toPay = currentWeekOs < 0 ? Math.abs(currentWeekOs) : (h.to_pay && h.to_pay > 0 && currentWeekOs <= 0 ? Number(h.to_pay) : 0);
+    return {
+      weekNumber: h.week_number,
+      hisaabNumber: h.hisaab_number,
+      weekStart: h.period_start,
+      weekEnd: h.period_end,
+      status,
+      isLocked: h.is_locked || false,
+      activeDays: h.days_count || 0,
+      growthPct: h.growth_pct || 0,
+      platforms: {
+        uber: { trips: h.uber_trips, revenue: h.uber_revenue, cashCollection: -Math.abs(h.uber_cash), toll: h.uber_toll, incentive: h.uber_incentive, subscription: -Math.abs(h.uber_subscription), km: h.uber_km },
+        ola: { trips: h.ola_trips, revenue: h.ola_revenue, cashCollection: -Math.abs(h.ola_cash), toll: h.ola_toll, incentive: h.ola_incentive, subscription: -Math.abs(h.ola_subscription), km: h.ola_km },
+        rapido: { trips: h.rapido_trips, revenue: h.rapido_revenue, cashCollection: -Math.abs(h.rapido_cash), toll: h.rapido_toll, incentive: h.rapido_incentive, subscription: -Math.abs(h.rapido_subscription), km: h.rapido_km },
+      },
+      rent: { dailyRate: h.vehicle_daily_rate || 1000, netWeeklyRent: h.vehicle_rent || 0 },
+      dailyMaintenance: h.maintenance_charge || 0,
+      previousAdjustments: h.other_adjustment || 0,
+      tds: h.tds_amount || 0,
+      challan: h.challan_amount || 0,
+      accident: h.accident_charge || 0,
+      adjustment: h.other_adjustment || 0,
+      paidDeposit: 0,
+      pendingDeposit: 0,
+      joiningFeePaid: 0,
+      pendingJoiningFee: 0,
+      previousOutstanding: h.previous_outstanding || 0,
+      pendingSinceDate: h.period_start || '',
+      gps: {
+        totalGpsKm: h.gps_total_km || 0,
+        idealGpsKm: h.gps_ideal_km || 0,
+        deadMile: h.gps_dead_km || 0,
+        deadMilePct: h.gps_dead_pct || 0,
+        deadKmPenalty: h.gps_dead_penalty || 0,
+        allowedFreeDeadKmPct: h.gps_free_dead_pct || 20,
+        penaltyRatePerKm: h.gps_penalty_rate || 5,
+      },
+      lastRefreshedTime: lastRefreshed,
+      currentWeekOs,
+      pendingDue: toCollect,
+      totalOs: currentWeekOs,
+      toCollect,
+      toPay,
+      letzrydEarning: h.letzryd_earning || 0,
+      notes: h.notes || '',
     // Payment tracking from DB
     paidAmount: h.paid_amount || 0,
     paymentStatus: (h.payment_status as any) || 'unpaid',

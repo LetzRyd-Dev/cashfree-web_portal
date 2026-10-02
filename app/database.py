@@ -10,7 +10,8 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_size=10,
     max_overflow=20,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args={"connect_timeout": 3}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -21,7 +22,7 @@ _psycopg_pool = None
 def get_raw_pool():
     global _psycopg_pool
     if _psycopg_pool is None:
-        _psycopg_pool = pool.SimpleConnectionPool(1, 20, dsn=settings.DATABASE_URL)
+        _psycopg_pool = pool.SimpleConnectionPool(1, 20, dsn=settings.DATABASE_URL, connect_timeout=3)
     return _psycopg_pool
 
 def get_db():

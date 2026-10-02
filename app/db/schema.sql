@@ -270,6 +270,45 @@ CREATE TABLE IF NOT EXISTS app_hisaabs (
     updated_at                       TIMESTAMP WITH TIME ZONE  NULL DEFAULT NOW()
 );
 
+-- TABLE: app_driver_allocations (Vehicle Handover & Contract Bridge)
+CREATE TABLE IF NOT EXISTS app_driver_allocations (
+    app_allocation_id                SERIAL                    PRIMARY KEY,
+    core_allocation_id               BIGINT                    NULL,
+    app_driver_id                    INTEGER                   NOT NULL REFERENCES app_drivers(app_driver_id) ON DELETE CASCADE,
+    app_operator_id                  INTEGER                   NULL,
+    vehicle_number                   VARCHAR(20)               NOT NULL,
+    allocation_date                  DATE                      NOT NULL,
+    dropoff_date                     DATE                      NULL,
+    start_odometer                   INTEGER                   NULL DEFAULT 0,
+    end_odometer                     INTEGER                   NULL,
+    daily_rental_rate                NUMERIC(10,2)             NULL DEFAULT 1000.00,
+    allocation_status                VARCHAR(20)               NOT NULL DEFAULT 'ACTIVE',
+    assigned_hub                     VARCHAR(100)              NULL,
+    assigned_city                    VARCHAR(50)               NULL,
+    assigned_manager                 VARCHAR(150)              NULL,
+    agreement_url                    TEXT                      NULL,
+    created_at                       TIMESTAMP WITH TIME ZONE  NULL DEFAULT NOW(),
+    updated_at                       TIMESTAMP WITH TIME ZONE  NULL DEFAULT NOW()
+);
+
+-- TABLE: app_driver_bank_accounts (IMPS Payout Beneficiaries)
+CREATE TABLE IF NOT EXISTS app_driver_bank_accounts (
+    bank_account_id                  SERIAL                    PRIMARY KEY,
+    app_driver_id                    INTEGER                   NULL REFERENCES app_drivers(app_driver_id) ON DELETE CASCADE,
+    app_operator_id                  INTEGER                   NULL REFERENCES app_operators(app_operator_id) ON DELETE CASCADE,
+    account_number                   VARCHAR(50)               NOT NULL,
+    ifsc_code                        VARCHAR(20)               NOT NULL,
+    account_holder_name              VARCHAR(150)              NOT NULL,
+    bank_name                        VARCHAR(150)              NULL,
+    upi_id                           VARCHAR(100)              NULL,
+    is_primary                       BOOLEAN                   NOT NULL DEFAULT TRUE,
+    is_verified                      BOOLEAN                   NOT NULL DEFAULT FALSE,
+    verification_status              VARCHAR(20)               NOT NULL DEFAULT 'VERIFIED',
+    created_at                       TIMESTAMP WITH TIME ZONE  NULL DEFAULT NOW(),
+    updated_at                       TIMESTAMP WITH TIME ZONE  NULL DEFAULT NOW(),
+    CONSTRAINT uq_driver_bank_acc UNIQUE (account_number, ifsc_code)
+);
+
 -- TABLE: app_payments
 CREATE TABLE IF NOT EXISTS app_payments (
     app_payment_id                   SERIAL                    PRIMARY KEY,

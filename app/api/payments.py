@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
@@ -308,16 +309,24 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
     order_id = f"ORDER_LR_{uuid.uuid4().hex[:10].upper()}"
     now = datetime.now(timezone.utc)
 
-    # Resolve driver ID if possible
-    clean_phone = clean_phone_number(req.driverPhone or "")
-    driver = resolve_driver(clean_phone, db) if clean_phone else None
-    payer_id = driver.app_driver_id if driver else (int(req.driverId) if str(req.driverId).isdigit() else 1)
-
     # Determine payer_type (operator vs driver)
     payer_type = req.payer_type or "driver"
+    payer_id = int(req.driverId) if (req.driverId and str(req.driverId).isdigit()) else 1
     if req.operator_id:
         payer_type = "operator"
         payer_id = req.operator_id
+
+    # Resolve driver ID if possible (fail-safe)
+    db_accessible = True
+    clean_phone = clean_phone_number(req.driverPhone or "")
+    if clean_phone and not req.operator_id:
+        try:
+            driver = resolve_driver(clean_phone, db)
+            if driver:
+                payer_id = driver.app_driver_id
+        except Exception as e:
+            db_accessible = False
+            print(f"[WARN] DB driver resolution skipped (database unreachable): {e}")
 
     # Call Real Cashfree PG Orders API
     cf_headers = {
@@ -326,6 +335,14 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
         "x-api-version": settings.CASHFREE_API_VERSION,
         "Content-Type": "application/json"
     }
+
+    # Configure proper return_url to redirect back to LetzRyd Driver Portal upon payment completion
+    return_url = req.return_url
+    if not return_url:
+        default_frontend = os.getenv("FRONTEND_URL", "http://localhost:3002")
+        return_url = f"{default_frontend.rstrip('/')}/?order_id={{order_id}}"
+    elif "{order_id}" not in return_url:
+        return_url = f"{return_url.rstrip('/')}/?order_id={{order_id}}"
 
     cf_payload = {
         "order_id": order_id,
@@ -337,7 +354,7 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
             "customer_name": req.driverName or "LetzRyd Partner"
         },
         "order_meta": {
-            "return_url": f"{settings.CASHFREE_BASE_URL.replace('/pg', '').replace('sandbox.', '').replace('api.', '')}/?order_id={{order_id}}"
+            "return_url": return_url
         }
     }
 
@@ -345,7 +362,7 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
     cf_ord_id = order_id
 
     try:
-        cf_res = requests.post(f"{settings.CASHFREE_BASE_URL}/orders", json=cf_payload, headers=cf_headers, timeout=15)
+        cf_res = requests.post(f"{settings.CASHFREE_BASE_URL}/orders", json=cf_payload, headers=cf_headers, timeout=10)
         cf_data = cf_res.json()
         if cf_res.status_code == 200 and cf_data.get("payment_session_id"):
             session_id = cf_data["payment_session_id"]
@@ -357,52 +374,56 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
         print(f"[ERROR] Failed to connect to Cashfree API: {e}")
         session_id = f"session_lr_{uuid.uuid4().hex}"
 
-    # Auto-resolve hisaab_id if not explicitly provided
+    # Auto-resolve hisaab_id if not explicitly provided and save record
     hisaab_id_to_use = req.app_hisaab_id
-    if not hisaab_id_to_use and payer_type == "driver" and payer_id:
-        if req.weekRange and ("2026-07-14" in req.weekRange or "14-Jul" in req.weekRange):
-            h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 29).first()
-            if h_match:
-                hisaab_id_to_use = h_match.app_hisaab_id
-        elif req.weekRange and ("2026-07-21" in req.weekRange or "21-Jul" in req.weekRange):
-            h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 30).first()
-            if h_match:
-                hisaab_id_to_use = h_match.app_hisaab_id
-        else:
-            h_unpaid = db.query(AppHisaabs).filter(
-                AppHisaabs.app_driver_id == payer_id,
-                AppHisaabs.to_collect > 0,
-                AppHisaabs.payment_status != "settled"
-            ).order_by(AppHisaabs.week_number.desc()).first()
-            if h_unpaid:
-                hisaab_id_to_use = h_unpaid.app_hisaab_id
+    if db_accessible:
+        try:
+            if not hisaab_id_to_use and payer_type == "driver" and payer_id:
+                if req.weekRange and ("2026-07-14" in req.weekRange or "14-Jul" in req.weekRange):
+                    h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 29).first()
+                    if h_match:
+                        hisaab_id_to_use = h_match.app_hisaab_id
+                elif req.weekRange and ("2026-07-21" in req.weekRange or "21-Jul" in req.weekRange):
+                    h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 30).first()
+                    if h_match:
+                        hisaab_id_to_use = h_match.app_hisaab_id
+                else:
+                    h_unpaid = db.query(AppHisaabs).filter(
+                        AppHisaabs.app_driver_id == payer_id,
+                        AppHisaabs.to_collect > 0,
+                        AppHisaabs.payment_status != "settled"
+                    ).order_by(AppHisaabs.week_number.desc()).first()
+                    if h_unpaid:
+                        hisaab_id_to_use = h_unpaid.app_hisaab_id
 
-    # Store payment record with hisaab linkage
-    payment = AppPayments(
-        payment_type="collection",
-        payer_type=payer_type,
-        payer_id=payer_id,
-        payee_type="letzryd",
-        app_hisaab_id=hisaab_id_to_use,
-        amount=amt,
-        payment_mode="cashfree_checkout",
-        status="INITIATED",
-        cf_order_id=cf_ord_id,
-        raw_response={
-            "weekRange": req.weekRange,
-            "driverName": req.driverName,
-            "driverPhone": req.driverPhone,
-            "app_hisaab_id": hisaab_id_to_use,
-            "payer_type": payer_type,
-        },
-        initiated_at=now
-    )
-    try:
-        db.add(payment)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print(f"[WARN] Failed to persist payment record in DB: {e}")
+            # Store payment record with hisaab linkage
+            payment = AppPayments(
+                payment_type="collection",
+                payer_type=payer_type,
+                payer_id=payer_id,
+                payee_type="letzryd",
+                app_hisaab_id=hisaab_id_to_use,
+                amount=amt,
+                payment_mode="cashfree_checkout",
+                status="INITIATED",
+                cf_order_id=cf_ord_id,
+                raw_response={
+                    "weekRange": req.weekRange,
+                    "driverName": req.driverName,
+                    "driverPhone": req.driverPhone,
+                    "app_hisaab_id": hisaab_id_to_use,
+                    "payer_type": payer_type,
+                },
+                initiated_at=now
+            )
+            db.add(payment)
+            db.commit()
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            print(f"[WARN] Failed to persist payment record in DB: {e}")
 
     return CreateOrderResponse(
         payment_session_id=session_id or f"session_lr_{uuid.uuid4().hex}",
@@ -468,29 +489,89 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         print(f"[ERROR] Verifying with Cashfree API: {e}")
 
+    paid_amount = 0.0
+    payer_id = 1
+    payer_type = "driver"
+    customer_phone = ""
+
+    # 1. Query Cashfree Order endpoint to check order_status
+    try:
+        ord_res = requests.get(f"{settings.CASHFREE_BASE_URL}/orders/{order_id}", headers=cf_headers, timeout=10)
+        if ord_res.status_code == 200:
+            ord_data = ord_res.json()
+            if ord_data.get("order_status") == "PAID":
+                is_success = True
+            if ord_data.get("order_amount"):
+                paid_amount = float(ord_data.get("order_amount"))
+            cust = ord_data.get("customer_details") or {}
+            customer_phone = clean_phone_number(cust.get("customer_phone") or "")
+            c_id = str(cust.get("customer_id") or "")
+            if "CUST_" in c_id:
+                parts = c_id.replace("CUST_", "").split("_")
+                if parts and parts[0].isdigit():
+                    payer_id = int(parts[0])
+    except Exception as e:
+        print(f"[ERROR] Verifying order from Cashfree: {e}")
+
+    # 2. Query Cashfree Payments list endpoint
+    try:
+        cf_res = requests.get(f"{settings.CASHFREE_BASE_URL}/orders/{order_id}/payments", headers=cf_headers, timeout=10)
+        if cf_res.status_code == 200:
+            payments_data = cf_res.json()
+    except Exception as e:
+        print(f"[ERROR] Verifying payments with Cashfree API: {e}")
+
     if isinstance(payments_data, list):
         for p in payments_data:
             if p.get("payment_status") == "SUCCESS":
                 is_success = True
                 payment_mode = p.get("payment_group", "Cashfree")
                 cf_payment_id = str(p.get("cf_payment_id", ""))
+                if p.get("payment_amount"):
+                    paid_amount = float(p.get("payment_amount"))
                 break
 
     cascade_result = {}
 
-    # Update DB record and cascade to hisaab/driver/operator
-    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
-    if payment and is_success and payment.status != "SUCCESS":
-        payment.status = "SUCCESS"
-        payment.cf_payment_id = cf_payment_id
-        payment.completed_at = datetime.now(timezone.utc)
-        payment.payment_mode = payment_mode
-        # Cascade update to all related records
-        cascade_result = _apply_payment_success(payment, db)
-    elif payment and (is_success or payment.status == "SUCCESS"):
-        # Already processed — return current state
-        is_success = True
-        cascade_result = {"note": "Already processed previously"}
+    # 3. Update or synthesize DB record and cascade to hisaab/driver/operator
+    payment = None
+    try:
+        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
+        if not payment and is_success and paid_amount > 0:
+            # If DB record was omitted during create-order (e.g. timeout), resolve driver & synthesize now
+            if customer_phone:
+                d_match = resolve_driver(customer_phone, db)
+                if d_match:
+                    payer_id = d_match.app_driver_id
+            payment = AppPayments(
+                payment_type="collection",
+                payer_type=payer_type,
+                payer_id=payer_id,
+                payee_type="letzryd",
+                amount=paid_amount,
+                payment_mode=payment_mode,
+                status="INITIATED",
+                cf_order_id=order_id,
+                cf_payment_id=cf_payment_id,
+                initiated_at=datetime.now(timezone.utc)
+            )
+            db.add(payment)
+            db.commit()
+            db.refresh(payment)
+
+        if payment and is_success and payment.status != "SUCCESS":
+            payment.status = "SUCCESS"
+            payment.cf_payment_id = cf_payment_id
+            payment.completed_at = datetime.now(timezone.utc)
+            payment.payment_mode = payment_mode
+            # Cascade update to all related records
+            cascade_result = _apply_payment_success(payment, db)
+        elif payment and (is_success or payment.status == "SUCCESS"):
+            # Already processed — return current state
+            is_success = True
+            cascade_result = {"note": "Already processed previously"}
+    except Exception as e:
+        print(f"[WARN] DB update during verify skipped: {e}")
 
     return {
         "order_id": order_id,
@@ -498,6 +579,8 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
         "status": "SUCCESS" if is_success else "PENDING",
         "payment_mode": payment_mode,
         "cf_payment_id": cf_payment_id or (payment.cf_payment_id if payment else None),
+        "amount": paid_amount,
+        "paid_amount": paid_amount,
         "data": payments_data,
         "cascade_updates": cascade_result,
     }

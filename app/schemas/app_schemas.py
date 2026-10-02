@@ -227,6 +227,7 @@ class CreateOrderRequest(BaseSchema):
     app_hisaab_id: Optional[int] = None      # Link payment to specific hisaab
     payer_type: Optional[str] = "driver"     # driver | operator
     operator_id: Optional[int] = None        # For operator payments
+    return_url: Optional[str] = None         # Client return redirect URL on payment completion
 
 class CreateOrderResponse(BaseSchema):
     payment_session_id: str
