@@ -35,6 +35,9 @@ export interface User {
   completedTripsThisWeek: number;
   weeklyIncentiveReward: number;
   referralCode?: string;
+  operatorName?: string;
+  isFleetDriver?: boolean;
+  isFleetManaged?: boolean;
 }
 
 export interface PlatformStatus {
@@ -138,6 +141,7 @@ export interface HisaabWeek {
   paidAmount?: number;
   paymentStatus?: 'unpaid' | 'partial' | 'settled';
   app_hisaab_id?: number;
+  isFleetManaged?: boolean;
 }
 
 export interface FleetVehicle {

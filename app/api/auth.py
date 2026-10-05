@@ -25,9 +25,23 @@ def request_otp(req: OTPRequest, request: Request, db: Session = Depends(get_db)
             detail="Profile does not exist. This mobile number is not registered with LetzRyd. Please contact your Fleet Manager or Support."
         )
 
-    user_type = "operator" if operator else "driver"
-    user_id = operator.app_operator_id if operator else driver.app_driver_id
-    effective_phone = operator.phone if operator else driver.phone
+    req_type = (req.user_type or "driver").lower().strip()
+    if req_type == "operator" and operator:
+        user_type = "operator"
+        user_id = operator.app_operator_id
+        effective_phone = operator.phone
+    elif req_type == "driver" and driver:
+        user_type = "driver"
+        user_id = driver.app_driver_id
+        effective_phone = driver.phone
+    elif driver:
+        user_type = "driver"
+        user_id = driver.app_driver_id
+        effective_phone = driver.phone
+    else:
+        user_type = "operator"
+        user_id = operator.app_operator_id
+        effective_phone = operator.phone
 
     now = datetime.now(timezone.utc)
     session = AppSessions(
@@ -53,7 +67,11 @@ def request_otp(req: OTPRequest, request: Request, db: Session = Depends(get_db)
     )
     db.add(audit)
     db.commit()
-    return {"success": True, "message": f"OTP sent to {effective_phone}", "demo_otp": "1234"}
+
+    resp = {"success": True, "message": f"OTP sent to {effective_phone}"}
+    if getattr(settings, "ENVIRONMENT", "development").lower() == "development":
+        resp["demo_otp"] = "1234"
+    return resp
 
 
 @router.post("/otp/verify", response_model=TokenResponse)
@@ -61,7 +79,6 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
     clean_phone = clean_phone_number(req.phone)
     otp = req.otp.strip()
 
-    # Verify against static demo OTPs or session hash
     driver = resolve_driver(clean_phone, db)
     operator = resolve_operator(clean_phone, db)
 
@@ -71,10 +88,34 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
             detail="Profile does not exist. This mobile number is not registered with LetzRyd. Please contact your Fleet Manager or Support."
         )
 
-    effective_phone = operator.phone if operator else driver.phone
-    
-    # Check testing static OTPs
-    is_valid_otp = (otp in TESTING_STATIC_OTPS)
+    # Determine requested user type and target account
+    req_type = (req.user_type or "driver").lower().strip()
+    if req_type == "operator" and operator:
+        actual_user_type = "operator"
+        user_name = operator.company_name or operator.contact_person_name or "Operator"
+        user_id = operator.app_operator_id
+        effective_phone = operator.phone
+    elif req_type == "driver" and driver:
+        actual_user_type = "driver"
+        user_name = driver.full_name or "Driver"
+        user_id = driver.app_driver_id
+        effective_phone = driver.phone
+    elif driver:
+        actual_user_type = "driver"
+        user_name = driver.full_name or "Driver"
+        user_id = driver.app_driver_id
+        effective_phone = driver.phone
+    else:
+        actual_user_type = "operator"
+        user_name = operator.company_name or operator.contact_person_name or "Operator"
+        user_id = operator.app_operator_id
+        effective_phone = operator.phone
+
+    # Check testing static OTPs only in development mode
+    is_valid_otp = False
+    if getattr(settings, "ENVIRONMENT", "development").lower() == "development" and otp in TESTING_STATIC_OTPS:
+        is_valid_otp = True
+
     if not is_valid_otp:
         # Check database session hash
         session = db.query(AppSessions).filter(
@@ -85,22 +126,13 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
             is_valid_otp = True
 
     if not is_valid_otp:
+        err_msg = "Invalid OTP. Please enter the 6-digit SMS OTP sent to your phone."
+        if getattr(settings, "ENVIRONMENT", "development").lower() == "development":
+            err_msg += " (Demo OTP: 1234)"
         raise HTTPException(
             status_code=400,
-            detail="Invalid OTP. Please enter the 6-digit SMS OTP sent to your phone or demo OTP: 1234."
+            detail=err_msg
         )
-
-
-    if operator:
-        actual_user_type = "operator"
-        user_name = operator.company_name or operator.contact_person_name or "Operator"
-        user_id = operator.app_operator_id
-        effective_phone = operator.phone
-    else:
-        actual_user_type = "driver"
-        user_name = driver.full_name or "Driver"
-        user_id = driver.app_driver_id
-        effective_phone = driver.phone
 
     now = datetime.now(timezone.utc)
     payload = {
@@ -142,16 +174,27 @@ def login_password(req: PasswordLogin, request: Request, db: Session = Depends(g
             detail="Profile does not exist. This mobile number is not registered with LetzRyd."
         )
 
-    if operator:
+    req_type = (req.user_type or "driver").lower().strip()
+    if req_type == "operator" and operator:
         actual_user_type = "operator"
         user_name = operator.company_name or operator.contact_person_name or "Operator"
         user_id = operator.app_operator_id
         effective_phone = operator.phone
-    else:
+    elif req_type == "driver" and driver:
         actual_user_type = "driver"
         user_name = driver.full_name or "Driver"
         user_id = driver.app_driver_id
         effective_phone = driver.phone
+    elif driver:
+        actual_user_type = "driver"
+        user_name = driver.full_name or "Driver"
+        user_id = driver.app_driver_id
+        effective_phone = driver.phone
+    else:
+        actual_user_type = "operator"
+        user_name = operator.company_name or operator.contact_person_name or "Operator"
+        user_id = operator.app_operator_id
+        effective_phone = operator.phone
 
     now = datetime.now(timezone.utc)
     payload = {

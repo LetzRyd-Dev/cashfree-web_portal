@@ -95,6 +95,8 @@ class DriverProfileResponse(BaseSchema):
     deposit_next_due: Optional[str] = None
     upi_id: Optional[str] = None
     bank_account_last4: Optional[str] = None
+    operator_name: Optional[str] = None
+    is_fleet_driver: bool = False
 
 # Operator Schemas
 class OperatorProfileResponse(BaseSchema):
@@ -145,6 +147,9 @@ class OperatorFleetResponse(OperatorProfileResponse):
 class HisaabBreakdownResponse(BaseSchema):
     app_hisaab_id: int
     app_driver_id: int = 0
+    app_operator_id: int = 0
+    is_fleet_managed: bool = False
+    operator_name: Optional[str] = None
     hisaab_number: str
     week_number: int
     period_start: Optional[Any] = None

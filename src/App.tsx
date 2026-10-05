@@ -33,7 +33,9 @@ import {
   Target,
   Gift,
   PhoneCall,
-  Check
+  Check,
+  ShieldCheck,
+  Info
 } from 'lucide-react';
 
 import {
@@ -467,7 +469,11 @@ export default function App() {
             setDriverUser(mapDriverToUser(driverProfile));
             setDriverVehicle(mapDriverToVehicle(driverProfile));
             setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
-            if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+            if (hisaabs && hisaabs.length > 0) {
+              setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+            } else {
+              setHisaabWeeks([]);
+            }
             if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
             if (tkts && tkts.length > 0) setTickets(tkts.map(mapTicket));
             setLoginType('driver');
@@ -857,8 +863,11 @@ export default function App() {
 
   const initials = driverUser.initials || (loginType === 'operator' ? 'OP' : 'DR');
   const userName = driverUser.name || (loginType === 'operator' ? 'Fleet Operator' : 'Driver');
-  const activeWeek = hisaabWeeks[0] || HISAAB_WEEKS_DATA[0];
-  const prevWeek = hisaabWeeks[1] || HISAAB_WEEKS_DATA[1];
+  const isFleetDriver = Boolean(driverUser.isFleetDriver || driverUser.operatorName);
+  const isFleetManaged = isFleetDriver && loginType === 'driver';
+  const hasHisaabData = hisaabWeeks.length > 0;
+  const activeWeek = hasHisaabData ? hisaabWeeks[0] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[0] || HISAAB_WEEKS_DATA[0]) : (isFleetDriver ? null : HISAAB_WEEKS_DATA[0]));
+  const prevWeek = hasHisaabData && hisaabWeeks.length > 1 ? hisaabWeeks[1] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[1] || HISAAB_WEEKS_DATA[1]) : (isFleetDriver ? null : HISAAB_WEEKS_DATA[1]));
 
   const formatTimestamp = (tsStr?: string) => {
     if (!tsStr) return '28-Jul-2026, 02:15 PM';
@@ -1328,6 +1337,30 @@ export default function App() {
 
                       {/* 2. THIS WEEK HISAAB & INCENTIVE GOAL (HERO CLICKABLE TILE) */}
                       {loginType === 'driver' ? (
+                        isFleetDriver && !activeWeek ? (
+                          <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs text-left space-y-3 font-sans">
+                            <div className="flex items-center gap-3 border-b border-border/60 pb-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <ShieldCheck className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-extrabold text-sm text-text">Fleet Managed Vehicle</h3>
+                                <p className="text-[11px] text-text-muted truncate">
+                                  Operator: <strong className="text-text">{driverUser.operatorName || 'Fleet Operator'}</strong>
+                                </p>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
+                                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                <span>Payments handled by Fleet Operator</span>
+                              </div>
+                              <p className="text-[10.5px] text-text-muted leading-relaxed">
+                                Vehicle managed by Operator <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>. Weekly settlements and statements are handled directly by your fleet manager.
+                              </p>
+                            </div>
+                          </div>
+                        ) : activeWeek ? (
                         <div
                           onClick={() => { setDriverWeekIndex(0); navigateTo('hisaab'); }}
                           className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
@@ -1420,6 +1453,7 @@ export default function App() {
                             );
                           })()}
                         </div>
+                        ) : null
                       ) : (
                         <div
                           onClick={() => navigateTo('hisaab')}
@@ -1454,7 +1488,7 @@ export default function App() {
                         <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs font-sans">
                           <div className="grid grid-cols-4 divide-x divide-border/70 text-center">
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek.activeDays}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek ? activeWeek.activeDays : 6}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.daysActive', 'Days Active')}</p>
                             </div>
                             <div className="px-1">
@@ -1466,7 +1500,7 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KMs')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-green leading-none">{activeWeek.gps.deadMilePct}%</p>
+                              <p className="font-sans text-base font-black text-green leading-none">{activeWeek ? `${activeWeek.gps.deadMilePct}%` : '6.4%'}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.deadMilesPct', 'Dead Miles %')}</p>
                             </div>
                           </div>
@@ -1496,6 +1530,31 @@ export default function App() {
 
                       {/* 4. LAST WEEK HISAAB & SECURITY DEPOSIT (CLICKABLE CARD) */}
                       {loginType === 'driver' ? (
+                        isFleetDriver && !prevWeek ? (
+                          <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left space-y-2.5 font-sans">
+                            <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
+                              <span className="font-bold text-text uppercase tracking-wider text-[10px]">
+                                Fleet Settlement Status
+                              </span>
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                Operator Handled
+                              </span>
+                            </div>
+                            <p className="text-xs text-text-muted leading-tight">
+                              All prior week hisaabs and collections for vehicle <strong>{driverVehicle.number}</strong> are managed by <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>.
+                            </p>
+                            <div className="border-t border-border/60 pt-2 flex items-center justify-between text-xs">
+                              <span className="font-bold text-text uppercase tracking-wider text-[10px]">
+                                {t('home.deposit', 'Security Deposit')}
+                              </span>
+                              <div className="flex items-center gap-2 text-[10px] font-sans">
+                                <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
+                                  {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : prevWeek ? (
                         <div
                           onClick={() => { setDriverWeekIndex(1); navigateTo('hisaab'); }}
                           className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
@@ -1542,15 +1601,21 @@ export default function App() {
                                     <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
                                       Due
                                     </span>
-                                    <button
-                                      onClick={() => {
-                                        setDriverWeekIndex(1); // Point to Last Week (Week 29)
-                                        navigateTo('settle');
-                                      }}
-                                      className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
-                                    >
-                                      Pay
-                                    </button>
+                                    {isFleetManaged ? (
+                                      <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md">
+                                        Payments handled by Fleet Operator
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          setDriverWeekIndex(1); // Point to Last Week (Week 29)
+                                          navigateTo('settle');
+                                        }}
+                                        className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
+                                      >
+                                        Pay
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
                               )}
@@ -1572,6 +1637,7 @@ export default function App() {
                             </div>
                           </div>
                         </div>
+                        ) : null
                       ) : (
                         <div
                           onClick={() => navigateTo('operator')}
@@ -1729,6 +1795,8 @@ export default function App() {
                         }}
                         onPayClick={() => navigateTo('settle')}
                         t={t}
+                        isFleetManaged={isFleetManaged}
+                        operatorName={driverUser.operatorName}
                       />
                     );
                   })()}
@@ -1763,6 +1831,8 @@ export default function App() {
                         onConfirmPayment={handleConfirmPayment}
                         onBack={() => navigateTo(loginType === 'operator' ? 'operator' : 'hisaab')}
                         t={t}
+                        isFleetManaged={isFleetManaged}
+                        operatorName={driverUser.operatorName}
                       />
                     );
                   })()}

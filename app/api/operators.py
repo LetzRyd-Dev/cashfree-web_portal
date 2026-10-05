@@ -32,13 +32,16 @@ def get_operator_fleet_summary(operator_id: int, db: Session = Depends(get_db)):
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
     
-    drivers = db.query(AppDrivers).filter(AppDrivers.operator_id == op.app_operator_id).order_by(AppDrivers.app_driver_id).all()
-    if not drivers:
-        drivers = db.query(AppDrivers).filter(AppDrivers.operator_id == op.operator_id).order_by(AppDrivers.app_driver_id).all()
+    drivers = db.query(AppDrivers).filter(
+        (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id)
+    ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
     for d in drivers:
-        hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == d.app_driver_id).order_by(AppHisaabs.week_number.desc()).all()
+        hisaabs = db.query(AppHisaabs).filter(
+            (AppHisaabs.app_driver_id == d.app_driver_id) | 
+            (AppHisaabs.app_operator_id == op.app_operator_id)
+        ).order_by(AppHisaabs.week_number.desc()).all()
         cw_os = float(d.cw_os or 0.0)
         vehicles.append(FleetVehicleResponse(
             vehicle_number=d.vehicle_reg_number or "",
@@ -113,9 +116,9 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
     total_drivers = op.total_drivers or 0
 
     if db is not None:
-        drivers = db.query(AppDrivers).filter(AppDrivers.operator_id == op.app_operator_id).all()
-        if not drivers:
-            drivers = db.query(AppDrivers).filter(AppDrivers.operator_id == op.operator_id).all()
+        drivers = db.query(AppDrivers).filter(
+            (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id)
+        ).all()
         
         if drivers:
             cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers)

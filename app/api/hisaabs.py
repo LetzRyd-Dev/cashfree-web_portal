@@ -17,6 +17,11 @@ def get_hisaabs_by_driver_phone(phone: str, db: Session = Depends(get_db)):
     if not driver:
         raise HTTPException(status_code=404, detail=f"No driver found with phone {phone}")
     hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == driver.app_driver_id).order_by(AppHisaabs.week_number.desc()).all()
+    if not hisaabs and driver.vehicle_reg_number:
+        clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
+        hisaabs = db.query(AppHisaabs).filter(
+            AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
+        ).order_by(AppHisaabs.week_number.desc()).all()
     return {"driver_id": driver.app_driver_id, "count": len(hisaabs), "data": [_map_hisaab(h) for h in hisaabs]}
 
 @router.get("/driver/{driver_id}")
@@ -24,6 +29,11 @@ def get_driver_hisaabs(driver_id: int, db: Session = Depends(get_db)):
     driver = resolve_driver(str(driver_id), db)
     target_id = driver.app_driver_id if driver else driver_id
     hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == target_id).order_by(AppHisaabs.week_number.desc()).all()
+    if not hisaabs and driver and driver.vehicle_reg_number:
+        clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
+        hisaabs = db.query(AppHisaabs).filter(
+            AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
+        ).order_by(AppHisaabs.week_number.desc()).all()
     return {"driver_id": target_id, "count": len(hisaabs), "data": [_map_hisaab(h) for h in hisaabs]}
 
 @router.get("/operator/{operator_id}")

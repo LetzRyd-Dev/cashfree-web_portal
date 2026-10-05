@@ -1,6 +1,11 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Request
+import hmac
+import hashlib
+import base64
+import json
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime, timezone
 from typing import Optional
 import uuid
@@ -14,6 +19,29 @@ import requests
 from app.config import settings
 
 router = APIRouter(prefix="/payments", tags=["Payments & Cashfree"])
+
+
+def get_active_week_number(db: Session) -> int:
+    """Dynamically look up current active unlocked settlement week."""
+    active_h = db.query(AppHisaabs.week_number).filter(
+        AppHisaabs.is_locked == False
+    ).order_by(AppHisaabs.week_number.desc()).first()
+    if active_h:
+        return active_h[0]
+    max_w = db.query(func.max(AppHisaabs.week_number)).scalar()
+    return max_w or 41
+
+
+def verify_cashfree_signature(timestamp: str, raw_body: bytes, signature: str, secret_key: str) -> bool:
+    """Verify Cashfree HMAC-SHA256 signature."""
+    if not signature or not secret_key:
+        return False
+    body_str = raw_body.decode('utf-8') if isinstance(raw_body, bytes) else str(raw_body)
+    data = (timestamp + body_str) if timestamp else body_str
+    expected_sig = base64.b64encode(
+        hmac.new(secret_key.encode('utf-8'), data.encode('utf-8'), hashlib.sha256).digest()
+    ).decode('utf-8')
+    return hmac.compare_digest(signature, expected_sig)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +81,8 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
         if driver:
             rem_cash = paid_amount
 
+            active_week_num = get_active_week_number(db)
+
             # Tier 1: Pay target hisaab (or active week debt)
             target_hisaab = hisaab
             if not target_hisaab:
@@ -61,6 +91,11 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     AppHisaabs.to_collect > 0,
                     AppHisaabs.payment_status != "settled"
                 ).order_by(AppHisaabs.week_number.desc()).first()
+                if not target_hisaab:
+                    target_hisaab = db.query(AppHisaabs).filter(
+                        AppHisaabs.app_driver_id == driver.app_driver_id,
+                        AppHisaabs.week_number == active_week_num
+                    ).first()
 
             if target_hisaab:
                 t_due = float(target_hisaab.to_collect or 0)
@@ -78,7 +113,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     target_hisaab.current_period_os = max(0.0, t_due - target_hisaab.paid_amount)
 
                 # Deduct from driver's cw_to_collect or lw_os
-                if target_hisaab.week_number == 30 or not target_hisaab.is_locked:
+                if target_hisaab.week_number >= active_week_num or not target_hisaab.is_locked:
                     driver.cw_to_collect = max(0.0, float(driver.cw_to_collect or 0) - t_pay)
                     driver.cw_os = max(0.0, float(driver.cw_os or 0) - t_pay)
                 else:
@@ -99,7 +134,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 driver.deposit_pending = max(0.0, total_req - driver.deposit_paid)
                 rem_cash = max(0.0, rem_cash - dep_credit)
 
-            # Tier 3: Pay any other unpaid/prior hisaabs for this driver (e.g. Week 29)
+            # Tier 3: Pay any other unpaid/prior hisaabs for this driver
             if rem_cash > 0:
                 other_unpaid_hisaabs = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == driver.app_driver_id,
@@ -127,7 +162,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                         oh.current_period_os = max(0.0, oh_due - oh.paid_amount)
 
                     # Update driver lw_os if prior week
-                    if oh.week_number < 30 or oh.is_locked:
+                    if oh.week_number < active_week_num or oh.is_locked:
                         driver.lw_os = max(0.0, float(driver.lw_os or 0) - oh_pay)
                         if driver.lw_os <= 0:
                             driver.lw_status = "paid"
@@ -146,7 +181,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 # Also reflect in active week hisaab as payout credit
                 cw_h = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == driver.app_driver_id,
-                    AppHisaabs.week_number == 30
+                    AppHisaabs.week_number == active_week_num
                 ).first()
                 if cw_h:
                     cw_h.current_period_os = -rem_cash
@@ -368,33 +403,39 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
             session_id = cf_data["payment_session_id"]
             cf_ord_id = cf_data.get("order_id", order_id)
         else:
-            print(f"[WARN] Cashfree API returned: {cf_res.status_code} {cf_data}")
-            session_id = cf_data.get("payment_session_id") or f"session_lr_{uuid.uuid4().hex}"
+            err_msg = cf_data.get("message") or cf_data.get("error") or str(cf_data)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Cashfree Payment Gateway Error: {err_msg}"
+            )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"[ERROR] Failed to connect to Cashfree API: {e}")
-        session_id = f"session_lr_{uuid.uuid4().hex}"
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to connect to Cashfree Payment Gateway: {str(e)}"
+        )
 
     # Auto-resolve hisaab_id if not explicitly provided and save record
     hisaab_id_to_use = req.app_hisaab_id
     if db_accessible:
         try:
             if not hisaab_id_to_use and payer_type == "driver" and payer_id:
-                if req.weekRange and ("2026-07-14" in req.weekRange or "14-Jul" in req.weekRange):
-                    h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 29).first()
-                    if h_match:
-                        hisaab_id_to_use = h_match.app_hisaab_id
-                elif req.weekRange and ("2026-07-21" in req.weekRange or "21-Jul" in req.weekRange):
-                    h_match = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == payer_id, AppHisaabs.week_number == 30).first()
-                    if h_match:
-                        hisaab_id_to_use = h_match.app_hisaab_id
+                active_week_num = get_active_week_number(db)
+                h_unpaid = db.query(AppHisaabs).filter(
+                    AppHisaabs.app_driver_id == payer_id,
+                    AppHisaabs.to_collect > 0,
+                    AppHisaabs.payment_status != "settled"
+                ).order_by(AppHisaabs.week_number.desc()).first()
+                if h_unpaid:
+                    hisaab_id_to_use = h_unpaid.app_hisaab_id
                 else:
-                    h_unpaid = db.query(AppHisaabs).filter(
+                    h_active = db.query(AppHisaabs).filter(
                         AppHisaabs.app_driver_id == payer_id,
-                        AppHisaabs.to_collect > 0,
-                        AppHisaabs.payment_status != "settled"
-                    ).order_by(AppHisaabs.week_number.desc()).first()
-                    if h_unpaid:
-                        hisaab_id_to_use = h_unpaid.app_hisaab_id
+                        AppHisaabs.week_number == active_week_num
+                    ).first()
+                    if h_active:
+                        hisaab_id_to_use = h_active.app_hisaab_id
 
             # Store payment record with hisaab linkage
             payment = AppPayments(
@@ -608,9 +649,21 @@ def get_payment_history(payer_id: Optional[int] = None, payer_type: Optional[str
 async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Receives server-side webhook from Cashfree on payment events.
-    Applies the same cascade update as the verify endpoint.
+    Verifies cryptographic signature using Cashfree secret key (HMAC-SHA256).
+    Applies cascade update on verified transactions.
     """
-    payload = await request.json()
+    signature = request.headers.get("x-webhook-signature")
+    timestamp = request.headers.get("x-webhook-timestamp", "")
+    body_bytes = await request.body()
+
+    if not signature or not verify_cashfree_signature(timestamp, body_bytes, signature, settings.CASHFREE_SECRET_KEY):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature")
+
+    try:
+        payload = json.loads(body_bytes.decode('utf-8'))
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
+
     order_id = payload.get("order", {}).get("order_id")
     payment_status = payload.get("payment", {}).get("payment_status", "")
 

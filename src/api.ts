@@ -42,7 +42,7 @@ export function mapDriverToUser(d: any): User {
     address: d.address || '',
     bloodGroup: d.blood_group || '',
     dob: d.dob || '',
-    operatorType: 'LetzRyd Partner',
+    operatorType: d.operator_name ? `Fleet: ${d.operator_name}` : 'LetzRyd Partner',
     assignedManagerName: d.assigned_manager_name || '',
     assignedManagerPhone: d.assigned_manager_phone || '',
     depositAmount: d.deposit_total_req || 0,
@@ -54,6 +54,9 @@ export function mapDriverToUser(d: any): User {
     weeklyIncentiveTargetTrips: d.incentive_trips_target || 260,
     completedTripsThisWeek: d.cw_incentive_trips_done || 0,
     weeklyIncentiveReward: d.incentive_reward_amt || 1500,
+    operatorName: d.operator_name || undefined,
+    isFleetDriver: Boolean(d.is_fleet_driver || (d.operator_id && d.operator_id > 0)),
+    isFleetManaged: Boolean(d.is_fleet_driver || (d.operator_id && d.operator_id > 0)),
   };
 }
 
@@ -152,6 +155,7 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
     paidAmount: h.paid_amount || 0,
     paymentStatus: (h.payment_status as any) || 'unpaid',
     app_hisaab_id: h.app_hisaab_id || undefined,
+    isFleetManaged: Boolean(h.is_fleet_managed || (h.app_operator_id && h.app_operator_id > 0)),
   };
 }
 

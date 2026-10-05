@@ -231,11 +231,36 @@ def run_audit():
     check("GET /api/payments/history returns 200", res.status_code == 200)
     check("Payment history has records", res.json().get("count", 0) >= 1)
 
-    # Cashfree webhook simulation
+    # Cashfree webhook rejection with invalid/missing signature
     res = client.post("/api/payments/webhook/cashfree", json={
         "order": {"order_id": p_data.get("cf_order_id")},
         "payment": {"payment_status": "SUCCESS"}
     })
+    check("Webhook rejects unsigned payload with 400", res.status_code == 400)
+
+    # Cashfree webhook acceptance with valid HMAC-SHA256 signature
+    import time, hmac, hashlib, base64, json as py_json
+    from app.config import settings
+    webhook_payload = {
+        "order": {"order_id": p_data.get("cf_order_id")},
+        "payment": {"payment_status": "SUCCESS", "cf_payment_id": "cf_test_pay_123", "payment_group": "upi"}
+    }
+    raw_payload = py_json.dumps(webhook_payload)
+    ts = str(int(time.time()))
+    data_to_sign = ts + raw_payload
+    sig = base64.b64encode(
+        hmac.new(settings.CASHFREE_SECRET_KEY.encode("utf-8"), data_to_sign.encode("utf-8"), hashlib.sha256).digest()
+    ).decode("utf-8")
+
+    res = client.post(
+        "/api/payments/webhook/cashfree",
+        content=raw_payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-webhook-signature": sig,
+            "x-webhook-timestamp": ts
+        }
+    )
     check("POST /api/payments/webhook/cashfree returns 200", res.status_code == 200)
 
     print("\n" + "="*70)

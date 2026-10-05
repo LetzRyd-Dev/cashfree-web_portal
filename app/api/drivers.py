@@ -1,7 +1,8 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.app_models import AppDrivers
+from app.models.app_models import AppDrivers, AppOperators
 from app.schemas.app_schemas import DriverProfileResponse
 from app.services.helpers import clean_phone_number, resolve_driver
 
@@ -14,7 +15,7 @@ def get_driver_by_phone(phone: str, db: Session = Depends(get_db)):
     driver = resolve_driver(clean, db)
     if not driver:
         raise HTTPException(status_code=404, detail=f"No driver found with phone {phone}")
-    return _map_driver(driver)
+    return _map_driver(driver, db)
 
 @router.get("/me", response_model=DriverProfileResponse)
 def get_current_driver(phone: str = "9876543210", db: Session = Depends(get_db)):
@@ -24,13 +25,13 @@ def get_current_driver(phone: str = "9876543210", db: Session = Depends(get_db))
         driver = db.query(AppDrivers).first()
         if not driver:
             raise HTTPException(status_code=404, detail="Driver profile not found")
-    return _map_driver(driver)
+    return _map_driver(driver, db)
 
 @router.get("/fleet/{operator_id}")
 @router.get("/operator/{operator_id}")
 def get_drivers_by_operator(operator_id: int, db: Session = Depends(get_db)):
     drivers = db.query(AppDrivers).filter(AppDrivers.operator_id == operator_id).all()
-    return {"operator_id": operator_id, "count": len(drivers), "data": [_map_driver(d) for d in drivers]}
+    return {"operator_id": operator_id, "count": len(drivers), "data": [_map_driver(d, db) for d in drivers]}
 
 @router.get("/{driver_id}", response_model=DriverProfileResponse)
 def get_driver_by_id(driver_id: int, db: Session = Depends(get_db)):
@@ -39,9 +40,22 @@ def get_driver_by_id(driver_id: int, db: Session = Depends(get_db)):
     ).first()
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
-    return _map_driver(driver)
+    return _map_driver(driver, db)
 
-def _map_driver(driver: AppDrivers) -> DriverProfileResponse:
+def _map_driver(driver: AppDrivers, db: Optional[Session] = None) -> DriverProfileResponse:
+    operator_name = None
+    is_fleet_driver = False
+    if driver.operator_id and driver.operator_id > 0:
+        if db:
+            op = db.query(AppOperators).filter(
+                (AppOperators.app_operator_id == driver.operator_id) | (AppOperators.operator_id == driver.operator_id)
+            ).first()
+            if op:
+                operator_name = op.company_name or op.contact_person_name
+                is_fleet_driver = True
+        else:
+            is_fleet_driver = True
+
     return DriverProfileResponse(
         app_driver_id=driver.app_driver_id,
         driver_code=driver.driver_code or "",
@@ -49,6 +63,8 @@ def _map_driver(driver: AppDrivers) -> DriverProfileResponse:
         full_name=driver.full_name or "Driver",
         initials=driver.initials or (driver.full_name[:2].upper() if driver.full_name else "D"),
         operator_id=driver.operator_id or 0,
+        operator_name=operator_name,
+        is_fleet_driver=is_fleet_driver,
         vehicle_reg_number=driver.vehicle_reg_number,
         vehicle_make=driver.vehicle_make,
         vehicle_model=driver.vehicle_model,

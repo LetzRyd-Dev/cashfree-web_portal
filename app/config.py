@@ -39,6 +39,7 @@ class Settings:
     CASHFREE_SECRET_KEY: str = os.getenv("CASHFREE_SECRET_KEY", "")
     CASHFREE_ENV: str = os.getenv("CASHFREE_ENV", "SANDBOX")
     CASHFREE_API_VERSION: str = os.getenv("CASHFREE_API_VERSION", "2023-08-01")
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
     @property
     def CASHFREE_BASE_URL(self) -> str:

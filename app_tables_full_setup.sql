@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS public.app_hisaabs (
     allocation_id                    INTEGER                   NULL DEFAULT 1,
     hisaab_id                        INTEGER                   NULL DEFAULT 1,
     app_driver_id                    INTEGER                   NOT NULL,
-    app_operator_id                  INTEGER                   NOT NULL DEFAULT 1,
+    app_operator_id                  INTEGER                   NOT NULL DEFAULT 0,
     vehicle_id                       INTEGER                   NULL DEFAULT 1,
     uber_earnings_id                 INTEGER                   NULL,
     ola_earnings_id                  INTEGER                   NULL,
@@ -308,7 +308,7 @@ CREATE INDEX IF NOT EXISTS idx_app_hisaabs_num ON public.app_hisaabs (hisaab_num
 -- 1.4 TABLE: app_driver_allocations (NEW: Vehicle Handover & Contract Bridge)
 CREATE TABLE IF NOT EXISTS public.app_driver_allocations (
     app_allocation_id                SERIAL                    PRIMARY KEY,
-    core_allocation_id               BIGINT                    NULL,
+    core_allocation_id               BIGINT                    NULL UNIQUE,
     app_driver_id                    INTEGER                   NOT NULL REFERENCES public.app_drivers(app_driver_id) ON DELETE CASCADE,
     app_operator_id                  INTEGER                   NULL,
     vehicle_number                   VARCHAR(20)               NOT NULL,
@@ -1026,6 +1026,27 @@ BEGIN
       ON UPPER(REGEXP_REPLACE(COALESCE(vo.registration_no, ''), '[^A-Za-z0-9]', '', 'g')) = best_veh.vehicle_number
     WHERE d.app_driver_id = best_veh.app_driver_id;
 
+    -- STEP 4.1: Enrich app_drivers.operator_id from core_vehicle_allocation & app_operators
+    UPDATE public.app_drivers d
+    SET operator_id = op_match.app_operator_id
+    FROM (
+        SELECT DISTINCT ON (d2.app_driver_id)
+            d2.app_driver_id,
+            op.app_operator_id
+        FROM public.app_drivers d2
+        JOIN public.core_vehicle_allocation cva ON (
+            RIGHT(REGEXP_REPLACE(COALESCE(cva.driver_phone, ''), '[^0-9]', '', 'g'), 10) = d2.phone
+            OR (d2.vehicle_reg_number IS NOT NULL AND d2.vehicle_reg_number != '' AND UPPER(REGEXP_REPLACE(cva.vehicle_number, '[^A-Za-z0-9]', '', 'g')) = d2.vehicle_reg_number)
+        )
+        JOIN public.app_operators op ON (
+            op.operator_code = cva.partner_id
+            OR op.phone = RIGHT(REGEXP_REPLACE(cva.partner_id, '[^0-9]', '', 'g'), 10)
+        )
+        WHERE cva.partner_type = 'Operator'
+        ORDER BY d2.app_driver_id, cva.allocation_date DESC NULLS LAST, cva.id DESC
+    ) op_match
+    WHERE d.app_driver_id = op_match.app_driver_id AND d.app_driver_id > 6;
+
     -- STEP 5: Populate app_driver_bank_accounts from core_partner_onboarding
     INSERT INTO public.app_driver_bank_accounts (
         app_driver_id,
@@ -1106,8 +1127,8 @@ BEGIN
         hw.week_end,
         COALESCE(hw.onroad_days::INT, hw.allotted_days::INT, 7),
         CASE 
-            WHEN hw.net_to_collect_from_driver > 0 THEN 'to_pay'
-            WHEN hw.net_payout_to_driver > 0 THEN 'to_collect'
+            WHEN hw.net_to_collect_from_driver > 0 THEN 'to_collect'
+            WHEN hw.net_payout_to_driver > 0 THEN 'to_pay'
             ELSE 'settled'
         END,
         COALESCE(sw.is_locked, FALSE),
@@ -1134,8 +1155,8 @@ BEGIN
         hw.uber_total_earnings + hw.uber_incentive + hw.ola_net_revenue + hw.ola_incentive,
         hw.net_weekly_lease_rental + hw.tds_amount + hw.challan_amount + hw.accident_deduction + hw.gps_dead_mile_penalty - hw.adjustment_amount,
         hw.current_week_os,
-        hw.net_to_collect_from_driver,
         hw.net_payout_to_driver,
+        hw.net_to_collect_from_driver,
         NOW(),
         NOW()
     FROM public.hisaab_vehicle_weekly hw
@@ -1393,6 +1414,7 @@ DECLARE
     v_clean_phone VARCHAR(15);
     v_driver_id INT;
     v_veh_num VARCHAR(20);
+    v_operator_id INT := 0;
 BEGIN
     IF TG_OP = 'DELETE' THEN
         DELETE FROM public.app_driver_allocations WHERE core_allocation_id = OLD.id;
@@ -1404,23 +1426,43 @@ BEGIN
 
     SELECT app_driver_id INTO v_driver_id FROM public.app_drivers WHERE phone = v_clean_phone LIMIT 1;
 
+    -- Resolve operator_id if partner_type is Operator
+    IF NEW.partner_type = 'Operator' AND NEW.partner_id IS NOT NULL AND NEW.partner_id != '' THEN
+        SELECT op.app_operator_id INTO v_operator_id
+        FROM public.app_operators op
+        WHERE op.operator_code = NEW.partner_id
+           OR op.phone = RIGHT(REGEXP_REPLACE(NEW.partner_id, '[^0-9]', '', 'g'), 10)
+        LIMIT 1;
+        IF v_operator_id IS NULL THEN
+            v_operator_id := 0;
+        END IF;
+    END IF;
+
     IF v_driver_id IS NULL AND LENGTH(v_clean_phone) = 10 THEN
-        INSERT INTO public.app_drivers (full_name, phone, initials, driver_code, is_active)
-        VALUES (TRIM(COALESCE(NEW.driver_name, 'Driver')), v_clean_phone, 'DR', 'DRV-AL-' || NEW.id::text, TRUE)
+        INSERT INTO public.app_drivers (full_name, phone, initials, driver_code, is_active, operator_id)
+        VALUES (TRIM(COALESCE(NEW.driver_name, 'Driver')), v_clean_phone, 'DR', 'DRV-AL-' || NEW.id::text, TRUE, v_operator_id)
         RETURNING app_driver_id INTO v_driver_id;
     END IF;
 
     IF v_driver_id IS NOT NULL THEN
         INSERT INTO public.app_driver_allocations (
-            core_allocation_id, app_driver_id, vehicle_number, allocation_date, start_odometer,
+            core_allocation_id, app_driver_id, app_operator_id, vehicle_number, allocation_date, start_odometer,
             daily_rental_rate, allocation_status, assigned_city, updated_at
         ) VALUES (
-            NEW.id, v_driver_id, v_veh_num, NEW.allocation_date, COALESCE(NEW.odometer_reading, 0),
+            NEW.id, v_driver_id, v_operator_id, v_veh_num, NEW.allocation_date, COALESCE(NEW.odometer_reading, 0),
             1000.00,
             CASE WHEN NEW.is_deleted = TRUE THEN 'CLOSED' ELSE 'ACTIVE' END,
             NEW.city, NOW()
         )
-        ON CONFLICT (app_allocation_id) DO NOTHING;
+        ON CONFLICT (core_allocation_id) DO UPDATE SET
+            app_driver_id = EXCLUDED.app_driver_id,
+            app_operator_id = EXCLUDED.app_operator_id,
+            vehicle_number = EXCLUDED.vehicle_number,
+            allocation_date = EXCLUDED.allocation_date,
+            start_odometer = EXCLUDED.start_odometer,
+            allocation_status = EXCLUDED.allocation_status,
+            assigned_city = EXCLUDED.assigned_city,
+            updated_at = NOW();
 
         IF NEW.is_deleted = FALSE OR NEW.is_deleted IS NULL THEN
             UPDATE public.app_drivers
@@ -1428,6 +1470,7 @@ BEGIN
                 vehicle_reg_number = v_veh_num,
                 vehicle_allocated_from = NEW.allocation_date,
                 vehicle_odometer_km = COALESCE(NEW.odometer_reading, 0),
+                operator_id = CASE WHEN v_operator_id > 0 THEN v_operator_id ELSE operator_id END,
                 last_synced_at = NOW()
             WHERE app_driver_id = v_driver_id;
         END IF;
@@ -1467,9 +1510,22 @@ BEGIN
           AND allocation_date <= NEW.return_date
           AND (dropoff_date IS NULL OR dropoff_date = NEW.return_date);
 
+        -- Clear vehicle_reg_number and current_vehicle_id when vehicle is dropped off
+        -- Guard seed drivers (1-4) and drivers with newer active allocations
         UPDATE public.app_drivers
-        SET last_synced_at = NOW()
-        WHERE vehicle_reg_number = v_veh_num;
+        SET 
+            vehicle_reg_number = NULL,
+            current_vehicle_id = NULL,
+            last_synced_at = NOW()
+        WHERE vehicle_reg_number = v_veh_num
+          AND app_driver_id > 4
+          AND (vehicle_allocated_from IS NULL OR vehicle_allocated_from <= NEW.return_date)
+          AND NOT EXISTS (
+              SELECT 1 FROM public.app_driver_allocations a
+              WHERE a.app_driver_id = app_drivers.app_driver_id
+                AND a.allocation_status = 'ACTIVE'
+                AND a.allocation_date > NEW.return_date
+          );
     END IF;
 
     RETURN NEW;
@@ -1532,6 +1588,7 @@ AS $function$
 DECLARE
     v_clean_phone VARCHAR(15);
     v_driver_id INT;
+    v_operator_id INT := 0;
     v_hisaab_num VARCHAR(100);
 BEGIN
     IF TG_OP = 'DELETE' THEN
@@ -1541,25 +1598,37 @@ BEGIN
     END IF;
 
     v_clean_phone := RIGHT(REGEXP_REPLACE(COALESCE(NEW.partner_id, ''), '[^0-9]', '', 'g'), 10);
-    SELECT app_driver_id INTO v_driver_id 
+    SELECT app_driver_id, operator_id INTO v_driver_id, v_operator_id
     FROM public.app_drivers 
     WHERE (LENGTH(v_clean_phone) = 10 AND phone = v_clean_phone) OR driver_code = NEW.partner_id 
     LIMIT 1;
 
     IF v_driver_id IS NULL THEN
-        SELECT da.app_driver_id INTO v_driver_id
+        SELECT da.app_driver_id, da.app_operator_id INTO v_driver_id, v_operator_id
         FROM public.app_driver_allocations da
         WHERE da.vehicle_number = UPPER(REGEXP_REPLACE(NEW.vehicle_number, '[^A-Za-z0-9]', '', 'g'))
         ORDER BY da.allocation_date DESC LIMIT 1;
 
         IF v_driver_id IS NULL THEN
-            SELECT app_driver_id INTO v_driver_id FROM public.app_drivers WHERE driver_code = 'SYSTEM_ONBOARDED' LIMIT 1;
+            SELECT app_driver_id, operator_id INTO v_driver_id, v_operator_id FROM public.app_drivers WHERE driver_code = 'SYSTEM_ONBOARDED' LIMIT 1;
         END IF;
+    END IF;
+
+    -- If operator not yet resolved, check vehicle allocation or partner_id
+    IF COALESCE(v_operator_id, 0) = 0 THEN
+        SELECT op.app_operator_id INTO v_operator_id
+        FROM public.app_operators op
+        WHERE op.operator_code = NEW.partner_id
+           OR op.phone = v_clean_phone
+        LIMIT 1;
     END IF;
 
     IF v_driver_id IS NOT NULL THEN
         v_hisaab_num := 'HSB-' || NEW.week_id || '-' || UPPER(REGEXP_REPLACE(NEW.vehicle_number, '[^A-Za-z0-9]', '', 'g')) || '-' || UPPER(REGEXP_REPLACE(COALESCE(NULLIF(TRIM(NEW.partner_id), ''), NEW.id::text), '[^A-Za-z0-9]', '', 'g'));
 
+        -- Correct mapping:
+        -- to_collect: money owed to LetzRyd (net_to_collect_from_driver)
+        -- to_pay: payout to partner (net_payout_to_driver)
         INSERT INTO public.app_hisaabs (
             app_driver_id, app_operator_id, hisaab_number, week_number, period_start, period_end,
             days_count, status, uber_trips, uber_revenue, uber_cash, uber_toll, uber_incentive,
@@ -1568,10 +1637,10 @@ BEGIN
             gps_dead_km, gps_dead_penalty, completed_trips, total_gross_earnings,
             total_deductions, current_period_os, to_pay, to_collect, updated_at
         ) VALUES (
-            v_driver_id, 1, v_hisaab_num,
+            v_driver_id, COALESCE(v_operator_id, 0), v_hisaab_num,
             COALESCE((SUBSTRING(NEW.week_id FROM '[0-9]+$'))::INT, 28),
             NEW.week_start, NEW.week_end, COALESCE(NEW.onroad_days::INT, 7),
-            CASE WHEN NEW.net_to_collect_from_driver > 0 THEN 'to_pay' ELSE 'to_collect' END,
+            CASE WHEN NEW.net_to_collect_from_driver > 0 THEN 'to_collect' ELSE 'to_pay' END,
             NEW.uber_trips, NEW.uber_total_earnings, NEW.uber_cash_collection, NEW.uber_toll, NEW.uber_incentive,
             NEW.ola_trips, NEW.ola_net_revenue, NEW.ola_cash_collection, NEW.ola_toll, NEW.ola_incentive,
             NEW.daily_rent_applied, NEW.net_weekly_lease_rental, NEW.tds_amount, NEW.challan_amount,
@@ -1579,9 +1648,10 @@ BEGIN
             NEW.uber_trips + NEW.ola_trips,
             NEW.uber_total_earnings + NEW.uber_incentive + NEW.ola_net_revenue + NEW.ola_incentive,
             NEW.net_weekly_lease_rental + NEW.tds_amount + NEW.challan_amount + NEW.accident_deduction + NEW.gps_dead_mile_penalty - NEW.adjustment_amount,
-            NEW.current_week_os, NEW.net_to_collect_from_driver, NEW.net_payout_to_driver, NOW()
+            NEW.current_week_os, NEW.net_payout_to_driver, NEW.net_to_collect_from_driver, NOW()
         )
         ON CONFLICT (hisaab_number) DO UPDATE SET
+            app_operator_id = EXCLUDED.app_operator_id,
             uber_trips = EXCLUDED.uber_trips,
             uber_revenue = EXCLUDED.uber_revenue,
             uber_cash = EXCLUDED.uber_cash,
@@ -1610,8 +1680,8 @@ BEGIN
             cw_gross_earnings = NEW.uber_total_earnings + NEW.uber_incentive + NEW.ola_net_revenue + NEW.ola_incentive,
             cw_vehicle_rent = NEW.net_weekly_lease_rental,
             cw_os = NEW.current_period_os,
-            cw_to_pay = NEW.net_to_collect_from_driver,
-            cw_to_collect = NEW.net_payout_to_driver,
+            cw_to_pay = NEW.net_payout_to_driver,
+            cw_to_collect = NEW.net_to_collect_from_driver,
             cumulative_owed = ABS(NEW.net_to_collect_from_driver),
             lw_hisaab_number = v_hisaab_num,
             last_synced_at = NOW()
