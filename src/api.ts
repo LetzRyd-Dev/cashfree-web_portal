@@ -39,12 +39,12 @@ export function mapDriverToUser(d: any): User {
     emergencyName: d.emergency_name || '',
     emergencyRelation: d.emergency_relation || '',
     emergencyPhone: d.emergency_phone || '',
-    address: d.address || '',
+    address: d.address || 'LetzRyd Operations Hub, Bengaluru',
     bloodGroup: d.blood_group || '',
     dob: d.dob || '',
     operatorType: d.operator_name ? `Fleet: ${d.operator_name}` : 'LetzRyd Partner',
-    assignedManagerName: d.assigned_manager_name || '',
-    assignedManagerPhone: d.assigned_manager_phone || '',
+    assignedManagerName: d.assigned_manager_name || 'LetzRyd Fleet Operations',
+    assignedManagerPhone: d.assigned_manager_phone || '080-4568-1234',
     depositAmount: d.deposit_total_req || 0,
     depositTotalRequired: d.deposit_total_req || 0,
     depositPaidSoFar: d.deposit_paid || 0,
@@ -57,6 +57,42 @@ export function mapDriverToUser(d: any): User {
     operatorName: d.operator_name || undefined,
     isFleetDriver: Boolean(d.is_fleet_driver || (d.operator_id && d.operator_id > 0)),
     isFleetManaged: Boolean(d.is_fleet_driver || (d.operator_id && d.operator_id > 0)),
+  };
+}
+
+export function mapOperatorToUser(op: any): User {
+  return {
+    id: op.operator_code || `LR-OPR-${op.app_operator_id}`,
+    name: op.company_name || op.contact_person_name || 'Fleet Operator',
+    operatorCode: op.operator_code || '',
+    phone: op.phone || '',
+    joined: '',
+    initials: op.initials || (op.company_name ? op.company_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : 'OP'),
+    aadhar: '',
+    dlNumber: '',
+    dlExpiry: '',
+    emergencyContact: op.assigned_manager_phone ? `${op.assigned_manager_name || 'Operations'} - ${op.assigned_manager_phone}` : '',
+    emergencyName: op.assigned_manager_name || 'LetzRyd Fleet Operations',
+    emergencyRelation: 'Account Manager',
+    emergencyPhone: op.assigned_manager_phone || '080-4568-1234',
+    address: op.address || 'LetzRyd Operations Hub, Bengaluru',
+    bloodGroup: '',
+    dob: '',
+    operatorType: 'Fleet Owner',
+    assignedManagerName: op.assigned_manager_name || 'LetzRyd Fleet Operations',
+    assignedManagerPhone: op.assigned_manager_phone || '080-4568-1234',
+    depositAmount: op.deposit_total_req || 0,
+    depositTotalRequired: op.deposit_total_req || 0,
+    depositPaidSoFar: op.deposit_paid || 0,
+    depositPending: op.deposit_pending || 0,
+    depositNextDueDate: '',
+    cumulativeOwed: op.cw_to_collect || 0,
+    weeklyIncentiveTargetTrips: 0,
+    completedTripsThisWeek: 0,
+    weeklyIncentiveReward: 0,
+    operatorName: op.company_name || 'Fleet Operator',
+    isFleetDriver: false,
+    isFleetManaged: false,
   };
 }
 
@@ -214,13 +250,33 @@ export async function getDriverHisaabs(driverId: number): Promise<any[]> {
   return [];
 }
 
-export async function getNotifications(targetId: number): Promise<any> {
-  return apiCall(`/api/notifications?target_id=${targetId}`);
+export async function getNotifications(targetId: number, targetType?: string): Promise<any> {
+  const typeParam = targetType ? `&target_type=${targetType}` : '';
+  return apiCall(`/api/notifications?target_id=${targetId}${typeParam}`);
 }
 
-export async function getTickets(creatorId: number): Promise<any> {
-  const res: any = await apiCall(`/api/tickets?creator_id=${creatorId}`);
+export async function markNotificationRead(notifId: number | string): Promise<any> {
+  const cleanId = String(notifId).replace(/^NOTIF-/, '');
+  return apiCall(`/api/notifications/${cleanId}/read`, { method: 'PUT' });
+}
+
+export async function getTickets(creatorId: number, creatorType?: string): Promise<any> {
+  const typeParam = creatorType ? `&creator_type=${creatorType}` : '';
+  const res: any = await apiCall(`/api/tickets?creator_id=${creatorId}${typeParam}`);
   return res.data || res;
+}
+
+export async function updateTicketStatus(
+  ticketId: number | string,
+  status: string,
+  resolutionNote?: string
+): Promise<Ticket> {
+  const cleanId = String(ticketId).replace(/^TKT-/, '');
+  const res = await apiCall(`/api/tickets/${cleanId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, resolution_note: resolutionNote }),
+  });
+  return mapTicket(res);
 }
 
 export async function createTicket(
@@ -263,3 +319,4 @@ export async function submitReferral(
     }),
   });
 }
+

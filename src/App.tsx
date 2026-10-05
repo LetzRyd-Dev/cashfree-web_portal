@@ -78,6 +78,7 @@ import {
   createTicket as apiCreateTicket,
   submitReferral as apiSubmitReferral,
   mapDriverToUser,
+  mapOperatorToUser,
   mapDriverToVehicle,
   mapDriverToRentalPlan,
   mapHisaabToWeek,
@@ -152,7 +153,12 @@ export default function App() {
   const [backendError, setBackendError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [demoDropdownOpen, setDemoDropdownOpen] = useState(false);
+  const [adminSearchOpen, setAdminSearchOpen] = useState(false);
+  const [adminSearchQuery, setAdminSearchQuery] = useState('');
+  const [adminSearchResult, setAdminSearchResult] = useState<{ name: string; phone: string; role: 'driver' | 'operator'; id: string } | null>(null);
+  const [adminSearchLoading, setAdminSearchLoading] = useState(false);
+  const [adminSearchError, setAdminSearchError] = useState<string | null>(null);
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   // Cancellation ref: set to true when user goes back from OTP screen mid-request
   const otpRequestCancelledRef = useRef(false);
@@ -346,9 +352,24 @@ export default function App() {
     }
 
     const matchedProfile = DEMO_PROFILES.find(p => p.phone === cleanPhone);
-    const inferredRole: 'driver' | 'operator' = matchedProfile 
-      ? matchedProfile.role 
-      : (cleanPhone === '9691938866' || cleanPhone === '9848012345' ? 'operator' : 'driver');
+    let inferredRole: 'driver' | 'operator' = 'driver';
+    if (matchedProfile) {
+      inferredRole = matchedProfile.role;
+    } else {
+      try {
+        const opCheck = await getOperatorByPhone(cleanPhone).catch(() => null);
+        const drvCheck = await getDriverByPhone(cleanPhone).catch(() => null);
+        if (opCheck && !drvCheck) {
+          inferredRole = 'operator';
+        } else if (opCheck && drvCheck) {
+          inferredRole = (loginType === 'operator' ? 'operator' : 'driver');
+        } else {
+          inferredRole = 'driver';
+        }
+      } catch {
+        inferredRole = (loginType === 'operator' ? 'operator' : 'driver');
+      }
+    }
 
     const isStaticOtp = cleanOtp === '1234';
     setIsVerifyingOtp(true);
@@ -386,36 +407,7 @@ export default function App() {
             const fleetData = await getOperatorFleet(opProfile.app_operator_id);
             const notifs = await fetchNotifications(opProfile.app_operator_id);
 
-            setDriverUser({
-              id: opProfile.operator_code,
-              name: opProfile.company_name,
-              operatorCode: opProfile.operator_code,
-              phone: opProfile.phone,
-              joined: '',
-              initials: opProfile.initials || 'OP',
-              aadhar: '',
-              dlNumber: '',
-              dlExpiry: '',
-              emergencyContact: opProfile.assigned_manager_phone ? `${opProfile.assigned_manager_name} - ${opProfile.assigned_manager_phone}` : '',
-              emergencyName: opProfile.assigned_manager_name || '',
-              emergencyRelation: 'Account Manager',
-              emergencyPhone: opProfile.assigned_manager_phone || '',
-              address: opProfile.address || '',
-              bloodGroup: '',
-              dob: '',
-              operatorType: 'Fleet Owner',
-              assignedManagerName: opProfile.assigned_manager_name || '',
-              assignedManagerPhone: opProfile.assigned_manager_phone || '',
-              depositAmount: opProfile.deposit_total_req,
-              depositTotalRequired: opProfile.deposit_total_req,
-              depositPaidSoFar: opProfile.deposit_paid,
-              depositPending: opProfile.deposit_pending,
-              depositNextDueDate: '',
-              cumulativeOwed: opProfile.cw_to_collect || 0,
-              weeklyIncentiveTargetTrips: 0,
-              completedTripsThisWeek: 0,
-              weeklyIncentiveReward: 0,
-            } as any);
+            setDriverUser(mapOperatorToUser(opProfile));
 
             // Map fleet data with driver hisaabs
             const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData.vehicles || []).map(async (v: any) => {
@@ -474,8 +466,8 @@ export default function App() {
             } else {
               setHisaabWeeks([]);
             }
-            if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
-            if (tkts && tkts.length > 0) setTickets(tkts.map(mapTicket));
+            setNotifications((notifs || []).map(mapNotification));
+            setTickets((tkts || []).map(mapTicket));
             setLoginType('driver');
             backendSuccess = true;
           } catch (profileErr) {
@@ -516,6 +508,118 @@ export default function App() {
       triggerToast(err.message || 'Invalid OTP code. Please try again.', 'error');
     } finally {
       setIsVerifyingOtp(false);
+      setIsLoadingProfile(false);
+    }
+  };
+
+  // Admin: search for any partner by phone number (no OTP needed for lookup)
+  const handleAdminSearch = async (query: string) => {
+    const cleanQ = query.replace('+91', '').replace(/[\s-]/g, '').trim();
+    setAdminSearchQuery(query);
+    setAdminSearchResult(null);
+    setAdminSearchError(null);
+    if (!cleanQ || cleanQ.length < 5) return;
+    setAdminSearchLoading(true);
+    try {
+      const driverRes = await getDriverByPhone(cleanQ).catch(() => null);
+      if (driverRes) {
+        setAdminSearchResult({
+          name: driverRes.full_name || 'Driver',
+          phone: driverRes.phone || cleanQ,
+          role: 'driver',
+          id: driverRes.app_driver_id,
+        });
+        return;
+      }
+      const opRes = await getOperatorByPhone(cleanQ).catch(() => null);
+      if (opRes) {
+        setAdminSearchResult({
+          name: opRes.company_name || 'Operator',
+          phone: opRes.phone || cleanQ,
+          role: 'operator',
+          id: opRes.app_operator_id,
+        });
+        return;
+      }
+      setAdminSearchError('No driver or operator found with this phone number.');
+    } catch {
+      setAdminSearchError('Error searching. Check backend connection.');
+    } finally {
+      setAdminSearchLoading(false);
+    }
+  };
+
+  // Admin: one-click login as any partner using backend OTP 1234 bypass (no Firebase)
+  const handleAdminLoginAs = async (result: { name: string; phone: string; role: 'driver' | 'operator'; id: string }) => {
+    setAdminLoginLoading(true);
+    try {
+      // Call backend OTP verify directly with master OTP 1234 and the explicit role requested
+      await verifyOTPBackend(result.phone, '1234', result.role);
+      setIsLoadingProfile(true);
+
+      const targetRole = result.role;
+
+      if (targetRole === 'operator') {
+        const opProfile = await getOperatorByPhone(result.phone);
+        const fleetData = await getOperatorFleet(opProfile.app_operator_id);
+        const notifs = await fetchNotifications(opProfile.app_operator_id);
+
+        setDriverUser(mapOperatorToUser(opProfile));
+
+        const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData?.vehicles || []).map(async (v: any) => {
+          let vehicleHisaabs: HisaabWeek[] = [];
+          if (v.driver_id) {
+            try { const h = await getDriverHisaabs(v.driver_id); vehicleHisaabs = (h || []).map(mapHisaabToWeek); } catch {}
+          }
+          return {
+            number: v.vehicle_number, make: v.vehicle_make, model: v.vehicle_model,
+            driverName: v.driver_name,
+            plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
+            currentWeekOs: v.current_week_os || 0,
+            status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
+            hisaabWeeks: vehicleHisaabs.length > 0 ? vehicleHisaabs : HISAAB_WEEKS_DATA,
+          };
+        }));
+
+        setOperatorFleet({
+          operatorCode: fleetData?.operator_code,
+          operatorName: fleetData?.company_name,
+          depositTotalRequired: fleetData?.deposit_total_req,
+          depositPaidSoFar: fleetData?.deposit_paid,
+          depositPending: fleetData?.deposit_pending,
+          vehicles: mappedVehicles,
+        });
+        if (mappedVehicles.length > 0) {
+          setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
+          setSelectedVehicleNumber(mappedVehicles[0].number);
+        }
+        if (notifs?.length > 0) setNotifications(notifs.map(mapNotification));
+        setLoginType('operator');
+      } else {
+        const driverProfile = await getDriverByPhone(result.phone);
+        const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id);
+        const notifs = await fetchNotifications(driverProfile.app_driver_id);
+        const tkts = await getTickets(driverProfile.app_driver_id);
+        setDriverUser(mapDriverToUser(driverProfile));
+        setDriverVehicle(mapDriverToVehicle(driverProfile));
+        setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
+        if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+        setNotifications((notifs || []).map(mapNotification));
+        setTickets((tkts || []).map(mapTicket));
+        setLoginType('driver');
+      }
+
+      setPhoneInput(result.phone);
+      setIsLoggedIn(true);
+      setCurrentScreen('home');
+      setAdminSearchOpen(false);
+      setAdminSearchQuery('');
+      setAdminSearchResult(null);
+      triggerToast(`🔑 Admin: Logged in as ${result.name}`, 'success');
+    } catch (err: any) {
+      triggerToast(err.message || 'Failed to log in as partner', 'error');
+    } finally {
+      setAdminLoginLoading(false);
       setIsLoadingProfile(false);
     }
   };
@@ -1068,186 +1172,82 @@ export default function App() {
                   </form>
                 )}
 
-                {/* Demo Quick Login Profiles Dropdown */}
+                {/* Admin: Live Partner Search Panel */}
                 <div className="pt-3 border-t border-border space-y-2 text-left relative">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                      ⚡ Quick Switch Demo Profiles:
+                      Admin: Login as Any Partner
                     </span>
-                    <span className="text-[10px] font-semibold text-primary font-mono">OTP: 1234</span>
+                    <button
+                      type="button"
+                      onClick={() => { setAdminSearchOpen(v => !v); setAdminSearchQuery(''); setAdminSearchResult(null); setAdminSearchError(null); }}
+                      className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
+                    >
+                      {adminSearchOpen ? 'Hide ▲' : 'Open ▼'}
+                    </button>
                   </div>
 
-                  {/* Dropdown Toggle Button */}
-                  <button
-                    type="button"
-                    onClick={() => setDemoDropdownOpen(!demoDropdownOpen)}
-                    className="w-full flex items-center justify-between p-2.5 rounded-xl bg-surface border border-border hover:border-primary/60 text-xs font-medium text-text cursor-pointer transition-all shadow-xs"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-[11px]">
-                        👤
+                  {adminSearchOpen && (
+                    <div className="space-y-2">
+                      {/* Phone search input */}
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          value={adminSearchQuery}
+                          onChange={e => handleAdminSearch(e.target.value)}
+                          placeholder="Type partner phone number..."
+                          className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text outline-none focus:border-primary/60 transition-all"
+                          autoFocus
+                        />
+                        {adminSearchLoading && (
+                          <div className="absolute right-2.5 top-2.5 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        )}
                       </div>
-                      <span className="font-semibold text-text">
-                        Select a Demo Profile to Login...
-                      </span>
+
+                      {/* Search result */}
+                      {adminSearchResult && (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+                          <div>
+                            <div className="font-bold text-sm text-text">{adminSearchResult.name}</div>
+                            <div className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1.5">
+                              <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${adminSearchResult.role === 'operator' ? 'bg-blue-500/10 text-blue-600' : 'bg-green-500/10 text-green-600'}`}>
+                                {adminSearchResult.role}
+                              </span>
+                              {adminSearchResult.phone}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={adminLoginLoading}
+                            onClick={() => handleAdminLoginAs(adminSearchResult)}
+                            className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            {adminLoginLoading ? (
+                              <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Loading...</>
+                            ) : (
+                              <>Login as →</>
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* No result error */}
+                      {adminSearchError && !adminSearchLoading && (
+                        <div className="text-[11px] text-red-500 font-medium px-1">{adminSearchError}</div>
+                      )}
+
+                      {/* Hint */}
+                      {!adminSearchResult && !adminSearchError && !adminSearchLoading && adminSearchQuery.length >= 5 && (
+                        <div className="text-[11px] text-text-muted px-1">Searching live database...</div>
+                      )}
+                      {adminSearchQuery.length === 0 && (
+                        <div className="text-[11px] text-text-muted px-1">Enter a 10-digit phone to find any driver or operator from the live DB.</div>
+                      )}
                     </div>
-                    <ChevronDown
-                      className={`h-4 w-4 text-text-muted transition-transform duration-200 ${
-                        demoDropdownOpen ? 'rotate-180 text-primary' : ''
-                      }`}
-                    />
-                  </button>
-
-                  {/* Dropdown Menu Popup */}
-                  <AnimatePresence>
-                    {demoDropdownOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                        transition={{ duration: 0.15 }}
-                        className="w-full bg-surface border border-border rounded-xl shadow-lg p-1.5 space-y-1 max-h-[260px] overflow-y-auto no-scrollbar z-50 mt-1"
-                      >
-                        {/* Operators Group */}
-                        <div className="px-2 pt-1 pb-0.5 text-[9px] font-bold text-text-muted uppercase tracking-wider">
-                          🏢 Fleet Operators
-                        </div>
-                        {DEMO_PROFILES.filter((p) => p.role === 'operator').map((p) => (
-                          <button
-                            key={p.phone}
-                            type="button"
-                            onClick={async () => {
-                              setDemoDropdownOpen(false);
-                              setLoginType(p.role);
-                              setPhoneInput(p.phone);
-                              setOtpInput(p.otp);
-                              setDriverUser(p.user);
-                              setHisaabWeeks(p.weeks);
-                              if (p.fleet) setOperatorFleet(p.fleet);
-                              if (p.vehicle) setDriverVehicle(p.vehicle);
-                              if (p.rentalPlan) setDriverRentalPlan(p.rentalPlan);
-                              setIsLoggedIn(true);
-                              setCurrentScreen('home');
-                              triggerToast(`Logged in as ${p.name}`, 'success');
-
-                              try {
-                                const opProfile = await getOperatorByPhone(p.phone);
-                                const fleetData = await getOperatorFleet(opProfile.app_operator_id);
-                                const notifs = await fetchNotifications(opProfile.app_operator_id);
-                                if (fleetData) {
-                                  const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData.vehicles || []).map(async (v: any) => {
-                                    let vH: HisaabWeek[] = [];
-                                    if (v.driver_id) {
-                                      try {
-                                        const hList = await getDriverHisaabs(v.driver_id);
-                                        vH = (hList || []).map(mapHisaabToWeek);
-                                      } catch (e) {}
-                                    }
-                                    return {
-                                      number: v.vehicle_number,
-                                      make: v.vehicle_make,
-                                      model: v.vehicle_model,
-                                      driverName: v.driver_name,
-                                      plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
-                                      currentWeekOs: v.current_week_os || 0,
-                                      status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
-                                      hisaabWeeks: vH.length > 0 ? vH : HISAAB_WEEKS_DATA,
-                                    };
-                                  }));
-                                  setOperatorFleet({
-                                    operatorCode: fleetData.operator_code,
-                                    operatorName: fleetData.company_name,
-                                    depositTotalRequired: fleetData.deposit_total_req,
-                                    depositPaidSoFar: fleetData.deposit_paid,
-                                    depositPending: fleetData.deposit_pending,
-                                    vehicles: mappedVehicles,
-                                  });
-                                  if (mappedVehicles.length > 0 && mappedVehicles[0].hisaabWeeks.length > 0) {
-                                    setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
-                                    setSelectedVehicleNumber(mappedVehicles[0].number);
-                                  }
-                                }
-                                if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
-                              } catch (err) {}
-                            }}
-                            className="w-full text-left p-2 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20 flex items-center justify-between text-xs cursor-pointer transition-all group"
-                          >
-                            <div>
-                              <div className="font-bold text-text group-hover:text-primary transition-colors flex items-center gap-1.5">
-                                <span>{p.name}</span>
-                                <span className="text-[10px] font-normal text-text-muted">({p.phone})</span>
-                              </div>
-                              <div className="text-[10px] text-text-muted">
-                                {p.fleet
-                                  ? `${p.fleet.vehicles.length} Vehicles • ₹${Math.abs(p.fleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(p.fleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })} To Pay`
-                                  : 'Fleet Operator'}
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                              {p.tag}
-                            </span>
-                          </button>
-                        ))}
-
-                        {/* Drivers Group */}
-                        <div className="px-2 pt-2 pb-0.5 text-[9px] font-bold text-text-muted uppercase tracking-wider border-t border-border/50">
-                          🚗 Drivers
-                        </div>
-                        {DEMO_PROFILES.filter((p) => p.role === 'driver').map((p) => (
-                          <button
-                            key={p.phone}
-                            type="button"
-                            onClick={async () => {
-                              setDemoDropdownOpen(false);
-                              setLoginType(p.role);
-                              setPhoneInput(p.phone);
-                              setOtpInput(p.otp);
-                              setDriverUser(p.user);
-                              setHisaabWeeks(p.weeks);
-                              if (p.fleet) setOperatorFleet(p.fleet);
-                              if (p.vehicle) setDriverVehicle(p.vehicle);
-                              if (p.rentalPlan) setDriverRentalPlan(p.rentalPlan);
-                              setIsLoggedIn(true);
-                              setCurrentScreen('home');
-                              triggerToast(`Logged in as ${p.name}`, 'success');
-
-                              try {
-                                const profile = await getDriverByPhone(p.phone);
-                                const hisaabs = await getDriverHisaabs(profile.app_driver_id);
-                                const notifs = await fetchNotifications(profile.app_driver_id);
-                                const tkts = await getTickets(profile.app_driver_id);
-                                setDriverUser(mapDriverToUser(profile));
-                                setDriverVehicle(mapDriverToVehicle(profile));
-                                setDriverRentalPlan(mapDriverToRentalPlan(profile));
-                                if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
-                                if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
-                                if (tkts && tkts.length > 0) setTickets(tkts.map(mapTicket));
-                              } catch (err) {}
-                            }}
-                            className="w-full text-left p-2 rounded-lg hover:bg-primary/5 border border-transparent hover:border-primary/20 flex items-center justify-between text-xs cursor-pointer transition-all group"
-                          >
-                            <div>
-                              <div className="font-bold text-text group-hover:text-primary transition-colors flex items-center gap-1.5">
-                                <span>{p.name}</span>
-                                <span className="text-[10px] font-normal text-text-muted">({p.phone})</span>
-                              </div>
-                              <div className="text-[10px] text-text-muted">
-                                {p.vehicle ? `${p.vehicle.number} • ${p.vehicle.model}` : 'Assigned Vehicle'}
-                              </div>
-                            </div>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                              p.tag.includes('Unpaid')
-                                ? 'bg-amber-500/10 text-amber-600'
-                                : 'bg-green-light text-green'
-                            }`}>
-                              {p.tag}
-                            </span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  )}
                 </div>
+
               </div>
             </motion.div>
           ) : (
@@ -1315,7 +1315,7 @@ export default function App() {
               </header>
 
               {/* Viewport Content */}
-              <main className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+              <main className="flex-1 overflow-y-auto p-4 pb-24 space-y-4 no-scrollbar">
                 <AnimatePresence mode="wait">
                   {currentScreen === 'home' && (
                     <motion.div
@@ -1363,7 +1363,7 @@ export default function App() {
                         ) : activeWeek ? (
                         <div
                           onClick={() => { setDriverWeekIndex(0); navigateTo('hisaab'); }}
-                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
+                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
                         >
                           {/* Header: Week Hisaab Title & Inline Week # Code */}
                           <div className="border-b border-border/60 pb-2 space-y-1">
@@ -1422,33 +1422,39 @@ export default function App() {
                             const remaining = Math.max(0, target - completed);
 
                             return (
-                              <div className="border-t border-border/60 pt-2.5 space-y-1.5 font-sans">
-                                <div className="flex justify-between items-center text-xs">
-                                  <span className="font-bold text-text flex items-center gap-1.5 text-[11px]">
-                                    <Target className="w-3.5 h-3.5 text-primary" />
-                                    {t('home.incentiveTracker', 'Weekly Incentive Goal')}
+                              <div className="border-t border-border/60 pt-2.5 space-y-1.5 font-sans w-full overflow-hidden">
+                                <div className="flex justify-between items-center text-xs gap-2">
+                                  <span className="font-bold text-text flex items-center gap-1.5 text-[11px] shrink-0">
+                                    <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+                                    <span>{t('home.incentiveTracker', 'Weekly Incentive Goal')}</span>
                                   </span>
-                                  <span className="font-bold text-primary text-[11px] bg-primary/10 px-2 py-0.5 rounded-md">
+                                  <span className="font-bold text-primary text-[11px] bg-primary/10 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
                                     ₹{driverUser.weeklyIncentiveReward.toLocaleString('en-IN')} {t('home.bonus', 'Bonus')}
                                   </span>
                                 </div>
 
                                 <div className="w-full bg-border/80 rounded-full h-2 overflow-hidden p-0.5">
                                   <div
-                                    className="bg-primary h-1.5 rounded-full transition-all duration-500"
+                                    className="bg-primary h-1.5 rounded-full transition-all duration-500 max-w-full"
                                     style={{ width: `${progressPct}%` }}
                                   />
                                 </div>
 
-                                <p className="font-sans text-[10px] text-text-muted text-right">
-                                  {remaining > 0 ? (
-                                    <>
-                                      <strong>{remaining} {t('home.tripsRemaining', 'trips remaining')}</strong> {t('home.toUnlockBonus', `to unlock ₹${driverUser.weeklyIncentiveReward.toLocaleString('en-IN')} bonus`)}
-                                    </>
-                                  ) : (
-                                    <span className="text-green font-bold">🎉 {t('home.goalAchieved', 'Incentive Goal Achieved!')}</span>
-                                  )}
-                                </p>
+                                <div className="flex flex-wrap items-center justify-between gap-1 text-[10px] text-text-muted leading-tight">
+                                  <span className="text-[10px] font-medium text-text-muted shrink-0">
+                                    {completed > 0 ? `${completed} / ${target} trips` : `0 / ${target} trips`}
+                                  </span>
+                                  <p className="font-sans text-[10px] text-text-muted text-right ml-auto leading-tight break-words">
+                                    {remaining > 0 ? (
+                                      <>
+                                        <strong className="text-text font-bold whitespace-nowrap">{remaining} {t('home.tripsRemaining', 'trips remaining')}</strong>{' '}
+                                        <span className="text-text-muted">{t('home.toUnlockBonus', `to unlock ₹${driverUser.weeklyIncentiveReward.toLocaleString('en-IN')} bonus`)}</span>
+                                      </>
+                                    ) : (
+                                      <span className="text-green font-bold">🎉 {t('home.goalAchieved', 'Incentive Goal Achieved!')}</span>
+                                    )}
+                                  </p>
+                                </div>
                               </div>
                             );
                           })()}
@@ -1492,7 +1498,9 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.daysActive', 'Days Active')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{driverUser.completedTripsThisWeek}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">
+                                {driverUser.completedTripsThisWeek || (activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : 0)}
+                              </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.trips', 'Trips')}</p>
                             </div>
                             <div className="px-1">
@@ -1557,7 +1565,7 @@ export default function App() {
                         ) : prevWeek ? (
                         <div
                           onClick={() => { setDriverWeekIndex(1); navigateTo('hisaab'); }}
-                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
+                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
                         >
                           {prevWeek && (
                             <>
@@ -1574,7 +1582,7 @@ export default function App() {
                                 <div className="flex justify-between items-center gap-2 pt-0.5">
                                   <div>
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.balanceDue', 'Balance Due')}</div>
-                                    <div className="font-sans text-xl font-bold text-green mt-0.5">₹0</div>
+                                    <div className="font-sans text-xl font-bold text-green mt-0.5 whitespace-nowrap font-mono">₹0</div>
                                   </div>
                                   <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-green bg-green-light px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-green" />
@@ -1584,10 +1592,10 @@ export default function App() {
                                   </span>
                                 </div>
                               ) : (
-                                <div className="flex justify-between items-center gap-2 pt-0.5">
-                                  <div>
-                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Total Outstanding Due</div>
-                                    <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5">
+                                <div className="flex flex-wrap items-start justify-between gap-2 pt-0.5">
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.totalOutstandingDue', 'Total Outstanding Due')}</div>
+                                    <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5 whitespace-nowrap font-mono">
                                       -₹{(() => {
                                         const due = Math.max(0, (prevWeek.toCollect || prevWeek.currentWeekOs || 0) - (prevWeek.paidAmount || 0)) + (driverUser.depositPending || 0);
                                         return due.toLocaleString('en-IN', {
@@ -1597,12 +1605,12 @@ export default function App() {
                                       })()}
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                    <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+                                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                    <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md whitespace-nowrap">
                                       Due
                                     </span>
                                     {isFleetManaged ? (
-                                      <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md">
+                                      <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md whitespace-nowrap">
                                         Payments handled by Fleet Operator
                                       </span>
                                     ) : (
@@ -1611,7 +1619,7 @@ export default function App() {
                                           setDriverWeekIndex(1); // Point to Last Week (Week 29)
                                           navigateTo('settle');
                                         }}
-                                        className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105"
+                                        className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105 whitespace-nowrap"
                                       >
                                         Pay
                                       </button>
@@ -1641,7 +1649,7 @@ export default function App() {
                       ) : (
                         <div
                           onClick={() => navigateTo('operator')}
-                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group"
+                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
                         >
                           <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
                             <span className="font-bold text-text flex items-center gap-1.5 uppercase tracking-wider text-[10px] group-hover:text-primary transition-colors">
@@ -1653,10 +1661,10 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="flex justify-between items-center gap-2 pt-0.5">
-                            <div>
+                          <div className="flex flex-wrap items-start justify-between gap-2 pt-0.5">
+                            <div className="min-w-0">
                               <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Total Outstanding Due</div>
-                              <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5">
+                              <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5 whitespace-nowrap font-mono">
                                 -₹{(() => {
                                   const opDue = (operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) + (operatorFleet.depositPending ?? 0));
                                   return opDue.toLocaleString('en-IN', {
@@ -1865,34 +1873,59 @@ export default function App() {
                   )}
 
                   {currentScreen === 'support' && (
-                    <SupportScreen
-                      user={driverUser}
-                      tickets={tickets}
-                      hotline={SUPPORT_HOTLINE}
-                      onNewTicket={() => setIsNewTicketOpen(true)}
-                      onSelectTicket={(ticket) => setSelectedTicket(ticket)}
-                      onOpenSos={() => setIsSosModalOpen(true)}
-                      t={t}
-                    />
+                    <motion.div
+                      key="support"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
+                    >
+                      <SupportScreen
+                        user={driverUser}
+                        tickets={tickets}
+                        hotline={SUPPORT_HOTLINE}
+                        onNewTicket={() => setIsNewTicketOpen(true)}
+                        onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+                        onOpenSos={() => setIsSosModalOpen(true)}
+                        t={t}
+                      />
+                    </motion.div>
                   )}
 
                   {currentScreen === 'profile' && (
-                    <ProfileScreen
-                      user={driverUser}
-                      loginType={loginType}
-                      onUpdateContact={handleUpdateContact}
-                      t={t}
-                    />
+                    <motion.div
+                      key="profile"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
+                    >
+                      <ProfileScreen
+                        user={driverUser}
+                        loginType={loginType}
+                        onUpdateContact={handleUpdateContact}
+                        t={t}
+                      />
+                    </motion.div>
                   )}
 
                   {currentScreen === 'referral' && (
-                    <ReferralScreen
-                      driverCode={'LETZ' + driverUser.phone}
-                      onCopy={handleCopyReferralCode}
-                      onBack={goBack}
-                      t={t}
-                    />
+                    <motion.div
+                      key="referral"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="space-y-4"
+                    >
+                      <ReferralScreen
+                        driverCode={'LETZ' + driverUser.phone}
+                        onCopy={handleCopyReferralCode}
+                        onBack={goBack}
+                        t={t}
+                      />
+                    </motion.div>
                   )}
+
                 </AnimatePresence>
               </main>
 

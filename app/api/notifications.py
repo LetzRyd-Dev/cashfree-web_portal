@@ -18,16 +18,31 @@ def get_notifications(
     query = db.query(AppNotifications)
 
     if target_id is not None:
-        driver = resolve_driver(str(target_id), db)
-        resolved_id = driver.app_driver_id if driver else target_id
+        if target_type == 'operator':
+            op = resolve_operator(str(target_id), db)
+            resolved_id = op.app_operator_id if op else target_id
+        elif target_type == 'driver':
+            driver = resolve_driver(str(target_id), db)
+            resolved_id = driver.app_driver_id if driver else target_id
+        else:
+            driver = resolve_driver(str(target_id), db)
+            if driver:
+                resolved_id = driver.app_driver_id
+            else:
+                op = resolve_operator(str(target_id), db)
+                resolved_id = op.app_operator_id if op else target_id
+
         if target_type:
             query = query.filter(
                 ((AppNotifications.target_id == resolved_id) & (AppNotifications.target_type == target_type))
+                | ((AppNotifications.target_type == target_type) & (AppNotifications.target_id.is_(None)))
                 | (AppNotifications.target_type == 'all')
             )
         else:
             query = query.filter(
-                (AppNotifications.target_id == resolved_id) | (AppNotifications.target_type == 'all')
+                (AppNotifications.target_id == resolved_id)
+                | (AppNotifications.target_id.is_(None))
+                | (AppNotifications.target_type == 'all')
             )
     elif target_type is not None:
         query = query.filter(
@@ -50,6 +65,7 @@ def get_notifications(
     ]
 
 @router.put("/{notif_id}/read")
+@router.patch("/{notif_id}/read")
 def mark_read(notif_id: int, db: Session = Depends(get_db)):
     notif = db.query(AppNotifications).filter(AppNotifications.app_notif_id == notif_id).first()
     if not notif:
@@ -57,4 +73,5 @@ def mark_read(notif_id: int, db: Session = Depends(get_db)):
     notif.is_read = True
     db.commit()
     return {"success": True}
+
 

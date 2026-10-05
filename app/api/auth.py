@@ -90,6 +90,16 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
 
     # Determine requested user type and target account
     req_type = (req.user_type or "driver").lower().strip()
+    
+    # If req_type defaulted to 'driver', check if unverified session was requested as 'operator'
+    if req_type == "driver" and operator:
+        session_check = db.query(AppSessions).filter(
+            AppSessions.phone == clean_phone,
+            AppSessions.is_verified == False
+        ).order_by(AppSessions.created_at.desc()).first()
+        if session_check and session_check.user_type == "operator":
+            req_type = "operator"
+
     if req_type == "operator" and operator:
         actual_user_type = "operator"
         user_name = operator.company_name or operator.contact_person_name or "Operator"
@@ -116,13 +126,14 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
     if getattr(settings, "ENVIRONMENT", "development").lower() == "development" and otp in TESTING_STATIC_OTPS:
         is_valid_otp = True
 
+    matched_session = db.query(AppSessions).filter(
+        AppSessions.phone == effective_phone,
+        AppSessions.is_verified == False
+    ).order_by(AppSessions.created_at.desc()).first()
+
     if not is_valid_otp:
         # Check database session hash
-        session = db.query(AppSessions).filter(
-            AppSessions.phone == effective_phone,
-            AppSessions.is_verified == False
-        ).order_by(AppSessions.created_at.desc()).first()
-        if session and (session.otp_hash == f"hashed_{otp}"):
+        if matched_session and (matched_session.otp_hash == f"hashed_{otp}"):
             is_valid_otp = True
 
     if not is_valid_otp:
@@ -133,6 +144,9 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
             status_code=400,
             detail=err_msg
         )
+
+    if matched_session:
+        matched_session.is_verified = True
 
     now = datetime.now(timezone.utc)
     payload = {

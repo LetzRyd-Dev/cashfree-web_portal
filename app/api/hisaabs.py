@@ -45,9 +45,9 @@ def get_operator_hisaabs(operator_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{hisaab_id}", response_model=HisaabBreakdownResponse)
 def get_hisaab_by_id(hisaab_id: int, db: Session = Depends(get_db)):
-    hisaab = db.query(AppHisaabs).filter(
-        (AppHisaabs.app_hisaab_id == hisaab_id) | (AppHisaabs.hisaab_id == hisaab_id)
-    ).first()
+    hisaab = db.query(AppHisaabs).filter(AppHisaabs.app_hisaab_id == hisaab_id).first()
+    if not hisaab:
+        hisaab = db.query(AppHisaabs).filter(AppHisaabs.hisaab_id == hisaab_id).first()
     if not hisaab:
         raise HTTPException(status_code=404, detail="Hisaab record not found")
     return _map_hisaab(hisaab)

@@ -260,6 +260,43 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
     return `•••• ${lastFour}`;
   };
 
+  const getDocStatusBadge = (expiryDateStr: string) => {
+    if (!expiryDateStr) {
+      return (
+        <span className="bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+          Unknown
+        </span>
+      );
+    }
+    const expiry = new Date(expiryDateStr);
+    if (isNaN(expiry.getTime())) return null;
+    const now = new Date();
+    const diffDays = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      return (
+        <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+          <AlertTriangle className="w-2.5 h-2.5 text-red-600" />
+          Expired
+        </span>
+      );
+    } else if (diffDays <= 30) {
+      return (
+        <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+          <Clock className="w-2.5 h-2.5 text-amber-600" />
+          Expiring ({diffDays}d)
+        </span>
+      );
+    } else {
+      return (
+        <span className="bg-green-light text-green border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+          <CheckCircle2 className="w-2.5 h-2.5 text-green" />
+          Valid
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="space-y-4 text-left font-sans">
       <div>
@@ -327,6 +364,38 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
             </div>
             <span className="font-sans text-xs font-bold text-text">{vehicle.year}</span>
           </div>
+
+          <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
+                <Activity className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-sans text-xs font-semibold text-text">Fuel & Color</span>
+            </div>
+            <span className="font-sans text-xs font-bold text-text">{vehicle.fuelType || 'CNG'} • {vehicle.color || 'White'}</span>
+          </div>
+
+          <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
+                <Navigation className="w-3.5 h-3.5" />
+              </div>
+              <span className="font-sans text-xs font-semibold text-text">Odometer Reading</span>
+            </div>
+            <span className="font-mono text-xs font-bold text-text">{vehicle.odometer ? `${vehicle.odometer.toLocaleString('en-IN')} km` : '124,380 km'}</span>
+          </div>
+
+          {vehicle.allocationStart && (
+            <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
+                </div>
+                <span className="font-sans text-xs font-semibold text-text">Allocation Date</span>
+              </div>
+              <span className="font-sans text-xs font-bold text-text">{formatIndianDate(vehicle.allocationStart)}</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -341,6 +410,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
         </div>
 
         <div className="divide-y divide-border/60">
+          {/* RC */}
           <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
@@ -351,12 +421,16 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                 <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour(vehicle.number || '7692')}</p>
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="font-sans text-[10px] text-text-muted">{t('vehicle.expires', 'Expires')}</span>
-              <p className="font-sans text-xs font-bold text-text mt-0.5">{formatIndianDate(vehicle.rcExpiry)}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              {getDocStatusBadge(vehicle.rcExpiry)}
+              <div className="text-right">
+                <span className="font-sans text-[9px] text-text-muted uppercase block">{t('vehicle.expires', 'Expires')}</span>
+                <p className="font-sans text-[11px] font-bold text-text mt-0.2">{formatIndianDate(vehicle.rcExpiry)}</p>
+              </div>
             </div>
           </div>
 
+          {/* Insurance */}
           <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
@@ -367,12 +441,16 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                 <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour('INS2140')}</p>
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="font-sans text-[10px] text-text-muted">{t('vehicle.expires', 'Expires')}</span>
-              <p className="font-sans text-xs font-bold text-text mt-0.5">{formatIndianDate(vehicle.insuranceExpiry)}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              {getDocStatusBadge(vehicle.insuranceExpiry)}
+              <div className="text-right">
+                <span className="font-sans text-[9px] text-text-muted uppercase block">{t('vehicle.expires', 'Expires')}</span>
+                <p className="font-sans text-[11px] font-bold text-text mt-0.2">{formatIndianDate(vehicle.insuranceExpiry)}</p>
+              </div>
             </div>
           </div>
 
+          {/* Permit */}
           <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
@@ -383,12 +461,16 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                 <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour('PRM8912')}</p>
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="font-sans text-[10px] text-text-muted">{t('vehicle.expires', 'Expires')}</span>
-              <p className="font-sans text-xs font-bold text-text mt-0.5">{formatIndianDate(vehicle.permitExpiry)}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              {getDocStatusBadge(vehicle.permitExpiry)}
+              <div className="text-right">
+                <span className="font-sans text-[9px] text-text-muted uppercase block">{t('vehicle.expires', 'Expires')}</span>
+                <p className="font-sans text-[11px] font-bold text-text mt-0.2">{formatIndianDate(vehicle.permitExpiry)}</p>
+              </div>
             </div>
           </div>
 
+          {/* Fitness Certificate (FC) */}
           <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
@@ -399,11 +481,36 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                 <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour('FIT4401')}</p>
               </div>
             </div>
-            <div className="text-right shrink-0">
-              <span className="font-sans text-[10px] text-text-muted">{t('vehicle.expires', 'Expires')}</span>
-              <p className="font-sans text-xs font-bold text-text mt-0.5">{formatIndianDate(vehicle.fitnessExpiry)}</p>
+            <div className="flex items-center gap-2 shrink-0">
+              {getDocStatusBadge(vehicle.fitnessExpiry)}
+              <div className="text-right">
+                <span className="font-sans text-[9px] text-text-muted uppercase block">{t('vehicle.expires', 'Expires')}</span>
+                <p className="font-sans text-[11px] font-bold text-text mt-0.2">{formatIndianDate(vehicle.fitnessExpiry)}</p>
+              </div>
             </div>
           </div>
+
+          {/* PUC (Pollution Certificate) */}
+          {vehicle.pucExpiry && (
+            <div className="py-2 flex items-center justify-between first:pt-0 last:pb-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
+                  <Award className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <p className="font-sans text-xs font-semibold text-text">PUC Certificate</p>
+                  <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour('PUC8921')}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {getDocStatusBadge(vehicle.pucExpiry)}
+                <div className="text-right">
+                  <span className="font-sans text-[9px] text-text-muted uppercase block">{t('vehicle.expires', 'Expires')}</span>
+                  <p className="font-sans text-[11px] font-bold text-text mt-0.2">{formatIndianDate(vehicle.pucExpiry)}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1120,7 +1227,18 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                   height: '520px'
                 }
               }).then((result: any) => {
+                console.log('[Cashfree] checkout result:', result);
+                // result.paymentDetails = success, result.error = user dropped / failed
+                // Always call verify — backend will determine actual status from Cashfree API
                 if (result && result.paymentDetails) {
+                  // Definite success signal
+                  handleVerifyOrder();
+                } else if (result && result.error) {
+                  // User dropped or failed — still verify to pick up any partial success
+                  console.warn('[Cashfree] Payment error/drop:', result.error);
+                  handleVerifyOrder();
+                } else if (result) {
+                  // Unknown shape — verify anyway
                   handleVerifyOrder();
                 }
               }).catch((err: any) => {
@@ -1129,7 +1247,9 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                   cashfree.checkout({
                     paymentSessionId: paymentSessionId,
                     redirectTarget: '_modal'
-                  });
+                  }).then((r: any) => {
+                    if (r) handleVerifyOrder();
+                  }).catch(() => {});
                 } catch (modalErr) {
                   console.error('Cashfree modal checkout error:', modalErr);
                 }
@@ -1154,6 +1274,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       }
     }
   }, [paymentState, paymentSessionId]);
+
 
   // Card input states
   const [cardNumber, setCardNumber] = useState('4111 2222 3333 4444');
@@ -1595,25 +1716,40 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => selectPaymentOption('full')}
-              className={`h-11 rounded-xl border text-xs font-bold cursor-pointer transition-all flex items-center justify-center ${
-                paymentOption === 'full' ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-bg border-border text-text-muted hover:text-text'
+              onClick={() => !isFleetManaged && selectPaymentOption('full')}
+              disabled={isFleetManaged}
+              className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
+                isFleetManaged
+                  ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
+                  : paymentOption === 'full'
+                  ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
+                  : 'bg-bg border-border text-text-muted hover:text-text cursor-pointer'
               }`}
             >
               {t('settle.full', 'Full')}
             </button>
             <button
-              onClick={() => selectPaymentOption('part')}
-              className={`h-11 rounded-xl border text-xs font-bold cursor-pointer transition-all flex items-center justify-center ${
-                paymentOption === 'part' ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-bg border-border text-text-muted hover:text-text'
+              onClick={() => !isFleetManaged && selectPaymentOption('part')}
+              disabled={isFleetManaged}
+              className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
+                isFleetManaged
+                  ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
+                  : paymentOption === 'part'
+                  ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
+                  : 'bg-bg border-border text-text-muted hover:text-text cursor-pointer'
               }`}
             >
               {t('settle.partPay', 'Part Pay')}
             </button>
             <button
-              onClick={() => selectPaymentOption('advance')}
-              className={`h-11 rounded-xl border text-xs font-bold cursor-pointer transition-all flex items-center justify-center ${
-                paymentOption === 'advance' ? 'bg-primary/10 border-primary text-primary shadow-xs' : 'bg-bg border-border text-text-muted hover:text-text'
+              onClick={() => !isFleetManaged && selectPaymentOption('advance')}
+              disabled={isFleetManaged}
+              className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
+                isFleetManaged
+                  ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
+                  : paymentOption === 'advance'
+                  ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
+                  : 'bg-bg border-border text-text-muted hover:text-text cursor-pointer'
               }`}
             >
               {t('settle.advance', 'Advance')}
@@ -1627,28 +1763,115 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             <input
               type="number"
               value={customAmount}
+              disabled={isFleetManaged || paymentOption === 'full'}
               readOnly={paymentOption === 'full'}
               onChange={(e) => setCustomAmount(e.target.value)}
-              className={`h-10 w-full rounded-lg border px-3 font-mono text-xl font-extrabold text-center text-primary outline-none transition-colors shadow-2xs ${
-                paymentOption === 'full'
+              className={`h-10 w-full rounded-lg border px-3 font-mono text-xl font-extrabold text-center outline-none transition-colors shadow-2xs ${
+                isFleetManaged
+                  ? 'bg-gray-100 border-border text-text-dim cursor-not-allowed opacity-60'
+                  : paymentOption === 'full'
                   ? 'bg-white/80 border-primary/30 cursor-not-allowed text-primary'
                   : isAdvanceInvalid || isPartInvalid
                   ? 'bg-red-50/50 border-red-300 focus:border-red-500 text-red-600'
-                  : 'bg-white border-primary/50 focus:border-2 focus:border-primary'
+                  : 'bg-white border-primary/50 focus:border-2 focus:border-primary text-primary'
               }`}
             />
           </div>
 
-          {paymentOption === 'advance' && isAdvanceInvalid && (
+          {paymentOption === 'advance' && isAdvanceInvalid && !isFleetManaged && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
               ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).
             </p>
           )}
 
-          {paymentOption === 'part' && activePayAmount >= totalDueAmount && (
+          {paymentOption === 'part' && isPartInvalid && !isFleetManaged && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              ⚠️ {t('settle.partError', 'Part payment must be less than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). {t('settle.useFullPay', 'Use Full Pay for full settlement.')}
+              {activePayAmount <= 0
+                ? '⚠️ Part payment amount must be greater than ₹0.'
+                : `⚠️ ${t('settle.partError', 'Part payment must be less than total due')} (₹${totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). ${t('settle.useFullPay', 'Use Full Pay for full settlement.')}`}
             </p>
+          )}
+
+          {/* Payment Method Selection */}
+          {!isFleetManaged && (
+            <div className="space-y-1.5 pt-1">
+              <label className="font-sans text-[11px] font-bold text-text-muted uppercase tracking-wider block">
+                PAYMENT METHOD
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('upi')}
+                  className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                    paymentMethod === 'upi'
+                      ? 'bg-primary/10 border-primary shadow-2xs'
+                      : 'bg-surface border-border hover:border-primary/40'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-sans text-[11px] font-bold text-text">UPI App / QR</div>
+                    <div className="text-[9.5px] text-text-muted truncate">GPay, PhonePe, Paytm</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('card')}
+                  className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                    paymentMethod === 'card'
+                      ? 'bg-primary/10 border-primary shadow-2xs'
+                      : 'bg-surface border-border hover:border-primary/40'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-sans text-[11px] font-bold text-text">Cards</div>
+                    <div className="text-[9.5px] text-text-muted truncate">Debit / Credit Card</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('netbanking')}
+                  className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                    paymentMethod === 'netbanking'
+                      ? 'bg-primary/10 border-primary shadow-2xs'
+                      : 'bg-surface border-border hover:border-primary/40'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+                    <Landmark className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-sans text-[11px] font-bold text-text">NetBanking</div>
+                    <div className="text-[9.5px] text-text-muted truncate">All Indian Banks</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('iframe')}
+                  className={`p-2.5 rounded-xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
+                    paymentMethod === 'iframe'
+                      ? 'bg-primary/10 border-primary shadow-2xs'
+                      : 'bg-surface border-border hover:border-primary/40'
+                  }`}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-sans text-[11px] font-bold text-text">Cashfree PG</div>
+                    <div className="text-[9.5px] text-text-muted truncate">Instant Gateway</div>
+                  </div>
+                </button>
+              </div>
+            </div>
           )}
 
           {payError && (
@@ -1680,7 +1903,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               ) : (
                 <>
                   <CreditCard className="w-4 h-4" />
-                  {t('settle.payBtn', 'Pay Now')}
+                  {t('settle.payBtn', 'Pay Now')} (₹{activePayAmount.toLocaleString('en-IN', { minimumFractionDigits: activePayAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })})
                 </>
               )}
             </button>
@@ -1714,6 +1937,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
   t
 }) => {
   const [ticketFilter, setTicketFilter] = useState<'open' | 'resolved' | 'all'>('open');
+  const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
   const openTicketsCount = tickets.filter(t => t.status === 'open').length;
   const resolvedTicketsCount = tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length;
@@ -1723,6 +1947,12 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
     if (ticketFilter === 'resolved') return t.status === 'resolved' || t.status === 'closed';
     return true;
   });
+
+  const managerPhoneRaw = user.assignedManagerPhone || '9876543299';
+  const cleanPhone = managerPhoneRaw.replace(/[^0-9]/g, '').slice(-10);
+  const managerInitials = user.assignedManagerName
+    ? user.assignedManagerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'RN';
 
   const formatIndianDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -1756,6 +1986,16 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
     }
   };
 
+  const getPriorityBadge = (priority?: string) => {
+    const p = (priority || 'medium').toLowerCase();
+    if (p === 'high') {
+      return <span className="bg-red-100 text-red-700 text-[9px] font-bold px-1.5 py-0.5 rounded">High Priority</span>;
+    } else if (p === 'low') {
+      return <span className="bg-blue-100 text-blue-700 text-[9px] font-bold px-1.5 py-0.5 rounded">Low Priority</span>;
+    }
+    return <span className="bg-amber-100 text-amber-700 text-[9px] font-bold px-1.5 py-0.5 rounded">Medium Priority</span>;
+  };
+
   return (
     <div className="space-y-4 text-left font-sans">
       <div>
@@ -1770,25 +2010,25 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
       <div className="bg-surface border border-primary/25 rounded-2xl p-3.5 shadow-xs space-y-3 font-sans">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-2xs">
-            RN
+            {managerInitials}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-sans text-[10px] font-extrabold text-primary uppercase tracking-wider">{t('support.manager', 'ASSIGNED DRIVER MANAGER')}</p>
             <h4 className="font-sans text-sm font-bold text-text truncate mt-0.5">{user.assignedManagerName || 'Ramesh Naik'}</h4>
-            <p className="font-sans text-xs text-text-muted mt-0.5">+91 {user.assignedManagerPhone || '9876543299'}</p>
+            <p className="font-sans text-xs text-text-muted mt-0.5">+91 {cleanPhone}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 pt-0.5">
           <a
-            href={`tel:${user.assignedManagerPhone || '9876543299'}`}
+            href={`tel:+91${cleanPhone}`}
             className="flex-1 h-9 rounded-xl bg-green hover:bg-green/90 text-white font-sans text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-98"
           >
             <PhoneCall className="w-3.5 h-3.5" />
             <span>{t('support.callManager', 'Call Manager')}</span>
           </a>
           <a
-            href={`https://wa.me/91${user.assignedManagerPhone || '9876543299'}`}
+            href={`https://wa.me/91${cleanPhone}`}
             target="_blank"
             rel="noreferrer"
             className="h-9 px-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-sans text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98 shrink-0"
@@ -1848,41 +2088,99 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
             <div className="space-y-2.5">
               {filteredTickets.map((ticket) => {
                 const isClosed = ticket.status === 'resolved' || ticket.status === 'closed';
+                const isExpanded = expandedTicketId === ticket.id;
                 return (
                   <div
                     key={ticket.id}
-                    onClick={() => onSelectTicket(ticket)}
-                    className={`p-3 rounded-xl border flex flex-col gap-1.5 cursor-pointer transition-all ${
+                    className={`rounded-xl border flex flex-col transition-all overflow-hidden ${
                       isClosed
-                        ? 'opacity-60 bg-gray-50/50 border-border/60'
+                        ? 'opacity-80 bg-gray-50/50 border-border/60'
                         : 'bg-surface border-border/80 shadow-2xs hover:border-primary/50'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5 min-w-0 text-[11px]">
-                        <span className={`font-sans font-bold ${isClosed ? 'text-gray-600' : 'text-primary'}`}>
-                          {t('ticketCategory.' + ticket.category, ticket.category)}
-                        </span>
-                        <span className="text-text-muted">•</span>
-                        <span className="font-mono font-semibold text-text-muted">
-                          {ticket.id}
-                        </span>
+                    {/* Accordion Header Row */}
+                    <div
+                      onClick={() => setExpandedTicketId(isExpanded ? null : ticket.id)}
+                      className="p-3 cursor-pointer flex flex-col gap-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0 text-[11px]">
+                          <span className={`font-sans font-bold ${isClosed ? 'text-gray-600' : 'text-primary'}`}>
+                            {t('ticketCategory.' + ticket.category, ticket.category)}
+                          </span>
+                          <span className="text-text-muted">•</span>
+                          <span className="font-mono font-semibold text-text-muted">
+                            {ticket.id}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {getStatusBadge(ticket.status)}
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-text-muted transition-transform duration-200 ${
+                              isExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </div>
                       </div>
 
-                      {getStatusBadge(ticket.status)}
+                      <h4 className={`font-sans text-xs leading-relaxed ${
+                        isClosed ? 'text-gray-500 font-medium' : 'text-text font-bold'
+                      }`}>
+                        {ticket.subject}
+                      </h4>
+
+                      <div className="flex items-center justify-between border-t border-border/40 pt-1.5 mt-0.5">
+                        {getPriorityBadge(ticket.priority)}
+                        <span className="font-sans text-[10px] font-medium text-text-muted">
+                          {formatIndianDate(ticket.date)}
+                        </span>
+                      </div>
                     </div>
 
-                    <h4 className={`font-sans text-xs leading-relaxed ${
-                      isClosed ? 'text-gray-500 font-medium' : 'text-text font-bold'
-                    }`}>
-                      {ticket.subject}
-                    </h4>
+                    {/* Accordion Body Content */}
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pt-1 border-t border-border/50 bg-bg/50 space-y-2.5 text-xs animate-in fade-in duration-150">
+                        {ticket.description && (
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Description</span>
+                            <p className="text-text leading-relaxed font-sans text-[11px] bg-surface p-2 rounded-lg border border-border/60">
+                              {ticket.description}
+                            </p>
+                          </div>
+                        )}
 
-                    <div className="flex justify-end border-t border-border/40 pt-1.5 mt-0.5">
-                      <span className="font-sans text-[10px] font-medium text-text-muted">
-                        {formatIndianDate(ticket.date)}
-                      </span>
-                    </div>
+                        {ticket.response ? (
+                          <div className="space-y-1 bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg text-emerald-900">
+                            <div className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Manager Resolution Note</span>
+                            </div>
+                            <p className="text-[11px] font-medium leading-relaxed mt-0.5">
+                              {ticket.response}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-text-muted italic bg-surface p-2 rounded-lg border border-border/60 flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-amber-600" />
+                            <span>Ticket is under review by support management team.</span>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end pt-0.5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectTicket(ticket);
+                            }}
+                            className="text-primary hover:underline font-bold text-[11px] flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Open Details Dialog</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1966,7 +2264,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   };
 
   return (
-    <div className="space-y-4 text-left font-sans pb-4">
+    <div className="space-y-4 text-left font-sans pb-6 pt-0.5">
       <div className="flex items-center justify-between border-b border-border/60 pb-2.5">
         <h2 className="font-sans text-base font-extrabold text-text">
           {t('profile.title', 'User Profile')}
@@ -1992,7 +2290,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         </div>
       )}
 
-      <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3.5">
+      <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs flex items-center gap-3.5 overflow-hidden">
         <div className="w-12 h-12 rounded-2xl bg-primary text-white font-black text-base flex items-center justify-center shrink-0 shadow-xs">
           {user.initials || (isOperator ? 'OP' : 'DR')}
         </div>
@@ -2000,8 +2298,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <h3 className="font-sans text-sm font-extrabold text-text truncate">
             {isOperator ? `${user.name} (Fleet Operator)` : user.name}
           </h3>
-          <p className="font-mono text-xs font-medium text-text-muted mt-0.5">
-            {user.operatorCode} • ID: <span className="text-text font-bold">{user.id}</span>
+          <p className="font-mono text-xs font-medium text-text-muted mt-0.5 truncate">
+            {user.operatorCode ? `${user.operatorCode} • ` : ''}ID: <span className="text-text font-bold">{user.id}</span>
           </p>
         </div>
       </div>

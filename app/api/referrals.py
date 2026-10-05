@@ -47,16 +47,25 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
     ref_driver_id = None
     ref_op_id = None
 
+    reward_amt = 1000.00
     if req.referred_by_type == 'driver':
         driver = resolve_driver(str(req.referred_by_id), db)
         ref_driver_id = driver.app_driver_id if driver else req.referred_by_id
         if not referral_code and driver:
             referral_code = driver.referral_code
+        if driver and driver.referral_reward_amt is not None:
+            reward_amt = float(driver.referral_reward_amt)
+        else:
+            reward_amt = 1000.00
     elif req.referred_by_type == 'operator':
         op = resolve_operator(str(req.referred_by_id), db)
         ref_op_id = op.app_operator_id if op else req.referred_by_id
         if not referral_code and op:
             referral_code = op.referral_code
+        if op and op.referral_reward_amt is not None:
+            reward_amt = float(op.referral_reward_amt)
+        else:
+            reward_amt = 2000.00
 
     now = datetime.now(timezone.utc)
     lead = AppReferralLeads(
@@ -68,7 +77,7 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         referral_code_used=referral_code,
         status="submitted",
         rides_completed=0,
-        reward_amount=1000.00,
+        reward_amount=reward_amt,
         reward_credited=False,
         submitted_at=now,
         created_at=now,

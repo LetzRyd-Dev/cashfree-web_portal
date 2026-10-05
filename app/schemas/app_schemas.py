@@ -263,6 +263,12 @@ class TicketResponse(BaseSchema):
     resolved_at: Optional[datetime] = None
     resolution_note: Optional[str] = None
 
+class UpdateTicketRequest(BaseSchema):
+    status: Optional[str] = None
+    resolution_note: Optional[str] = None
+    priority: Optional[str] = None
+
+
 # Notification Schemas
 class NotificationResponse(BaseSchema):
     app_notif_id: int

@@ -35,8 +35,8 @@ class Settings:
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
 
-    CASHFREE_APP_ID: str = os.getenv("CASHFREE_APP_ID", "")
-    CASHFREE_SECRET_KEY: str = os.getenv("CASHFREE_SECRET_KEY", "")
+    CASHFREE_APP_ID: str = os.getenv("CASHFREE_APP_ID", "CF_APP_LETZRYD_TEST")
+    CASHFREE_SECRET_KEY: str = os.getenv("CASHFREE_SECRET_KEY", "CF_SECRET_LETZRYD_TEST_2026")
     CASHFREE_ENV: str = os.getenv("CASHFREE_ENV", "SANDBOX")
     CASHFREE_API_VERSION: str = os.getenv("CASHFREE_API_VERSION", "2023-08-01")
     ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
