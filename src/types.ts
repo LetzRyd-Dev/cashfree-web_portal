@@ -151,6 +151,7 @@ export interface FleetVehicle {
   make: string;
   model: string;
   driverName: string;
+  driverId?: number;
   plan: {
     name: string;
     dailyRate: number;

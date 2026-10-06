@@ -115,12 +115,71 @@ import {
 
 const AUTH_STORAGE_KEY = 'letzryd_driver_portal_session';
 
+function deduplicateVehiclesList(vehicles: FleetVehicle[]): FleetVehicle[] {
+  if (!vehicles || !Array.isArray(vehicles)) return [];
+  const seen = new Set<string>();
+  const result: FleetVehicle[] = [];
+  for (const v of vehicles) {
+    const num = (v.number || '').trim();
+    if (!num) continue;
+    if (!seen.has(num)) {
+      seen.add(num);
+      result.push(v);
+    } else {
+      const idx = result.findIndex(item => (item.number || '').trim() === num);
+      if (idx !== -1 && (v.status === 'active' || (v.currentWeekOs !== 0 && result[idx].currentWeekOs === 0))) {
+        result[idx] = v;
+      }
+    }
+  }
+  return result;
+}
+
+export function mapFleetDataToVehicles(fleetData: any): FleetVehicle[] {
+  const rawVehicles = fleetData?.vehicles || [];
+  const seenVehNumbers = new Set<string>();
+  const deduplicated: any[] = [];
+
+  for (const v of rawVehicles) {
+    const vNum = (v.vehicle_number || '').trim();
+    if (!vNum) continue;
+    if (!seenVehNumbers.has(vNum)) {
+      seenVehNumbers.add(vNum);
+      deduplicated.push(v);
+    } else {
+      const idx = deduplicated.findIndex(item => (item.vehicle_number || '').trim() === vNum);
+      if (idx !== -1) {
+        const existing = deduplicated[idx];
+        if (v.status === 'active' || (v.current_week_os !== 0 && existing.current_week_os === 0)) {
+          deduplicated[idx] = v;
+        }
+      }
+    }
+  }
+
+  return deduplicated.map((v: any) => ({
+    number: v.vehicle_number,
+    make: v.vehicle_make || 'Maruti',
+    model: v.vehicle_model || 'Dzire CNG',
+    driverName: v.driver_name || 'Driver',
+    driverId: v.driver_id,
+    plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
+    currentWeekOs: v.current_week_os || 0,
+    status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
+    hisaabWeeks: [],
+  }));
+}
+
 function getInitialAuth() {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed?.operatorFleet?.vehicles) {
+        parsed.operatorFleet.vehicles = deduplicateVehiclesList(parsed.operatorFleet.vehicles);
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn('Failed to parse saved session:', e);
@@ -418,17 +477,8 @@ export default function App() {
 
             setDriverUser(mapOperatorToUser(opProfile));
 
-            // Map fleet data with driver hisaabs
-            const mappedVehicles: FleetVehicle[] = (fleetData.vehicles || []).map((v: any) => ({
-              number: v.vehicle_number,
-              make: v.vehicle_make || 'Maruti',
-              model: v.vehicle_model || 'Dzire CNG',
-              driverName: v.driver_name || 'Driver',
-              plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
-              currentWeekOs: v.current_week_os || 0,
-              status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
-              hisaabWeeks: HISAAB_WEEKS_DATA,
-            }));
+            // Map fleet data with deduplication and driver hisaabs
+            const mappedVehicles: FleetVehicle[] = mapFleetDataToVehicles(fleetData);
 
             const mappedFleet: Fleet = {
               operatorCode: fleetData.operator_code,
@@ -586,16 +636,7 @@ export default function App() {
 
         setDriverUser(mapOperatorToUser(opProfile));
 
-        const mappedVehicles: FleetVehicle[] = (fleetData?.vehicles || []).map((v: any) => ({
-          number: v.vehicle_number,
-          make: v.vehicle_make || 'Maruti',
-          model: v.vehicle_model || 'Dzire CNG',
-          driverName: v.driver_name || 'Driver',
-          plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
-          currentWeekOs: v.current_week_os || 0,
-          status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
-          hisaabWeeks: HISAAB_WEEKS_DATA,
-        }));
+        const mappedVehicles: FleetVehicle[] = mapFleetDataToVehicles(fleetData);
 
         setOperatorFleet({
           operatorCode: fleetData?.operator_code,
@@ -664,6 +705,29 @@ export default function App() {
       }
     }
   }, [isLoggedIn, loginType, phoneInput, driverUser, driverVehicle, driverRentalPlan, operatorFleet, hisaabWeeks, currentScreen]);
+
+  // Auto-refresh active operator fleet on mount or session restore to ensure live deduplicated data
+  useEffect(() => {
+    if (isLoggedIn && loginType === 'operator' && phoneInput) {
+      const cleanPhone = phoneInput.replace('+91', '').replace(/[\s-]/g, '').trim();
+      getOperatorByPhone(cleanPhone).then(opProfile => {
+        if (opProfile?.app_operator_id) {
+          getOperatorFleet(opProfile.app_operator_id).then(fleetData => {
+            if (fleetData?.vehicles) {
+              const mapped = mapFleetDataToVehicles(fleetData);
+              setOperatorFleet(prev => ({
+                ...prev,
+                vehicles: mapped,
+                depositTotalRequired: fleetData.deposit_total_req ?? prev.depositTotalRequired,
+                depositPaidSoFar: fleetData.deposit_paid ?? prev.depositPaidSoFar,
+                depositPending: fleetData.deposit_pending ?? prev.depositPending,
+              }));
+            }
+          }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    }
+  }, [isLoggedIn, loginType, phoneInput]);
 
   const handleLogout = () => {
     try {
@@ -762,10 +826,31 @@ export default function App() {
     triggerToast('Incident report logged with central dispatcher!', 'success');
   };
 
-  const handleSelectVehicleForHisaab = (number: string) => {
+  const handleSelectVehicleForHisaab = async (number: string) => {
     setSelectedVehicleNumber(number);
     setOperatorVehicleWeekIndex(0);
     navigateTo('operatorVehicle');
+
+    const cleanNum = number.replace(/\s+/g, '');
+    const targetVeh = operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === cleanNum);
+    if (targetVeh && targetVeh.driverId) {
+      try {
+        const hisaabs = await getDriverHisaabs(targetVeh.driverId);
+        if (hisaabs && hisaabs.length > 0) {
+          const mapped = hisaabs.map(mapHisaabToWeek);
+          setOperatorFleet(prev => ({
+            ...prev,
+            vehicles: prev.vehicles.map(v => 
+              v.number.replace(/\s+/g, '') === cleanNum
+                ? { ...v, hisaabWeeks: mapped }
+                : v
+            )
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch driver hisaabs for vehicle', number, err);
+      }
+    }
   };
 
   const handleCopyUpiId = () => {

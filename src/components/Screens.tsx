@@ -2759,24 +2759,33 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
                   </div>
                 </div>
 
-                <div className="text-right shrink-0 flex flex-col items-end">
-                  {v.currentWeekOs < 0 ? (
-                    <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
-                      +{formatCurrency(v.currentWeekOs)}
-                    </span>
-                  ) : v.currentWeekOs > 0 ? (
-                    <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
-                      -{formatCurrency(v.currentWeekOs)}
-                    </span>
-                  ) : (
-                    <span className="font-sans text-xs font-bold text-text-muted font-mono">
-                      ₹0
-                    </span>
-                  )}
-                  <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
-                    View Hisaab →
-                  </span>
-                </div>
+                {(() => {
+                  const latestH = v.hisaabWeeks && v.hisaabWeeks.length > 0 ? v.hisaabWeeks[0] : null;
+                  const effectiveOs = v.currentWeekOs !== 0 
+                    ? v.currentWeekOs 
+                    : (latestH ? ((latestH.toPay || 0) > 0 ? -latestH.toPay : (latestH.toCollect || latestH.currentWeekOs || 0)) : 0);
+
+                  return (
+                    <div className="text-right shrink-0 flex flex-col items-end">
+                      {effectiveOs < 0 ? (
+                        <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
+                          +{formatCurrency(effectiveOs)}
+                        </span>
+                      ) : effectiveOs > 0 ? (
+                        <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
+                          -{formatCurrency(effectiveOs)}
+                        </span>
+                      ) : (
+                        <span className="font-sans text-xs font-bold text-text-muted font-mono">
+                          ₹0
+                        </span>
+                      )}
+                      <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
+                        View Hisaab →
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             ))
           )}
