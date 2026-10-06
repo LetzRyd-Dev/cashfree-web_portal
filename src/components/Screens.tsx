@@ -623,7 +623,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
   const [depositOpen, setDepositOpen] = useState(false);
 
   if (weeks.length === 0) {
-    if (isFleetManaged || operatorName) {
+    if (loginType !== 'operator' && (isFleetManaged || operatorName)) {
       return (
         <div className="space-y-4 font-sans text-left py-4">
           <div className="bg-surface border border-border/80 rounded-2xl p-5 shadow-xs text-center space-y-3">
@@ -773,7 +773,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
   return (
     <div className="space-y-3.5 text-left font-sans pb-4">
       {/* FLEET OPERATOR INFORMATIONAL TAG */}
-      {(isFleetManaged || w.isFleetManaged) && (
+      {loginType !== 'operator' && (isFleetManaged || w.isFleetManaged) && (
         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between gap-2 font-sans text-xs">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
@@ -1812,7 +1812,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           {!isFleetManaged && (
             <div className="space-y-1.5 pt-1">
               <label className="font-sans text-[11px] font-bold text-text-muted uppercase tracking-wider block">
-                PAYMENT METHOD
+                {t('settle.paymentMethod', 'PAYMENT METHOD')}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -1828,8 +1828,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                     <Smartphone className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-sans text-[11px] font-bold text-text">UPI App / QR</div>
-                    <div className="text-[9.5px] text-text-muted truncate">GPay, PhonePe, Paytm</div>
+                    <div className="font-sans text-[11px] font-bold text-text">{t('settle.upiApp', 'UPI App / QR')}</div>
+                    <div className="text-[9.5px] text-text-muted truncate">{t('settle.upiSub', 'GPay, PhonePe, Paytm')}</div>
                   </div>
                 </button>
 
@@ -1846,8 +1846,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                     <CreditCard className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-sans text-[11px] font-bold text-text">Cards</div>
-                    <div className="text-[9.5px] text-text-muted truncate">Debit / Credit Card</div>
+                    <div className="font-sans text-[11px] font-bold text-text">{t('settle.cards', 'Cards')}</div>
+                    <div className="text-[9.5px] text-text-muted truncate">{t('settle.cardsSub', 'Debit / Credit Card')}</div>
                   </div>
                 </button>
 
@@ -1864,8 +1864,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                     <Landmark className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-sans text-[11px] font-bold text-text">NetBanking</div>
-                    <div className="text-[9.5px] text-text-muted truncate">All Indian Banks</div>
+                    <div className="font-sans text-[11px] font-bold text-text">{t('settle.netBanking', 'NetBanking')}</div>
+                    <div className="text-[9.5px] text-text-muted truncate">{t('settle.netBankingSub', 'All Indian Banks')}</div>
                   </div>
                 </button>
 
@@ -1882,8 +1882,8 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                     <ShieldCheck className="w-4 h-4" />
                   </div>
                   <div className="min-w-0">
-                    <div className="font-sans text-[11px] font-bold text-text">Cashfree PG</div>
-                    <div className="text-[9.5px] text-text-muted truncate">Instant Gateway</div>
+                    <div className="font-sans text-[11px] font-bold text-text">{t('settle.cashfreePg', 'Cashfree PG')}</div>
+                    <div className="text-[9.5px] text-text-muted truncate">{t('settle.cashfreePgSub', 'Instant Gateway')}</div>
                   </div>
                 </button>
               </div>
@@ -2057,7 +2057,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-sans text-[10px] font-extrabold text-primary uppercase tracking-wider">
-              {isOperator ? 'ASSIGNED ACCOUNT MANAGER' : t('support.manager', 'ASSIGNED DRIVER MANAGER')}
+              {isOperator ? t('support.accountManager', 'ASSIGNED ACCOUNT MANAGER') : t('support.manager', 'ASSIGNED DRIVER MANAGER')}
             </p>
             <h4 className="font-sans text-sm font-bold text-text truncate mt-0.5">{managerName}</h4>
             <p className="font-sans text-xs text-text-muted mt-0.5">{displayPhoneText}</p>
@@ -2070,7 +2070,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
             className="flex-1 h-9 rounded-xl bg-green hover:bg-green/90 text-white font-sans text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-98"
           >
             <PhoneCall className="w-3.5 h-3.5" />
-            <span>{isOperator ? 'Call Account Manager' : t('support.callManager', 'Call Manager')}</span>
+            <span>{isOperator ? t('support.callAccountManager', 'Call Account Manager') : t('support.callManager', 'Call Manager')}</span>
           </a>
           <a
             href={`https://wa.me/91${whatsAppMobile}`}
@@ -2358,12 +2358,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs space-y-3">
         <h3 className="font-sans text-xs font-extrabold text-text uppercase tracking-wider text-text-muted">
-          {isOperator ? 'Company & Contact Info' : t('profile.personalTitle', 'Personal & Medical Info')}
+          {isOperator ? t('profile.companyInfo', 'Company & Contact Info') : t('profile.personalTitle', 'Personal & Medical Info')}
         </h3>
 
         <div className="divide-y divide-border/50 font-sans text-xs">
           <div className="py-2.5 flex items-center justify-between gap-4">
-            <span className="text-text-muted font-medium">{isOperator ? 'Company Phone' : t('profile.registeredPhone', 'Registered Phone')}</span>
+            <span className="text-text-muted font-medium">{isOperator ? t('profile.companyPhone', 'Company Phone') : t('profile.registeredPhone', 'Registered Phone')}</span>
             <span className="font-sans font-bold text-text">+91 {user.phone}</span>
           </div>
 
@@ -2399,7 +2399,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           )}
 
           <div className="pt-2.5 flex flex-col gap-1">
-            <span className="text-text-muted font-medium">{isOperator ? 'Business / Office Address' : t('profile.address', 'Residential Address')}</span>
+            <span className="text-text-muted font-medium">{isOperator ? t('profile.businessAddress', 'Business / Office Address') : t('profile.address', 'Residential Address')}</span>
             {isEditing ? (
               <textarea
                 value={address}
@@ -2440,20 +2440,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       ) : (
         <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs space-y-3">
           <h3 className="font-sans text-xs font-extrabold text-text uppercase tracking-wider text-text-muted">
-            Fleet Registration & Deposit
+            {t('profile.fleetRegDeposit', 'Fleet Registration & Deposit')}
           </h3>
 
           <div className="divide-y divide-border/50 font-sans text-xs">
             <div className="py-2.5 flex items-center justify-between gap-4">
-              <span className="text-text-muted font-medium">Operator Code</span>
+              <span className="text-text-muted font-medium">{t('profile.operatorCode', 'Operator Code')}</span>
               <span className="font-mono font-bold text-primary">{user.operatorCode}</span>
             </div>
             <div className="py-2.5 flex items-center justify-between gap-4">
-              <span className="text-text-muted font-medium">Operator Type</span>
-              <span className="font-sans font-bold text-text">{user.operatorType || 'Fleet Owner'}</span>
+              <span className="text-text-muted font-medium">{t('profile.operatorType', 'Operator Type')}</span>
+              <span className="font-sans font-bold text-text">{user.operatorType === 'Fleet Owner' ? t('profile.fleetOwner', 'Fleet Owner') : (user.operatorType || t('profile.fleetOwner', 'Fleet Owner'))}</span>
             </div>
             <div className="py-2.5 flex items-center justify-between gap-4">
-              <span className="text-text-muted font-medium">Security Deposit</span>
+              <span className="text-text-muted font-medium">{t('profile.securityDeposit', 'Security Deposit')}</span>
               <span className="font-sans font-bold text-green">
                 Paid: ₹{(user.depositPaidSoFar ?? user.depositAmount ?? 0).toLocaleString('en-IN')} / ₹{(user.depositTotalRequired ?? user.depositAmount ?? 0).toLocaleString('en-IN')}
               </span>
@@ -2464,14 +2464,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
       <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs space-y-3">
         <h3 className="font-sans text-xs font-extrabold text-text uppercase tracking-wider text-text-muted">
-          {isOperator ? 'Assigned Account Manager' : t('profile.emergencyTitle', 'Emergency Contact')}
+          {isOperator ? t('profile.assignedAccountManager', 'Assigned Account Manager') : t('profile.emergencyTitle', 'Emergency Contact')}
         </h3>
 
         {isEditing ? (
           <div className="space-y-3 font-sans text-xs">
             <div>
               <label className="text-text-muted font-medium block mb-1">
-                {isOperator ? 'Manager Name' : t('profile.emergencyPerson', 'Contact Person Name')}
+                {isOperator ? t('profile.managerName', 'Manager Name') : t('profile.emergencyPerson', 'Contact Person Name')}
               </label>
               <input
                 type="text"
@@ -2485,7 +2485,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-text-muted font-medium block mb-1">
-                  {isOperator ? 'Role' : t('profile.emergencyRelation', 'Relation')}
+                  {isOperator ? t('profile.role', 'Role') : t('profile.emergencyRelation', 'Relation')}
                 </label>
                 {isOperator ? (
                   <input
@@ -2514,7 +2514,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
               <div>
                 <label className="text-text-muted font-medium block mb-1">
-                  {isOperator ? 'Manager Phone' : t('profile.emergencyPhone', 'Emergency Mobile')}
+                  {isOperator ? t('profile.managerPhone', 'Manager Phone') : t('profile.emergencyPhone', 'Emergency Mobile')}
                 </label>
                 <input
                   type="tel"
@@ -2544,7 +2544,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <div className="divide-y divide-border/50 font-sans text-xs">
             <div className="py-2.5 flex items-center justify-between gap-4">
               <span className="text-text-muted font-medium">
-                {isOperator ? 'Manager Name' : t('profile.emergencyPerson', 'Contact Person')}
+                {isOperator ? t('profile.managerName', 'Manager Name') : t('profile.emergencyPerson', 'Contact Person')}
               </span>
               <span className="font-sans font-bold text-text">
                 {isOperator 
@@ -2562,16 +2562,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 
             <div className="py-2.5 flex items-center justify-between gap-4">
               <span className="text-text-muted font-medium">
-                {isOperator ? 'Role' : t('profile.emergencyRelation', 'Relation')}
+                {isOperator ? t('profile.role', 'Role') : t('profile.emergencyRelation', 'Relation')}
               </span>
               <span className="font-sans font-bold text-text">
-                {isOperator ? (user.emergencyRelation || 'Account Manager') : (emergencyRelation ? getRelationLabel(emergencyRelation) : '—')}
+                {isOperator ? (user.emergencyRelation === 'Account Manager' ? t('profile.accountManagerRole', 'Account Manager') : (user.emergencyRelation || t('profile.accountManagerRole', 'Account Manager'))) : (emergencyRelation ? getRelationLabel(emergencyRelation) : '—')}
               </span>
             </div>
 
             <div className="py-2.5 flex items-center justify-between gap-4">
               <span className="text-text-muted font-medium">
-                {isOperator ? 'Manager Phone' : t('profile.emergencyPhone', 'Emergency Mobile')}
+                {isOperator ? t('profile.managerPhone', 'Manager Phone') : t('profile.emergencyPhone', 'Emergency Mobile')}
               </span>
               <span className="font-mono font-bold text-text">
                 {isOperator ? (() => {
@@ -2632,11 +2632,8 @@ interface OperatorScreenProps {
 
 export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'vehicles' | 'drivers'>('vehicles');
 
   const totalVehicles = fleet.vehicles.length;
-  const driversList = fleet.drivers || [];
-  const totalDrivers = driversList.length || totalVehicles;
   const totalToPay = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
   const totalToCollect = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
 
@@ -2646,14 +2643,6 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
       v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.driverName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredDriversList = driversList.filter(
-    (d) =>
-      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.driverCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.phone.includes(searchQuery) ||
-      d.assignedVehicle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (val: number) => {
@@ -2671,11 +2660,11 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
           {t('operator.dashboardTitle', 'Fleet Overview')}
         </h2>
         <p className="font-sans text-xs text-text-muted mt-0.5">
-          {t('operator.statusSubtitle', 'Real-time settlement status')} ({totalVehicles} {t('operator.vehiclesUnit', 'Vehicles')} • {totalDrivers} {t('operator.driversUnit', 'Drivers')})
+          {t('operator.statusSubtitle', 'Real-time settlement status')} ({totalVehicles} {t('operator.vehiclesUnit', 'Vehicles')})
         </p>
       </div>
 
-      <div className="grid grid-cols-4 gap-2 font-sans text-xs">
+      <div className="grid grid-cols-3 gap-2 font-sans text-xs">
         <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.toPay', 'TO PAY')}</p>
           <p className="font-sans text-xs sm:text-sm font-bold text-green mt-1 whitespace-nowrap font-mono">
@@ -2691,10 +2680,6 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
         <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.cars', 'CARS')}</p>
           <p className="font-sans text-xs sm:text-sm font-bold text-text mt-1">{totalVehicles}</p>
-        </div>
-        <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
-          <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.drivers', 'DRIVERS')}</p>
-          <p className="font-sans text-xs sm:text-sm font-bold text-primary mt-1">{totalDrivers}</p>
         </div>
       </div>
 
@@ -2728,206 +2713,86 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={activeTab === 'vehicles' ? t('operator.searchVehiclePlaceholder', 'Search vehicle number, model or driver...') : t('operator.searchDriverPlaceholder', 'Search driver name, code, phone, or car...')}
+          placeholder={t('operator.searchPlaceholder', 'Search vehicle number, model or driver...')}
           className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-bg text-xs font-medium outline-none focus:border-primary transition-colors"
         />
       </div>
 
-      {/* SEGMENTED TAB SWITCHER */}
-      <div className="flex bg-surface p-1 rounded-xl border border-border">
-        <button
-          type="button"
-          onClick={() => setActiveTab('vehicles')}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'vehicles' ? 'bg-bg text-primary shadow-xs border border-border/60' : 'text-text-muted hover:text-text'
-          }`}
-        >
-          <Car className="w-3.5 h-3.5" />
-          <span>{t('operator.vehiclesTab', 'Vehicles')} ({totalVehicles})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('drivers')}
-          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            activeTab === 'drivers' ? 'bg-bg text-primary shadow-xs border border-border/60' : 'text-text-muted hover:text-text'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>{t('operator.driversTab', 'Drivers Roster')} ({totalDrivers})</span>
-        </button>
-      </div>
+      {/* VEHICLE FLEET LIST CARD */}
+      <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
+        <div className="border-b border-border/60 pb-2 flex items-center justify-between">
+          <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+            <Car className="w-3.5 h-3.5 text-primary" />
+            <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')} ({vehicleFleetList.length})</span>
+          </h3>
+          <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
+        </div>
 
-      {/* TAB CONTENT: DRIVERS ROSTER */}
-      {activeTab === 'drivers' ? (
-        <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
-          <div className="border-b border-border/60 pb-2 flex items-center justify-between">
-            <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-3.5 h-3.5 text-primary" />
-              <span>{t('operator.driversRoster', 'DRIVERS ROSTER')} ({filteredDriversList.length})</span>
-            </h3>
-            <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
-          </div>
+        <div className="divide-y divide-border/60">
+          {vehicleFleetList.length === 0 ? (
+            <div className="py-6 text-center text-text-muted text-xs">
+              {searchQuery ? t('operator.noVehiclesMatch', 'No vehicles match your search') : t('operator.noVehicles', 'No vehicles assigned to this fleet')}
+            </div>
+          ) : (
+            vehicleFleetList.map((v) => (
+              <div
+                key={`v-${v.number}`}
+                onClick={() => onSelectVehicle(v.number)}
+                className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                    <Car className="w-4 h-4" />
+                  </div>
 
-          <div className="divide-y divide-border/60">
-            {filteredDriversList.length === 0 ? (
-              <div className="py-6 text-center text-text-muted text-xs">
-                {searchQuery ? t('operator.noDriversMatch', 'No drivers match your search') : t('operator.noDrivers', 'No drivers enrolled in this roster')}
-              </div>
-            ) : (
-              filteredDriversList.map((d) => {
-                const isAssigned = d.assignedVehicle && !d.assignedVehicle.toLowerCase().startsWith('unassigned');
-                const targetVeh = isAssigned ? d.assignedVehicle.replace(/\s*\(Alloc\)/, '').trim() : null;
-                return (
-                  <div
-                    key={`d-${d.driverId}`}
-                    onClick={() => {
-                      if (targetVeh) {
-                        onSelectVehicle(targetVeh);
-                      }
-                    }}
-                    className={`py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 rounded-md px-1 transition-colors group ${
-                      targetVeh ? 'cursor-pointer' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-blue-500/10 border-blue-500/20 text-blue-600 font-bold text-xs">
-                        <Users className="w-4 h-4" />
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className="font-sans text-xs font-bold text-text truncate">
-                            {d.name}
-                          </span>
-                          <span className="font-mono text-[10px] text-text-muted bg-bg px-1 rounded border border-border/40">
-                            {d.driverCode}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-text-muted font-sans flex-wrap">
-                          <span>{d.phone}</span>
-                          <span>•</span>
-                          {isAssigned ? (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-mono">
-                              🚗 {d.assignedVehicle}
-                            </span>
-                          ) : (
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20">
-                              Unassigned
-                            </span>
-                          )}
-                          <span>•</span>
-                          <span className="text-[10px] font-medium">{d.rentalPlan}</span>
-                        </div>
-                      </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
+                        {v.number}
+                      </span>
+                      <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
+                        {v.make} {v.model}
+                      </span>
                     </div>
+                    <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1 truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-muted/80">{t('operator.assignedDriver', 'Assigned Driver')}:</span>
+                      <span className="font-semibold text-text truncate">{v.driverName || 'Unassigned'}</span>
+                    </p>
+                  </div>
+                </div>
 
+                {(() => {
+                  const latestH = v.hisaabWeeks && v.hisaabWeeks.length > 0 ? v.hisaabWeeks[0] : null;
+                  const effectiveOs = v.currentWeekOs !== 0 
+                    ? v.currentWeekOs 
+                    : (latestH ? ((latestH.toPay || 0) > 0 ? -latestH.toPay : (latestH.toCollect || latestH.currentWeekOs || 0)) : 0);
+
+                  return (
                     <div className="text-right shrink-0 flex flex-col items-end">
-                      {d.currentWeekOs < 0 ? (
+                      {effectiveOs < 0 ? (
                         <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
-                          +{formatCurrency(d.currentWeekOs)}
+                          +{formatCurrency(effectiveOs)}
                         </span>
-                      ) : d.currentWeekOs > 0 ? (
+                      ) : effectiveOs > 0 ? (
                         <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
-                          -{formatCurrency(d.currentWeekOs)}
+                          -{formatCurrency(effectiveOs)}
                         </span>
                       ) : (
                         <span className="font-sans text-xs font-bold text-text-muted font-mono">
                           ₹0
                         </span>
                       )}
-                      {targetVeh ? (
-                        <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
-                          View Hisaab →
-                        </span>
-                      ) : (
-                        <span className="font-sans text-[10px] text-text-muted mt-0.5">
-                          {d.hisaabCount > 0 ? `${d.hisaabCount} wks` : 'No car'}
-                        </span>
-                      )}
+                      <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
+                        {t('operator.viewHisaab', 'View Hisaab →')}
+                      </span>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      ) : (
-        /* TAB CONTENT: VEHICLE FLEET LIST CARD */
-        <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
-          <div className="border-b border-border/60 pb-2 flex items-center justify-between">
-            <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-              <Car className="w-3.5 h-3.5 text-primary" />
-              <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')} ({vehicleFleetList.length})</span>
-            </h3>
-            <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
-          </div>
-
-          <div className="divide-y divide-border/60">
-            {vehicleFleetList.length === 0 ? (
-              <div className="py-6 text-center text-text-muted text-xs">
-                {searchQuery ? t('operator.noVehiclesMatch', 'No vehicles match your search') : t('operator.noVehicles', 'No vehicles assigned to this fleet')}
+                  );
+                })()}
               </div>
-            ) : (
-              vehicleFleetList.map((v) => (
-                <div
-                  key={`v-${v.number}`}
-                  onClick={() => onSelectVehicle(v.number)}
-                  className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
-                      <Car className="w-4 h-4" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
-                          {v.number}
-                        </span>
-                        <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
-                          {v.make} {v.model}
-                        </span>
-                      </div>
-                      <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1 truncate">
-                        <span className="text-[10px] uppercase font-bold text-text-muted/80">Assigned Driver:</span>
-                        <span className="font-semibold text-text truncate">{v.driverName || 'Unassigned'}</span>
-                      </p>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const latestH = v.hisaabWeeks && v.hisaabWeeks.length > 0 ? v.hisaabWeeks[0] : null;
-                    const effectiveOs = v.currentWeekOs !== 0 
-                      ? v.currentWeekOs 
-                      : (latestH ? ((latestH.toPay || 0) > 0 ? -latestH.toPay : (latestH.toCollect || latestH.currentWeekOs || 0)) : 0);
-
-                    return (
-                      <div className="text-right shrink-0 flex flex-col items-end">
-                        {effectiveOs < 0 ? (
-                          <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
-                            +{formatCurrency(effectiveOs)}
-                          </span>
-                        ) : effectiveOs > 0 ? (
-                          <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
-                            -{formatCurrency(effectiveOs)}
-                          </span>
-                        ) : (
-                          <span className="font-sans text-xs font-bold text-text-muted font-mono">
-                            ₹0
-                          </span>
-                        )}
-                        <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
-                          View Hisaab →
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              ))
-            )}
-          </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
