@@ -1651,9 +1651,9 @@ export default function App() {
 
                           <div className="flex justify-between items-center gap-2 pt-0.5">
                             <div>
-                              <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Fleet Payout</div>
+                              <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">{t('home.fleetEarnings', 'Fleet Gross Earnings')}</div>
                               <div className="font-sans text-2xl font-black text-green mt-0.5">
-                                +₹{Math.abs(operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? v.currentWeekOs : 0), 0)) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                +₹{((activeWeek ? activeWeek.grossEarnings : 0) || (activeWeek ? (activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) : 0) || operatorFleet.vehicles.reduce((sum, v) => sum + (v.currentWeekOs < 0 ? Math.abs(v.currentWeekOs) : 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </div>
                             </div>
                             <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">

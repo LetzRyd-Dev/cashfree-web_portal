@@ -123,12 +123,47 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
                 existing_v = vehicles[idx]
                 if len(hisaabs) > existing_v.hisaab_count:
                     vehicles[idx] = veh_obj
-                elif len(hisaabs) == existing_v.hisaab_count:
-                    if cw_os != 0 and existing_v.current_week_os == 0:
-                        vehicles[idx] = veh_obj
+    # Also collect any fleet vehicles that have hisaabs for this operator but were not in seen_vehicles
+    op_ids = [op.app_operator_id]
+    if op.operator_id:
+        op_ids.append(op.operator_id)
+    op_hisaabs = db.query(AppHisaabs).filter(
+        AppHisaabs.app_operator_id.in_(op_ids)
+    ).order_by(AppHisaabs.week_number.desc()).all()
 
-    cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers) if drivers else float(op.cw_to_pay or 0.0)
-    cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers) if drivers else float(op.cw_to_collect or 0.0)
+    for h in op_hisaabs:
+        parts = h.hisaab_number.split('-') if h.hisaab_number else []
+        if len(parts) >= 3 and parts[0] == 'HSB':
+            v_num = parts[2].upper()
+            if v_num not in seen_vehicles:
+                drv_name = "Fleet Vehicle"
+                drv_phone = ""
+                if h.app_driver_id:
+                    d_obj = db.query(AppDrivers).filter(AppDrivers.app_driver_id == h.app_driver_id).first()
+                    if d_obj:
+                        drv_name = d_obj.full_name or "Fleet Driver"
+                        drv_phone = d_obj.phone or ""
+
+                to_pay = float(getattr(h, 'to_pay', 0) or 0.0)
+                to_col = float(getattr(h, 'to_collect', 0) or getattr(h, 'current_period_os', 0) or 0.0)
+                v_cw_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+
+                seen_vehicles[v_num] = len(vehicles)
+                vehicles.append(FleetVehicleResponse(
+                    vehicle_number=v_num,
+                    vehicle_make="Maruti",
+                    vehicle_model=getattr(h, 'vehicle_model', None) or "WagonR Tour H3 CNG",
+                    driver_name=drv_name,
+                    driver_id=h.app_driver_id or 0,
+                    driver_phone=drv_phone,
+                    daily_rate=float(getattr(h, 'applied_daily_rent', 1000.0) or 1000.0),
+                    current_week_os=v_cw_os,
+                    status="active" if h.status != "locked" else "idle",
+                    hisaab_count=1
+                ))
+
+    cw_to_pay = sum(abs(v.current_week_os) for v in vehicles if v.current_week_os < 0)
+    cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)
     cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers) if drivers else float(op.cw_fleet_gross_earnings or 0.0)
     cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
     total_veh = len(vehicles) if vehicles else max(len(drivers), (op.total_vehicles or 0))

@@ -1595,7 +1595,8 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "profile.managerName": "Manager Name",
   "profile.role": "Role",
   "profile.accountManagerRole": "Account Manager",
-  "profile.managerPhone": "Manager Phone"
+  "profile.managerPhone": "Manager Phone",
+  "home.fleetEarnings": "Fleet Gross Earnings"
 };
 
 export const TRANSLATIONS_HI: Record<string, string> = {
@@ -1931,7 +1932,8 @@ export const TRANSLATIONS_HI: Record<string, string> = {
   "profile.managerName": "मैनेजर का नाम",
   "profile.role": "पद / भूमिका",
   "profile.accountManagerRole": "अकाउंट मैनेजर",
-  "profile.managerPhone": "मैनेजर का फोन"
+  "profile.managerPhone": "मैनेजर का फोन",
+  "home.fleetEarnings": "कुल फ्लीट कमाई"
 };
 
 export const TRANSLATIONS_MR: Record<string, string> = {
