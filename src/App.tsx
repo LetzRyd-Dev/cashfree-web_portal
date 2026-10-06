@@ -1558,70 +1558,33 @@ export default function App() {
                             </div>
                           </div>
 
-                          {/* 2-PILLAR SETTLEMENT GRID FOR DRIVER */}
+                          {/* WHAT YOU MADE HERO FOR DRIVER */}
                           {(() => {
                             const grossFares = (activeWeek.grossEarnings && activeWeek.grossEarnings > 0)
                               ? activeWeek.grossEarnings
                               : ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0));
                             const totalTrips = (activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0);
 
-                            const rawDue = (activeWeek.currentWeekOs > 0 ? activeWeek.currentWeekOs : (activeWeek.toCollect || 0));
-                            const paid = activeWeek.paidAmount || 0;
-                            const isSettled = activeWeek.status === 'settled' || activeWeek.paymentStatus === 'settled' || (paid >= rawDue && rawDue > 0);
-                            const isPayout = (activeWeek.currentWeekOs || 0) < 0 || ((activeWeek.toPay || 0) > 0 && (activeWeek.toCollect || 0) <= 0 && (activeWeek.currentWeekOs || 0) <= 0);
-                            const val = isPayout 
-                              ? ((activeWeek.toPay && activeWeek.toPay > 0) ? activeWeek.toPay : Math.abs(activeWeek.currentWeekOs))
-                              : (isSettled ? 0 : Math.max(0, rawDue - paid));
-
                             return (
-                              <div className="grid grid-cols-2 gap-2.5">
-                                {/* Pillar 1: What You Made */}
-                                <div className="bg-bg/80 border border-border/70 rounded-xl p-2.5 flex flex-col justify-between">
-                                  <div>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                                      {t('home.whatYouMade', 'What You Made')}
-                                    </span>
-                                    <span className="text-[9px] text-text-dim block leading-tight">
-                                      {t('home.grossTripEarnings', 'Gross Road Earnings')}
-                                    </span>
+                              <div className="flex justify-between items-center gap-2 pt-0.5">
+                                <div>
+                                  <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
+                                    {t('home.whatYouMade', 'What You Made')}
                                   </div>
-                                  <div className="font-sans text-base font-black text-green mt-1 font-mono">
+                                  <div className="text-[9px] text-text-dim">
+                                    {t('home.grossTripEarnings', 'Gross Road Earnings')}
+                                  </div>
+                                  <div className="font-sans text-2xl font-black text-green mt-1 font-mono">
                                     +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
-                                  <span className="text-[9.5px] text-text-muted font-medium mt-0.5">
-                                    {totalTrips} Rides • {activeWeek.activeDays || 6} Days
+                                  <span className="text-[10px] text-text-muted font-medium mt-0.5 block">
+                                    {totalTrips} Rides • {activeWeek.activeDays || 6} Days Active
                                   </span>
                                 </div>
-
-                                {/* Pillar 2: Final Settlement */}
-                                <div className={`border rounded-xl p-2.5 flex flex-col justify-between ${isPayout ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-                                  <div>
-                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                                      {t('home.netSettlement', 'Final Settlement')}
-                                    </span>
-                                    <span className="text-[9px] text-text-dim block leading-tight">
-                                      {isPayout ? t('home.payoutToBank', 'Payout to Bank') : t('home.dueToLetzryd', 'Due to LetzRyd')}
-                                    </span>
-                                  </div>
-                                  <div className={`font-sans text-base font-black mt-1 font-mono ${isPayout ? 'text-green' : isSettled ? 'text-green' : 'text-red-600'}`}>
-                                    {isSettled && !isPayout ? '₹0' : `${isPayout ? '+₹' : '-₹'}${val.toLocaleString('en-IN', { minimumFractionDigits: val % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`}
-                                  </div>
-                                  <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                                    {!isPayout && !isSettled && val > 0 ? (
-                                      <button
-                                        onClick={() => navigateTo('settle')}
-                                        className="w-full py-1 px-2 rounded-lg bg-primary hover:bg-primary-hover font-sans text-[10.5px] font-bold text-white shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                      >
-                                        {t('home.payNow', 'Pay Now')} →
-                                      </button>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-green">
-                                        <CheckCircle2 className="w-3 h-3 text-green" />
-                                        {isPayout ? 'Bank Credit' : 'All Settled'}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                                <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
+                                  <TrendingUp className="w-3 h-3 text-green" />
+                                  12.5% vs last week
+                                </span>
                               </div>
                             );
                           })()}
@@ -1686,89 +1649,34 @@ export default function App() {
                             </span>
                           </div>
 
-                          {/* 2-PILLAR SETTLEMENT GRID FOR OPERATOR */}
+                          {/* WHAT FLEET MADE HERO FOR OPERATOR */}
                           {(() => {
                             const grossFares = (activeWeek?.grossEarnings && activeWeek.grossEarnings > 0)
                               ? activeWeek.grossEarnings
                               : (activeWeek ? ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0)) : 0);
-                            const totalCashInHand = (activeWeek?.cashCollected && activeWeek.cashCollected > 0)
-                              ? activeWeek.cashCollected
-                              : (activeWeek ? (Math.abs(activeWeek.platforms?.uber?.cashCollection || 0) + Math.abs(activeWeek.platforms?.ola?.cashCollection || 0) + Math.abs(activeWeek.platforms?.rapido?.cashCollection || 0)) : 0);
                             const totalTrips = activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0)) : 1150;
                             const totalVehicles = operatorFleet.vehicles.length || 22;
 
-                            // Net Settlement Due
-                            const opDue = (activeWeek && activeWeek.toCollect !== undefined && activeWeek.toCollect !== null && activeWeek.toCollect > 0)
-                              ? activeWeek.toCollect
-                              : operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
-                            const opPayout = (activeWeek && activeWeek.toPay !== undefined && activeWeek.toPay !== null && activeWeek.toPay > 0)
-                              ? activeWeek.toPay
-                              : operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
-                            const isPayout = opPayout > 0 && opDue <= 0;
-                            const netSettlementAmt = isPayout ? opPayout : opDue;
-
                             return (
-                              <div className="space-y-3">
-                                <div className="grid grid-cols-2 gap-2.5">
-                                  {/* Pillar 1: What Your Fleet Made */}
-                                  <div className="bg-bg/80 border border-border/70 rounded-xl p-2.5 flex flex-col justify-between">
-                                    <div>
-                                      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                                        {t('home.whatFleetMade', 'What Fleet Made')}
-                                      </span>
-                                      <span className="text-[9px] text-text-dim block leading-tight">
-                                        {t('home.grossTripEarnings', 'Gross Road Earnings')}
-                                      </span>
-                                    </div>
-                                    <div className="font-sans text-base font-black text-green mt-1 font-mono">
-                                      +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                    </div>
-                                    <span className="text-[9.5px] text-text-muted font-medium mt-0.5">
-                                      {totalTrips} Rides • {totalVehicles} Cars
-                                    </span>
+                              <div className="flex justify-between items-center gap-2 pt-0.5">
+                                <div>
+                                  <div className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">
+                                    {t('home.whatFleetMade', 'What Your Fleet Made')}
                                   </div>
-
-                                  {/* Pillar 2: Final Settlement Due */}
-                                  <div className={`border rounded-xl p-2.5 flex flex-col justify-between ${isPayout ? 'bg-green-50/50 border-green-200' : 'bg-red-50/50 border-red-200'}`}>
-                                    <div>
-                                      <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                                        {t('home.netSettlement', 'Final Settlement')}
-                                      </span>
-                                      <span className="text-[9px] text-text-dim block leading-tight">
-                                        {isPayout ? t('home.payoutToBank', 'Payout to Bank') : t('home.dueToLetzryd', 'Due to LetzRyd')}
-                                      </span>
-                                    </div>
-                                    <div className={`font-sans text-base font-black mt-1 font-mono ${isPayout ? 'text-green' : netSettlementAmt === 0 ? 'text-green' : 'text-red-600'}`}>
-                                      {isPayout 
-                                        ? `+₹${netSettlementAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-                                        : netSettlementAmt === 0 
-                                        ? '₹0' 
-                                        : `-₹${netSettlementAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-                                    </div>
-                                    <div className="mt-1" onClick={(e) => e.stopPropagation()}>
-                                      {!isPayout && netSettlementAmt > 0 ? (
-                                        <button
-                                          onClick={() => navigateTo('settle')}
-                                          className="w-full py-1 px-2 rounded-lg bg-primary hover:bg-primary-hover font-sans text-[10.5px] font-bold text-white shadow-2xs transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                        >
-                                          {t('home.payNow', 'Pay Now')} →
-                                        </button>
-                                      ) : (
-                                        <span className="inline-flex items-center gap-1 text-[9.5px] font-bold text-green">
-                                          <CheckCircle2 className="w-3 h-3 text-green" />
-                                          {isPayout ? 'Bank Credit' : 'All Settled'}
-                                        </span>
-                                      )}
-                                    </div>
+                                  <div className="text-[9px] text-text-dim">
+                                    {t('home.grossTripEarnings', 'Gross Road Earnings')}
                                   </div>
+                                  <div className="font-sans text-2xl font-black text-green mt-1 font-mono">
+                                    +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </div>
+                                  <span className="text-[10px] text-text-muted font-medium mt-0.5 block">
+                                    {totalTrips} Rides across {totalVehicles} Cars
+                                  </span>
                                 </div>
-
-                                {totalCashInHand > 0 && (
-                                  <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 text-[10.5px] text-text-muted leading-tight">
-                                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    <span>Drivers collected <strong>₹{totalCashInHand.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong> in cash on road. Collect rent balance to pay LetzRyd.</span>
-                                  </div>
-                                )}
+                                <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
+                                  <TrendingUp className="w-3 h-3 text-green" />
+                                  12.5% vs last week
+                                </span>
                               </div>
                             );
                           })()}
@@ -1936,35 +1844,79 @@ export default function App() {
                         ) : null
                       ) : (
                         <div
-                          onClick={() => navigateTo('operator')}
+                          onClick={() => navigateTo('settle')}
                           className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
                         >
                           <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
                             <span className="font-bold text-text flex items-center gap-1.5 uppercase tracking-wider text-[10px] group-hover:text-primary transition-colors">
-                              <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                              FLEET VEHICLE ROSTER
+                              <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                              {t('home.netSettlement', 'FINAL SETTLEMENT')}
                             </span>
                             <span className="text-[10px] font-mono text-text-muted bg-bg px-2 py-0.5 rounded-md border border-border/50">
-                              {operatorFleet.operatorCode || 'FLEET'}
+                              Week #{activeWeek ? activeWeek.weekNumber : 40} • {operatorFleet.operatorCode || 'FLEET'}
                             </span>
                           </div>
 
-                          <div className="flex justify-between items-center pt-0.5">
-                            <div>
-                              <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">Active Managed Vehicles</div>
-                              <div className="font-sans text-xl font-extrabold text-text mt-0.5 whitespace-nowrap font-mono">
-                                {operatorFleet.vehicles.length || 22} Cars
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => navigateTo('operator')}
-                                className="px-3.5 py-1.5 rounded-lg bg-surface border border-border/80 hover:border-primary font-sans text-xs font-bold text-primary shadow-2xs cursor-pointer transition-all hover:scale-105"
-                              >
-                                View Fleet →
-                              </button>
-                            </div>
-                          </div>
+                          {(() => {
+                            const totalCashInHand = (activeWeek?.cashCollected && activeWeek.cashCollected > 0)
+                              ? activeWeek.cashCollected
+                              : (activeWeek ? (Math.abs(activeWeek.platforms?.uber?.cashCollection || 0) + Math.abs(activeWeek.platforms?.ola?.cashCollection || 0) + Math.abs(activeWeek.platforms?.rapido?.cashCollection || 0)) : 0);
+
+                            const opDue = (activeWeek && activeWeek.toCollect !== undefined && activeWeek.toCollect !== null && activeWeek.toCollect > 0)
+                              ? activeWeek.toCollect
+                              : (activeWeek?.amountDue || operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0));
+                            const opPayout = (activeWeek && activeWeek.toPay !== undefined && activeWeek.toPay !== null && activeWeek.toPay > 0)
+                              ? activeWeek.toPay
+                              : operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
+                            const isPayout = opPayout > 0 && opDue <= 0;
+                            const netSettlementAmt = isPayout ? opPayout : opDue;
+
+                            return (
+                              <>
+                                <div className="flex flex-wrap items-start justify-between gap-2 pt-0.5">
+                                  <div className="min-w-0">
+                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
+                                      {isPayout ? t('home.payoutToBank', 'Payout to Bank') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')}
+                                    </div>
+                                    <div className={`font-sans text-2xl font-extrabold mt-0.5 whitespace-nowrap font-mono ${isPayout ? 'text-green' : netSettlementAmt === 0 ? 'text-green' : 'text-red-600'}`}>
+                                      {isPayout 
+                                        ? `+₹${netSettlementAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                                        : netSettlementAmt === 0 
+                                        ? '₹0' 
+                                        : `-₹${netSettlementAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
+                                    {!isPayout && netSettlementAmt > 0 ? (
+                                      <>
+                                        <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
+                                          Due
+                                        </span>
+                                        <button
+                                          onClick={() => navigateTo('settle')}
+                                          className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105 whitespace-nowrap"
+                                        >
+                                          {t('home.payNow', 'Pay Now')} →
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-green bg-green-50 border border-green-200 px-2.5 py-1 rounded-md">
+                                        <CheckCircle2 className="w-3.5 h-3.5 text-green" />
+                                        {isPayout ? 'Payout Ready' : 'All Settled'}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {totalCashInHand > 0 && (
+                                  <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 text-[10.5px] text-text-muted leading-tight">
+                                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                    <span>Drivers collected <strong>₹{totalCashInHand.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong> in cash on road. Collect rent balance to pay LetzRyd.</span>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
 
                           {/* Merged Security Deposit Strip for Operator */}
                           <div className="border-t border-border/60 pt-2.5 flex items-center justify-between text-xs">
@@ -2079,7 +2031,9 @@ export default function App() {
                     const pendingDep = loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0);
                     const challanAmt = loginType === 'operator' ? 0 : (currentH?.challan || 0);
 
-                    const totalOperatorDue = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
+                    const totalOperatorDue = (currentH?.amountDue && currentH.amountDue > 0)
+                      ? currentH.amountDue
+                      : (operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) || remainingHisaabDue);
                     const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : remainingHisaabDue;
                     const finalTotalAmount = finalHisaabAmount + pendingDep + challanAmt;
 

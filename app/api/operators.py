@@ -131,36 +131,55 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         AppHisaabs.app_operator_id.in_(op_ids)
     ).order_by(AppHisaabs.week_number.desc()).all()
 
+    latest_week = max([h.week_number for h in op_hisaabs], default=40)
+    week_hisaabs_by_v = {}
     for h in op_hisaabs:
-        parts = h.hisaab_number.split('-') if h.hisaab_number else []
-        if len(parts) >= 3 and parts[0] == 'HSB':
-            v_num = parts[2].upper()
-            if v_num not in seen_vehicles:
-                drv_name = "Fleet Vehicle"
-                drv_phone = ""
-                if h.app_driver_id:
-                    d_obj = db.query(AppDrivers).filter(AppDrivers.app_driver_id == h.app_driver_id).first()
-                    if d_obj:
-                        drv_name = d_obj.full_name or "Fleet Driver"
-                        drv_phone = d_obj.phone or ""
+        if h.week_number == latest_week:
+            parts = h.hisaab_number.split('-') if h.hisaab_number else []
+            if len(parts) >= 3 and parts[0] == 'HSB':
+                v_num = parts[2].upper()
+                week_hisaabs_by_v[v_num] = h
 
-                to_pay = float(getattr(h, 'to_pay', 0) or 0.0)
-                to_col = float(getattr(h, 'to_collect', 0) or getattr(h, 'current_period_os', 0) or 0.0)
-                v_cw_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+    # Re-align current week OS for drivers' assigned vehicles with the latest week hisaab
+    for v in vehicles:
+        if v.vehicle_number in week_hisaabs_by_v:
+            wh = week_hisaabs_by_v[v.vehicle_number]
+            to_pay = float(getattr(wh, 'to_pay', 0) or 0.0)
+            to_col = float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0)
+            v.current_week_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+            v.status = "active"
+        else:
+            v.current_week_os = 0.0
+            v.status = "idle"
 
-                seen_vehicles[v_num] = len(vehicles)
-                vehicles.append(FleetVehicleResponse(
-                    vehicle_number=v_num,
-                    vehicle_make="Maruti",
-                    vehicle_model=getattr(h, 'vehicle_model', None) or "WagonR Tour H3 CNG",
-                    driver_name=drv_name,
-                    driver_id=h.app_driver_id or 0,
-                    driver_phone=drv_phone,
-                    daily_rate=float(getattr(h, 'applied_daily_rent', 1000.0) or 1000.0),
-                    current_week_os=v_cw_os,
-                    status="active" if h.status != "locked" else "idle",
-                    hisaab_count=1
-                ))
+    # Add any remaining vehicles that ran in the current active week
+    for v_num, wh in week_hisaabs_by_v.items():
+        if v_num not in seen_vehicles:
+            drv_name = "Fleet Vehicle"
+            drv_phone = ""
+            if wh.app_driver_id:
+                d_obj = db.query(AppDrivers).filter(AppDrivers.app_driver_id == wh.app_driver_id).first()
+                if d_obj:
+                    drv_name = d_obj.full_name or "Fleet Driver"
+                    drv_phone = d_obj.phone or ""
+
+            to_pay = float(getattr(wh, 'to_pay', 0) or 0.0)
+            to_col = float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0)
+            v_cw_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+
+            seen_vehicles[v_num] = len(vehicles)
+            vehicles.append(FleetVehicleResponse(
+                vehicle_number=v_num,
+                vehicle_make="Maruti",
+                vehicle_model=getattr(wh, 'vehicle_model', None) or "WagonR Tour H3 CNG",
+                driver_name=drv_name,
+                driver_id=wh.app_driver_id or 0,
+                driver_phone=drv_phone,
+                daily_rate=float(getattr(wh, 'applied_daily_rent', 1000.0) or 1000.0),
+                current_week_os=v_cw_os,
+                status="active",
+                hisaab_count=1
+            ))
 
     cw_to_pay = sum(abs(v.current_week_os) for v in vehicles if v.current_week_os < 0)
     cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)
