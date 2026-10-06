@@ -1578,12 +1578,12 @@ export default function App() {
                                     +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <span className="text-[10px] text-text-muted font-medium mt-0.5 block">
-                                    {totalTrips} Rides • {activeWeek.activeDays ?? 0} Days Active
+                                    {totalTrips} {t('home.rides', 'Rides')} • {activeWeek.activeDays ?? 0} {t('home.daysActive', 'Days Active')}
                                   </span>
                                 </div>
                                 <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                   <TrendingUp className="w-3 h-3 text-green" />
-                                  {activeWeek.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% vs last week` : 'Current Week'}
+                                  {activeWeek.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% ${t('home.vsLastWeek', 'vs last week')}` : t('home.currentWeek', 'Current Week')}
                                 </span>
                               </div>
                             );
@@ -1642,10 +1642,10 @@ export default function App() {
                         >
                           <div className="flex justify-between items-center border-b border-border/60 pb-2.5">
                             <span className="font-sans text-[11px] font-bold text-text uppercase tracking-wider group-hover:text-primary transition-colors">
-                              THIS WEEK FLEET HISAAB
+                              {t('home.thisWeekFleetHisaab', 'THIS WEEK FLEET HISAAB')}
                             </span>
                             <span className="text-[10px] font-semibold text-text-muted font-mono bg-bg px-2 py-0.5 rounded-md border border-border/50">
-                              Week #{activeWeek ? activeWeek.weekNumber : 40} • {activeWeek?.hisaabNumber || operatorFleet.operatorCode || 'FLEET'}
+                              {t('home.week', 'Week')} #{activeWeek ? activeWeek.weekNumber : 40} • {activeWeek?.hisaabNumber || operatorFleet.operatorCode || 'FLEET'}
                             </span>
                           </div>
 
@@ -1670,12 +1670,12 @@ export default function App() {
                                     +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <span className="text-[10px] text-text-muted font-medium mt-0.5 block">
-                                    {totalTrips} Rides across {totalVehicles} Cars
+                                    {totalTrips} {t('home.ridesAcross', 'Rides across')} {totalVehicles} {t('home.cars', 'Cars')}
                                   </span>
                                 </div>
                                 <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                   <TrendingUp className="w-3 h-3 text-green" />
-                                  {activeWeek?.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% vs last week` : 'Current Week'}
+                                  {activeWeek?.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% ${t('home.vsLastWeek', 'vs last week')}` : t('home.currentWeek', 'Current Week')}
                                 </span>
                               </div>
                             );
@@ -1835,11 +1835,11 @@ export default function App() {
                                   </div>
                                   <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-0.5" onClick={(e) => e.stopPropagation()}>
                                     <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                      Due
+                                      {t('common.due', 'Due')}
                                     </span>
                                     {isFleetManaged ? (
                                       <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md whitespace-nowrap">
-                                        Payments handled by Fleet Operator
+                                        {t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}
                                       </span>
                                     ) : (
                                       <button
@@ -1926,7 +1926,7 @@ export default function App() {
                                     {!isPayout && netSettlementAmt > 0 ? (
                                       <>
                                         <span className="font-sans text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md">
-                                          Due
+                                          {t('common.due', 'Due')}
                                         </span>
                                         <button
                                           onClick={() => navigateTo('settle')}
@@ -1938,7 +1938,7 @@ export default function App() {
                                     ) : (
                                       <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-green bg-green-50 border border-green-200 px-2.5 py-1 rounded-md">
                                         <CheckCircle2 className="w-3.5 h-3.5 text-green" />
-                                        {isPayout ? 'Payout Ready' : 'All Settled'}
+                                        {isPayout ? t('home.payoutReady', 'Payout Ready') : t('home.allSettled', 'All Settled')}
                                       </span>
                                     )}
                                   </div>
@@ -1947,7 +1947,11 @@ export default function App() {
                                 {totalCashInHand > 0 && (
                                   <div className="p-2 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2 text-[10.5px] text-text-muted leading-tight">
                                     <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                    <span>Drivers collected <strong>₹{totalCashInHand.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong> in cash on road. Collect rent balance to pay LetzRyd.</span>
+                                    <span>
+                                      {t('home.driversCollectedPrefix', 'Drivers collected')}{' '}
+                                      <strong>₹{totalCashInHand.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong>{' '}
+                                      {t('home.driversCollectedSuffix', 'in cash on road. Collect rent balance to pay LetzRyd.')}
+                                    </span>
                                   </div>
                                 )}
                               </>
@@ -1957,14 +1961,14 @@ export default function App() {
                           {/* Merged Security Deposit Strip for Operator */}
                           <div className="border-t border-border/60 pt-2.5 flex items-center justify-between text-xs">
                             <span className="font-bold text-text uppercase tracking-wider text-[10px]">
-                              FLEET SECURITY DEPOSIT
+                              {t('fleet.securityDeposit', 'FLEET SECURITY DEPOSIT')}
                             </span>
                             <div className="flex items-center gap-2 text-[10px] font-sans">
                               <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                Paid: ₹{(operatorFleet.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                {t('home.paid', 'Paid')}: ₹{(operatorFleet.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                               <span className="bg-amber-50 text-amber-700 border border-amber-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                Pending: ₹{(operatorFleet.depositPending ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPending ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                {t('home.pending', 'Pending')}: ₹{(operatorFleet.depositPending ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (operatorFleet.depositPending ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                               </span>
                             </div>
                           </div>
@@ -2000,42 +2004,42 @@ export default function App() {
                           {/* 1. Driver Manager */}
                           <button
                             onClick={() => navigateTo('support')}
-                            className="px-2 py-1 flex items-center justify-center gap-2 cursor-pointer group hover:opacity-85 transition-all text-left"
+                            className="px-1.5 py-1.5 flex items-center justify-center gap-1.5 cursor-pointer group hover:opacity-85 transition-all text-left"
                           >
                             <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-2xs shrink-0">
                               <Headset className="h-3.5 w-3.5" />
                             </div>
-                            <div className="min-w-0">
-                              <span className="font-bold text-[10px] text-text leading-tight block truncate">{t('home.driverManagerTitle', 'Driver Manager')}</span>
-                              <span className="text-[8.5px] text-text-muted leading-none block mt-0.5 truncate">{t('home.driverManagerSub', 'Call / Chat')}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-bold text-[9.5px] text-text leading-tight block">{t('home.driverManagerTitle', 'Driver Manager')}</span>
+                              <span className="text-[8px] text-text-muted leading-none block mt-0.5">{t('home.driverManagerSub', 'Call / Chat')}</span>
                             </div>
                           </button>
 
                           {/* 2. Refer Driver */}
                           <button
                             onClick={() => navigateTo('referral')}
-                            className="px-2 py-1 flex items-center justify-center gap-2 cursor-pointer group hover:opacity-85 transition-all text-left"
+                            className="px-1.5 py-1.5 flex items-center justify-center gap-1.5 cursor-pointer group hover:opacity-85 transition-all text-left"
                           >
                             <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center group-hover:bg-purple-600 group-hover:text-white transition-all shadow-2xs shrink-0">
                               <Gift className="h-3.5 w-3.5" />
                             </div>
-                            <div className="min-w-0">
-                              <span className="font-bold text-[10px] text-text leading-tight block truncate">{t('home.referDriverTitle', 'Refer Driver')}</span>
-                              <span className="text-[8.5px] text-text-muted leading-none block mt-0.5 truncate">{t('home.referDriverSub', 'Earn ₹1,000')}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-bold text-[9.5px] text-text leading-tight block">{t('home.referDriverTitle', 'Refer Driver')}</span>
+                              <span className="text-[8px] text-text-muted leading-none block mt-0.5">{t('home.referDriverSub', 'Earn ₹1,000')}</span>
                             </div>
                           </button>
 
                           {/* 3. Emergency SOS */}
                           <button
                             onClick={() => setIsSosModalOpen(true)}
-                            className="px-2 py-1 flex items-center justify-center gap-2 cursor-pointer group hover:opacity-85 transition-all text-left"
+                            className="px-1.5 py-1.5 flex items-center justify-center gap-1.5 cursor-pointer group hover:opacity-85 transition-all text-left"
                           >
                             <div className="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center group-hover:bg-red-600 group-hover:text-white transition-all shadow-2xs shrink-0">
                               <AlertTriangle className="h-3.5 w-3.5" />
                             </div>
-                            <div className="min-w-0">
-                              <span className="font-bold text-[10px] text-text leading-tight block truncate">{t('home.emergencySosTitle', 'Emergency SOS')}</span>
-                              <span className="text-[8.5px] text-text-muted leading-none block mt-0.5 truncate">{t('home.emergencySosSub', 'Safety & Hub')}</span>
+                            <div className="min-w-0 flex-1">
+                              <span className="font-bold text-[9.5px] text-text leading-tight block">{t('home.emergencySosTitle', 'Emergency SOS')}</span>
+                              <span className="text-[8px] text-text-muted leading-none block mt-0.5">{t('home.emergencySosSub', 'Safety & Hub')}</span>
                             </div>
                           </button>
                         </div>

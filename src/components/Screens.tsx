@@ -444,7 +444,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
                 <Navigation className="w-3.5 h-3.5" />
               </div>
-              <span className="font-sans text-xs font-semibold text-text">Odometer Reading</span>
+              <span className="font-sans text-xs font-semibold text-text">{t('vehicle.odometer', 'Odometer Reading')}</span>
             </div>
             <span className="font-mono text-xs font-bold text-text">{vehicle.odometer !== undefined && vehicle.odometer !== null ? `${vehicle.odometer.toLocaleString('en-IN')} km` : '0 km'}</span>
           </div>
@@ -455,7 +455,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                 <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
                   <Clock className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-sans text-xs font-semibold text-text">Allocation Date</span>
+                <span className="font-sans text-xs font-semibold text-text">{t('vehicle.allocationDate', 'Allocation Date')}</span>
               </div>
               <span className="font-sans text-xs font-bold text-text">{formatIndianDate(vehicle.allocationStart)}</span>
             </div>
@@ -562,7 +562,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
                   <Award className="w-3.5 h-3.5" />
                 </div>
                 <div>
-                  <p className="font-sans text-xs font-semibold text-text">PUC Certificate</p>
+                  <p className="font-sans text-xs font-semibold text-text">{t('vehicle.puc', 'PUC Certificate')}</p>
                   <p className="font-mono text-[11px] font-bold text-primary mt-0.5">{maskLastFour('PUC8921')}</p>
                 </div>
               </div>
@@ -630,14 +630,14 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h3 className="font-extrabold text-sm text-text">Fleet Managed Vehicle</h3>
+            <h3 className="font-extrabold text-sm text-text">{t('home.fleetManagedVehicle', 'Fleet Managed Vehicle')}</h3>
             <p className="text-xs text-text-muted leading-relaxed">
               Vehicle managed by Operator <strong className="text-text">{operatorName || 'Fleet Operator'}</strong>.<br />
               Settlements handled by your fleet manager.
             </p>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-700 border border-amber-500/20 rounded-full text-[11px] font-semibold">
               <Info className="w-3.5 h-3.5" />
-              Payments handled by Fleet Operator
+              {t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}
             </div>
           </div>
         </div>
@@ -1932,7 +1932,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             <div className="mt-3 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-1.5 font-sans">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700">
                 <ShieldCheck className="w-4 h-4 text-amber-600" />
-                <span>Payments handled by Fleet Operator</span>
+                <span>{t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}</span>
               </div>
               <p className="text-[11px] text-text-muted leading-relaxed">
                 Vehicle managed by Operator <strong className="text-text">{operatorName || 'Fleet Operator'}</strong>.<br />
@@ -2785,7 +2785,7 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
                         {v.number}
                       </span>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${v.status === 'idle' ? 'bg-zinc-100 text-zinc-600 border border-zinc-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
-                        {v.status === 'idle' ? 'Idle' : 'Active'}
+                        {v.status === 'idle' ? t('common.idle', 'Idle') : t('common.active', 'Active')}
                       </span>
                       <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
                         {v.make} {v.model}
