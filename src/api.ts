@@ -263,6 +263,14 @@ export async function getOperatorHisaabs(operatorId: number | string): Promise<a
   return [];
 }
 
+export async function getVehicleHisaabs(vehicleNumber: string): Promise<any[]> {
+  const clean = vehicleNumber.replace(/\s+/g, '');
+  const res: any = await apiCall(`/api/hisaabs/vehicle/${clean}`);
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  return [];
+}
+
 export async function getNotifications(targetId: number, targetType?: string): Promise<any> {
   const typeParam = targetType ? `&target_type=${targetType}` : '';
   return apiCall(`/api/notifications?target_id=${targetId}${typeParam}`);

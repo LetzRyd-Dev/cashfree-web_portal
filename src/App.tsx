@@ -74,6 +74,7 @@ import {
   getOperatorFleet,
   getDriverHisaabs,
   getOperatorHisaabs,
+  getVehicleHisaabs,
   getNotifications as fetchNotifications,
   getTickets,
   createTicket as apiCreateTicket,
@@ -127,8 +128,17 @@ function deduplicateVehiclesList(vehicles: FleetVehicle[]): FleetVehicle[] {
       result.push(v);
     } else {
       const idx = result.findIndex(item => (item.number || '').trim() === num);
-      if (idx !== -1 && (v.status === 'active' || (v.currentWeekOs !== 0 && result[idx].currentWeekOs === 0))) {
-        result[idx] = v;
+      if (idx !== -1) {
+        const existing = result[idx];
+        const vHCount = v.hisaabWeeks?.length || 0;
+        const eHCount = existing.hisaabWeeks?.length || 0;
+        if (vHCount > eHCount) {
+          result[idx] = v;
+        } else if (vHCount === eHCount) {
+          if (v.currentWeekOs !== 0 && existing.currentWeekOs === 0) {
+            result[idx] = v;
+          }
+        }
       }
     }
   }
@@ -150,8 +160,14 @@ export function mapFleetDataToVehicles(fleetData: any): FleetVehicle[] {
       const idx = deduplicated.findIndex(item => (item.vehicle_number || '').trim() === vNum);
       if (idx !== -1) {
         const existing = deduplicated[idx];
-        if (v.status === 'active' || (v.current_week_os !== 0 && existing.current_week_os === 0)) {
+        const vHCount = v.hisaab_count || 0;
+        const eHCount = existing.hisaab_count || 0;
+        if (vHCount > eHCount) {
           deduplicated[idx] = v;
+        } else if (vHCount === eHCount) {
+          if (v.current_week_os !== 0 && existing.current_week_os === 0) {
+            deduplicated[idx] = v;
+          }
         }
       }
     }
@@ -833,9 +849,15 @@ export default function App() {
 
     const cleanNum = number.replace(/\s+/g, '');
     const targetVeh = operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === cleanNum);
-    if (targetVeh && targetVeh.driverId) {
+    if (targetVeh) {
       try {
-        const hisaabs = await getDriverHisaabs(targetVeh.driverId);
+        let hisaabs: any[] = [];
+        if (targetVeh.driverId) {
+          hisaabs = await getDriverHisaabs(targetVeh.driverId);
+        }
+        if (!hisaabs || hisaabs.length === 0) {
+          hisaabs = await getVehicleHisaabs(targetVeh.number);
+        }
         if (hisaabs && hisaabs.length > 0) {
           const mapped = hisaabs.map(mapHisaabToWeek);
           setOperatorFleet(prev => ({

@@ -40,11 +40,33 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     vehicles = []
     seen_vehicles = {}
     for d in drivers:
+        driver_ids = [d.app_driver_id]
+        if d.driver_id:
+            driver_ids.append(d.driver_id)
+
         hisaabs = db.query(AppHisaabs).filter(
-            (AppHisaabs.app_driver_id == d.app_driver_id) & 
-            (AppHisaabs.app_operator_id == op.app_operator_id)
+            AppHisaabs.app_driver_id.in_(driver_ids)
         ).order_by(AppHisaabs.week_number.desc()).all()
-        
+
+        veh_num = d.vehicle_reg_number
+        if not veh_num:
+            alloc = db.query(AppDriverAllocations).filter(
+                AppDriverAllocations.app_driver_id == d.app_driver_id
+            ).order_by(AppDriverAllocations.app_allocation_id.desc()).first()
+            if alloc and alloc.vehicle_number:
+                veh_num = alloc.vehicle_number
+
+        if not veh_num:
+            veh_num = f"UNASSIGNED-{d.app_driver_id}"
+
+        clean_v = veh_num.replace(' ', '').replace('-', '').upper()
+
+        # Fallback to vehicle number search in hisaabs if driver has none
+        if not hisaabs and not veh_num.startswith("UNASSIGNED"):
+            hisaabs = db.query(AppHisaabs).filter(
+                AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
+            ).order_by(AppHisaabs.week_number.desc()).all()
+
         cw_os = 0.0
         if hisaabs:
             latest_h = hisaabs[0]
@@ -62,17 +84,6 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
             cw_os = float(d.cw_to_collect)
         else:
             cw_os = float(d.cw_os or 0.0)
-
-        veh_num = d.vehicle_reg_number
-        if not veh_num:
-            alloc = db.query(AppDriverAllocations).filter(
-                AppDriverAllocations.app_driver_id == d.app_driver_id
-            ).order_by(AppDriverAllocations.app_allocation_id.desc()).first()
-            if alloc and alloc.vehicle_number:
-                veh_num = alloc.vehicle_number
-
-        if not veh_num:
-            veh_num = f"UNASSIGNED-{d.app_driver_id}"
 
         veh_obj = FleetVehicleResponse(
             vehicle_number=veh_num,
@@ -93,15 +104,18 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         else:
             idx = seen_vehicles[veh_num]
             existing_v = vehicles[idx]
-            if d.is_active or (cw_os != 0 and existing_v.current_week_os == 0):
+            if len(hisaabs) > existing_v.hisaab_count:
                 vehicles[idx] = veh_obj
+            elif len(hisaabs) == existing_v.hisaab_count:
+                if cw_os != 0 and existing_v.current_week_os == 0:
+                    vehicles[idx] = veh_obj
 
     cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers) if drivers else float(op.cw_to_pay or 0.0)
     cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers) if drivers else float(op.cw_to_collect or 0.0)
     cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers) if drivers else float(op.cw_fleet_gross_earnings or 0.0)
     cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
-    total_veh = max(len(drivers), (op.total_vehicles or 0))
-    active_veh = max(len([d for d in drivers if d.is_active]), (op.active_vehicles or 0))
+    total_veh = len(vehicles) if vehicles else max(len(drivers), (op.total_vehicles or 0))
+    active_veh = len([v for v in vehicles if v.status == "active"]) if vehicles else max(len([d for d in drivers if d.is_active]), (op.active_vehicles or 0))
 
     # Address resolution: if missing, check if operator exists in app_drivers
     address = op.address
