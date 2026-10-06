@@ -32,7 +32,11 @@ def list_tickets(
                 target_id = driver.app_driver_id
             else:
                 op = resolve_operator(c_str, db)
-                target_id = op.app_operator_id if op else (int(c_str) if c_str.isdigit() else creator_id)
+        if not isinstance(target_id, int):
+            try:
+                target_id = int(target_id)
+            except (ValueError, TypeError):
+                return {"creator_id": creator_id, "count": 0, "data": []}
         query = query.filter(AppSupportTickets.creator_id == target_id)
     if creator_type is not None:
         query = query.filter(AppSupportTickets.creator_type == creator_type)
@@ -50,6 +54,12 @@ def create_ticket(req: CreateTicketRequest, db: Session = Depends(get_db)):
     else:
         driver = resolve_driver(c_str, db)
         target_id = driver.app_driver_id if driver else (int(c_str) if c_str.isdigit() else req.creator_id)
+
+    if not isinstance(target_id, int):
+        try:
+            target_id = int(target_id)
+        except (ValueError, TypeError):
+            target_id = 0
 
     now = datetime.now(timezone.utc)
     ticket_no = f"TKT-2026-{now.strftime('%H%M%S')}-{uuid.uuid4().hex[:4].upper()}"

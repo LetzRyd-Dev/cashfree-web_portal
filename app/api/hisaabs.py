@@ -16,7 +16,10 @@ def get_hisaabs_by_driver_phone(phone: str, db: Session = Depends(get_db)):
     driver = resolve_driver(clean, db)
     if not driver:
         raise HTTPException(status_code=404, detail=f"No driver found with phone {phone}")
-    hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == driver.app_driver_id).order_by(AppHisaabs.week_number.desc()).all()
+    target_ids = [driver.app_driver_id]
+    if driver.driver_id:
+        target_ids.append(driver.driver_id)
+    hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id.in_(target_ids)).order_by(AppHisaabs.week_number.desc()).all()
     if not hisaabs and driver.vehicle_reg_number:
         clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
         hisaabs = db.query(AppHisaabs).filter(

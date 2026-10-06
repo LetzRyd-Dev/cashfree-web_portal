@@ -220,9 +220,9 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
     # ── 3. Update app_operators & fleet drivers (if payer is operator) ───────
     if payment.payer_type == "operator" and payment.payer_id:
-        op = db.query(AppOperators).filter(
-            (AppOperators.app_operator_id == payment.payer_id) | (AppOperators.operator_id == payment.payer_id)
-        ).first()
+        op = db.query(AppOperators).filter(AppOperators.app_operator_id == payment.payer_id).first()
+        if not op:
+            op = db.query(AppOperators).filter(AppOperators.operator_id == payment.payer_id).first()
         if op:
             # Tier 1: Pay down operator fleet driver debts (e.g. Sushant who owes ₹1,850)
             op_filter = (AppDrivers.operator_id == op.app_operator_id)
