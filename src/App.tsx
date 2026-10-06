@@ -155,7 +155,7 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [adminSearchOpen, setAdminSearchOpen] = useState(false);
   const [adminSearchQuery, setAdminSearchQuery] = useState('');
-  const [adminSearchResult, setAdminSearchResult] = useState<{ name: string; phone: string; role: 'driver' | 'operator'; id: string } | null>(null);
+  const [adminSearchResults, setAdminSearchResults] = useState<{ name: string; phone: string; role: 'driver' | 'operator'; id: string; detail?: string }[]>([]);
   const [adminSearchLoading, setAdminSearchLoading] = useState(false);
   const [adminSearchError, setAdminSearchError] = useState<string | null>(null);
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
@@ -362,7 +362,14 @@ export default function App() {
         if (opCheck && !drvCheck) {
           inferredRole = 'operator';
         } else if (opCheck && drvCheck) {
-          inferredRole = (loginType === 'operator' ? 'operator' : 'driver');
+          // If loginType was explicitly toggled or saved, respect it; otherwise if operator owns vehicles, default to operator
+          if (loginType === 'operator') {
+            inferredRole = 'operator';
+          } else if (opCheck.total_vehicles && opCheck.total_vehicles > 0) {
+            inferredRole = 'operator';
+          } else {
+            inferredRole = 'driver';
+          }
         } else {
           inferredRole = 'driver';
         }
@@ -516,32 +523,45 @@ export default function App() {
   const handleAdminSearch = async (query: string) => {
     const cleanQ = query.replace('+91', '').replace(/[\s-]/g, '').trim();
     setAdminSearchQuery(query);
-    setAdminSearchResult(null);
+    setAdminSearchResults([]);
     setAdminSearchError(null);
     if (!cleanQ || cleanQ.length < 5) return;
     setAdminSearchLoading(true);
     try {
-      const driverRes = await getDriverByPhone(cleanQ).catch(() => null);
+      const [driverRes, opRes] = await Promise.all([
+        getDriverByPhone(cleanQ).catch(() => null),
+        getOperatorByPhone(cleanQ).catch(() => null),
+      ]);
+
+      const found: { name: string; phone: string; role: 'driver' | 'operator'; id: string; detail?: string }[] = [];
+
+      // If user is an operator, add operator first
+      if (opRes) {
+        found.push({
+          name: opRes.company_name || 'Fleet Operator',
+          phone: opRes.phone || cleanQ,
+          role: 'operator',
+          id: opRes.app_operator_id,
+          detail: opRes.total_vehicles ? `${opRes.total_vehicles} vehicles in fleet` : undefined,
+        });
+      }
+
+      // If user is also/or a driver, add driver
       if (driverRes) {
-        setAdminSearchResult({
+        found.push({
           name: driverRes.full_name || 'Driver',
           phone: driverRes.phone || cleanQ,
           role: 'driver',
           id: driverRes.app_driver_id,
+          detail: driverRes.vehicle_reg_number ? `Car: ${driverRes.vehicle_reg_number}` : undefined,
         });
-        return;
       }
-      const opRes = await getOperatorByPhone(cleanQ).catch(() => null);
-      if (opRes) {
-        setAdminSearchResult({
-          name: opRes.company_name || 'Operator',
-          phone: opRes.phone || cleanQ,
-          role: 'operator',
-          id: opRes.app_operator_id,
-        });
-        return;
+
+      if (found.length > 0) {
+        setAdminSearchResults(found);
+      } else {
+        setAdminSearchError('No driver or operator found with this phone number.');
       }
-      setAdminSearchError('No driver or operator found with this phone number.');
     } catch {
       setAdminSearchError('Error searching. Check backend connection.');
     } finally {
@@ -614,7 +634,7 @@ export default function App() {
       setCurrentScreen('home');
       setAdminSearchOpen(false);
       setAdminSearchQuery('');
-      setAdminSearchResult(null);
+      setAdminSearchResults([]);
       triggerToast(`🔑 Admin: Logged in as ${result.name}`, 'success');
     } catch (err: any) {
       triggerToast(err.message || 'Failed to log in as partner', 'error');
@@ -1180,7 +1200,7 @@ export default function App() {
                     </span>
                     <button
                       type="button"
-                      onClick={() => { setAdminSearchOpen(v => !v); setAdminSearchQuery(''); setAdminSearchResult(null); setAdminSearchError(null); }}
+                      onClick={() => { setAdminSearchOpen(v => !v); setAdminSearchQuery(''); setAdminSearchResults([]); setAdminSearchError(null); }}
                       className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
                     >
                       {adminSearchOpen ? 'Hide ▲' : 'Open ▼'}
@@ -1205,30 +1225,37 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Search result */}
-                      {adminSearchResult && (
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/20">
-                          <div>
-                            <div className="font-bold text-sm text-text">{adminSearchResult.name}</div>
-                            <div className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1.5">
-                              <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${adminSearchResult.role === 'operator' ? 'bg-blue-500/10 text-blue-600' : 'bg-green-500/10 text-green-600'}`}>
-                                {adminSearchResult.role}
-                              </span>
-                              {adminSearchResult.phone}
+                      {/* Search results list */}
+                      {adminSearchResults.length > 0 && (
+                        <div className="space-y-2">
+                          {adminSearchResults.map((res) => (
+                            <div key={`${res.role}-${res.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/20">
+                              <div>
+                                <div className="font-bold text-sm text-text">{res.name}</div>
+                                <div className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                  <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${res.role === 'operator' ? 'bg-blue-500/10 text-blue-600' : 'bg-green-500/10 text-green-600'}`}>
+                                    {res.role}
+                                  </span>
+                                  <span>{res.phone}</span>
+                                  {res.detail && (
+                                    <span className="text-[10px] text-primary/80 font-medium">({res.detail})</span>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={adminLoginLoading}
+                                onClick={() => handleAdminLoginAs(res)}
+                                className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0 ml-2"
+                              >
+                                {adminLoginLoading ? (
+                                  <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Loading...</>
+                                ) : (
+                                  <>Login as {res.role === 'operator' ? 'Operator' : 'Driver'} →</>
+                                )}
+                              </button>
                             </div>
-                          </div>
-                          <button
-                            type="button"
-                            disabled={adminLoginLoading}
-                            onClick={() => handleAdminLoginAs(adminSearchResult)}
-                            className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                          >
-                            {adminLoginLoading ? (
-                              <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Loading...</>
-                            ) : (
-                              <>Login as →</>
-                            )}
-                          </button>
+                          ))}
                         </div>
                       )}
 
@@ -1238,7 +1265,7 @@ export default function App() {
                       )}
 
                       {/* Hint */}
-                      {!adminSearchResult && !adminSearchError && !adminSearchLoading && adminSearchQuery.length >= 5 && (
+                      {adminSearchResults.length === 0 && !adminSearchError && !adminSearchLoading && adminSearchQuery.length >= 5 && (
                         <div className="text-[11px] text-text-muted px-1">Searching live database...</div>
                       )}
                       {adminSearchQuery.length === 0 && (
