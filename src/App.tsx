@@ -417,26 +417,15 @@ export default function App() {
             setDriverUser(mapOperatorToUser(opProfile));
 
             // Map fleet data with driver hisaabs
-            const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData.vehicles || []).map(async (v: any) => {
-              let vehicleHisaabs: HisaabWeek[] = [];
-              if (v.driver_id) {
-                try {
-                  const hisaabs = await getDriverHisaabs(v.driver_id);
-                  vehicleHisaabs = (hisaabs || []).map(mapHisaabToWeek);
-                } catch (hisaabErr) {
-                  console.warn(`Failed to fetch hisaabs for driver ID ${v.driver_id}:`, hisaabErr);
-                }
-              }
-              return {
-                number: v.vehicle_number,
-                make: v.vehicle_make,
-                model: v.vehicle_model,
-                driverName: v.driver_name,
-                plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
-                currentWeekOs: v.current_week_os || 0,
-                status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
-                hisaabWeeks: vehicleHisaabs.length > 0 ? vehicleHisaabs : HISAAB_WEEKS_DATA,
-              };
+            const mappedVehicles: FleetVehicle[] = (fleetData.vehicles || []).map((v: any) => ({
+              number: v.vehicle_number,
+              make: v.vehicle_make || 'Maruti',
+              model: v.vehicle_model || 'Dzire CNG',
+              driverName: v.driver_name || 'Driver',
+              plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
+              currentWeekOs: v.current_week_os || 0,
+              status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
+              hisaabWeeks: HISAAB_WEEKS_DATA,
             }));
 
             const mappedFleet: Fleet = {
@@ -586,19 +575,15 @@ export default function App() {
 
         setDriverUser(mapOperatorToUser(opProfile));
 
-        const mappedVehicles: FleetVehicle[] = await Promise.all((fleetData?.vehicles || []).map(async (v: any) => {
-          let vehicleHisaabs: HisaabWeek[] = [];
-          if (v.driver_id) {
-            try { const h = await getDriverHisaabs(v.driver_id); vehicleHisaabs = (h || []).map(mapHisaabToWeek); } catch {}
-          }
-          return {
-            number: v.vehicle_number, make: v.vehicle_make, model: v.vehicle_model,
-            driverName: v.driver_name,
-            plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
-            currentWeekOs: v.current_week_os || 0,
-            status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
-            hisaabWeeks: vehicleHisaabs.length > 0 ? vehicleHisaabs : HISAAB_WEEKS_DATA,
-          };
+        const mappedVehicles: FleetVehicle[] = (fleetData?.vehicles || []).map((v: any) => ({
+          number: v.vehicle_number,
+          make: v.vehicle_make || 'Maruti',
+          model: v.vehicle_model || 'Dzire CNG',
+          driverName: v.driver_name || 'Driver',
+          plan: { name: 'Standard', dailyRate: v.daily_rate || 1000 },
+          currentWeekOs: v.current_week_os || 0,
+          status: (v.status === 'active' ? 'active' : 'idle') as 'active' | 'idle',
+          hisaabWeeks: HISAAB_WEEKS_DATA,
         }));
 
         setOperatorFleet({
