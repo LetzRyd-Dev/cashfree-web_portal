@@ -38,12 +38,30 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
+    seen_vehicles = {}
     for d in drivers:
         hisaabs = db.query(AppHisaabs).filter(
             (AppHisaabs.app_driver_id == d.app_driver_id) & 
             (AppHisaabs.app_operator_id == op.app_operator_id)
         ).order_by(AppHisaabs.week_number.desc()).all()
-        cw_os = float(d.cw_os or 0.0)
+        
+        cw_os = 0.0
+        if hisaabs:
+            latest_h = hisaabs[0]
+            to_pay = float(getattr(latest_h, 'to_pay', 0) or 0.0)
+            to_col = float(getattr(latest_h, 'to_collect', 0) or getattr(latest_h, 'current_period_os', 0) or 0.0)
+            if to_pay > 0:
+                cw_os = -to_pay
+            elif to_col > 0:
+                cw_os = to_col
+            else:
+                cw_os = float(d.cw_os or 0.0)
+        elif d.cw_to_pay and float(d.cw_to_pay) > 0:
+            cw_os = -float(d.cw_to_pay)
+        elif d.cw_to_collect and float(d.cw_to_collect) > 0:
+            cw_os = float(d.cw_to_collect)
+        else:
+            cw_os = float(d.cw_os or 0.0)
 
         veh_num = d.vehicle_reg_number
         if not veh_num:
@@ -53,7 +71,10 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
             if alloc and alloc.vehicle_number:
                 veh_num = alloc.vehicle_number
 
-        vehicles.append(FleetVehicleResponse(
+        if not veh_num:
+            veh_num = f"UNASSIGNED-{d.app_driver_id}"
+
+        veh_obj = FleetVehicleResponse(
             vehicle_number=veh_num,
             vehicle_make=d.vehicle_make,
             vehicle_model=d.vehicle_model,
@@ -64,7 +85,16 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
             current_week_os=cw_os,
             status="active" if d.is_active else "idle",
             hisaab_count=len(hisaabs)
-        ))
+        )
+
+        if veh_num not in seen_vehicles:
+            seen_vehicles[veh_num] = len(vehicles)
+            vehicles.append(veh_obj)
+        else:
+            idx = seen_vehicles[veh_num]
+            existing_v = vehicles[idx]
+            if d.is_active or (cw_os != 0 and existing_v.current_week_os == 0):
+                vehicles[idx] = veh_obj
 
     cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers) if drivers else float(op.cw_to_pay or 0.0)
     cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers) if drivers else float(op.cw_to_collect or 0.0)
