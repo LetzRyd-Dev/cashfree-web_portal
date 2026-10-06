@@ -56,15 +56,15 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
         tds_amount = round(total_gross * 0.01, 2)
         
     # Additional Penalties & Deductions
-    challan_amount = float(data.get("challan_amount", 0.0))
-    accident_charge = float(data.get("accident_charge", 0.0))
-    other_adjustment = float(data.get("other_adjustment", 0.0))  # Rent-offs reduce deductions
-    prev_os = float(data.get("previous_outstanding", 0.0))
+    challan_amount = float(data.get("challan_amount") or 0.0)
+    accident_charge = float(data.get("accident_charge") or 0.0)
+    other_adjustment = float(data.get("other_adjustment") or 0.0)  # Rent-offs reduce deductions
+    prev_os = float(data.get("previous_outstanding") or 0.0)
     
     # Dead Mile Calculation
-    gps_total_km = float(data.get("gps_total_km", 0.0))
-    free_allowance_pct = float(data.get("gps_free_dead_pct", 0.20))  # 20% free dead miles allowance
-    penalty_rate = float(data.get("gps_penalty_rate", 3.0))  # ₹3 per excess dead KM
+    gps_total_km = float(data.get("gps_total_km") or 0.0)
+    free_allowance_pct = float(data.get("gps_free_dead_pct") or 0.20)  # 20% free dead miles allowance
+    penalty_rate = float(data.get("gps_penalty_rate") or 3.0)  # ₹3 per excess dead KM
     
     ideal_allowance = round(total_trip_km * (1.0 + free_allowance_pct), 2)
     dead_km = max(0.0, round(gps_total_km - ideal_allowance, 2))
@@ -74,7 +74,7 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
     total_deductions = round(vehicle_rent + maintenance_charge + tds_amount + challan_amount + accident_charge + dead_penalty - other_adjustment, 2)
     
     # Net Outstanding Balance Calculation
-    current_period_os = round(total_deductions + total_cash_collected - total_incentives, 2)
+    current_period_os = round(total_deductions + total_cash_collected - total_gross - total_incentives, 2)
     total_due = round(current_period_os + prev_os, 2)
     
     to_collect = max(0.0, total_due)

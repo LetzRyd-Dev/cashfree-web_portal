@@ -59,7 +59,7 @@ import {
   SALEEM_FLEET_DATA
 } from './data';
 
-import { User, Vehicle, RentalPlan, HisaabWeek, Fleet, FleetVehicle, Ticket, Notification, Language } from './types';
+import { User, Vehicle, RentalPlan, HisaabWeek, Fleet, FleetVehicle, FleetDriverItem, Ticket, Notification, Language } from './types';
 import {
   auth,
   RecaptchaVerifier,
@@ -488,13 +488,25 @@ export default function App() {
           try {
             const opProfile = await getOperatorByPhone(cleanPhone);
             const fleetData = await getOperatorFleet(opProfile.app_operator_id);
-            const notifs = await fetchNotifications(opProfile.app_operator_id);
+            const notifs = await fetchNotifications(opProfile.app_operator_id, 'operator');
             const opHisaabs = await getOperatorHisaabs(opProfile.app_operator_id).catch(() => []);
 
             setDriverUser(mapOperatorToUser(opProfile));
 
             // Map fleet data with deduplication and driver hisaabs
             const mappedVehicles: FleetVehicle[] = mapFleetDataToVehicles(fleetData);
+            const mappedDrivers: FleetDriverItem[] = (fleetData?.drivers || []).map((d: any) => ({
+              driverId: d.app_driver_id,
+              driverCode: d.driver_code || `DRV-${d.app_driver_id}`,
+              name: d.full_name || 'Driver',
+              phone: d.phone || '',
+              assignedVehicle: d.assigned_vehicle || 'Unassigned',
+              vehicleModel: d.vehicle_model || 'Maruti Wagonr Tour H3 CNG',
+              rentalPlan: d.rental_plan || 'Fixed',
+              currentWeekOs: d.current_week_os || 0,
+              status: d.status || 'active',
+              hisaabCount: d.hisaab_count || 0
+            }));
 
             const mappedFleet: Fleet = {
               operatorCode: fleetData.operator_code,
@@ -503,6 +515,7 @@ export default function App() {
               depositPaidSoFar: fleetData.deposit_paid,
               depositPending: fleetData.deposit_pending,
               vehicles: mappedVehicles,
+              drivers: mappedDrivers,
             };
             setOperatorFleet(mappedFleet);
             if (opHisaabs && opHisaabs.length > 0) {
@@ -523,7 +536,7 @@ export default function App() {
           try {
             const driverProfile = await getDriverByPhone(cleanPhone);
             const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id);
-            const notifs = await fetchNotifications(driverProfile.app_driver_id);
+            const notifs = await fetchNotifications(driverProfile.app_driver_id, 'driver');
             const tkts = await getTickets(driverProfile.app_driver_id);
 
             setDriverUser(mapDriverToUser(driverProfile));
@@ -647,12 +660,24 @@ export default function App() {
       if (targetRole === 'operator') {
         const opProfile = await getOperatorByPhone(result.phone);
         const fleetData = await getOperatorFleet(opProfile.app_operator_id);
-        const notifs = await fetchNotifications(opProfile.app_operator_id);
+        const notifs = await fetchNotifications(opProfile.app_operator_id, 'operator');
         const opHisaabs = await getOperatorHisaabs(opProfile.app_operator_id).catch(() => []);
 
         setDriverUser(mapOperatorToUser(opProfile));
 
         const mappedVehicles: FleetVehicle[] = mapFleetDataToVehicles(fleetData);
+        const mappedDrivers: FleetDriverItem[] = (fleetData?.drivers || []).map((d: any) => ({
+          driverId: d.app_driver_id,
+          driverCode: d.driver_code || `DRV-${d.app_driver_id}`,
+          name: d.full_name || 'Driver',
+          phone: d.phone || '',
+          assignedVehicle: d.assigned_vehicle || 'Unassigned',
+          vehicleModel: d.vehicle_model || 'Maruti Wagonr Tour H3 CNG',
+          rentalPlan: d.rental_plan || 'Fixed',
+          currentWeekOs: d.current_week_os || 0,
+          status: d.status || 'active',
+          hisaabCount: d.hisaab_count || 0
+        }));
 
         setOperatorFleet({
           operatorCode: fleetData?.operator_code,
@@ -661,6 +686,7 @@ export default function App() {
           depositPaidSoFar: fleetData?.deposit_paid,
           depositPending: fleetData?.deposit_pending,
           vehicles: mappedVehicles,
+          drivers: mappedDrivers,
         });
         if (opHisaabs && opHisaabs.length > 0) {
           setHisaabWeeks(opHisaabs.map(mapHisaabToWeek));
@@ -675,7 +701,7 @@ export default function App() {
       } else {
         const driverProfile = await getDriverByPhone(result.phone);
         const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id);
-        const notifs = await fetchNotifications(driverProfile.app_driver_id);
+        const notifs = await fetchNotifications(driverProfile.app_driver_id, 'driver');
         const tkts = await getTickets(driverProfile.app_driver_id);
         setDriverUser(mapDriverToUser(driverProfile));
         setDriverVehicle(mapDriverToVehicle(driverProfile));
@@ -1046,14 +1072,16 @@ export default function App() {
       ].filter(Boolean);
 
       const doVerify = async () => {
-        let verifiedAmt = 2850;
+        let isVerified = false;
+        let verifiedAmt = 0;
         for (const url of verifyUrls) {
           try {
             const res = await fetch(url);
             if (res.ok) {
               const data = await res.json();
               if (data?.is_success || data?.status === 'SUCCESS') {
-                verifiedAmt = data?.amount || data?.paid_amount || data?.data?.[0]?.payment_amount || 2850;
+                verifiedAmt = Number(data?.amount || data?.paid_amount || data?.data?.[0]?.payment_amount || 0);
+                isVerified = true;
                 break;
               }
             }
@@ -1061,7 +1089,9 @@ export default function App() {
             console.warn('[doVerify] Attempt failed:', url, e);
           }
         }
-        await handleConfirmPayment(verifiedAmt);
+        if (isVerified && verifiedAmt > 0) {
+          await handleConfirmPayment(verifiedAmt);
+        }
         setIsLoggedIn(true);
         setCurrentScreen('settle');
       };
@@ -1095,8 +1125,8 @@ export default function App() {
   const isFleetDriver = Boolean(driverUser.isFleetDriver || driverUser.operatorName);
   const isFleetManaged = isFleetDriver && loginType === 'driver';
   const hasHisaabData = hisaabWeeks.length > 0;
-  const activeWeek = hasHisaabData ? hisaabWeeks[0] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[0] || HISAAB_WEEKS_DATA[0]) : (isFleetDriver ? null : HISAAB_WEEKS_DATA[0]));
-  const prevWeek = hasHisaabData && hisaabWeeks.length > 1 ? hisaabWeeks[1] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[1] || HISAAB_WEEKS_DATA[1]) : (isFleetDriver ? null : HISAAB_WEEKS_DATA[1]));
+  const activeWeek = hasHisaabData ? hisaabWeeks[0] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[0] || null) : null);
+  const prevWeek = hasHisaabData && hisaabWeeks.length > 1 ? hisaabWeeks[1] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[1] || null) : null);
 
   const formatTimestamp = (tsStr?: string) => {
     if (!tsStr) return '28-Jul-2026, 02:15 PM';

@@ -161,6 +161,19 @@ export interface FleetVehicle {
   hisaabWeeks: HisaabWeek[];
 }
 
+export interface FleetDriverItem {
+  driverId: number;
+  driverCode: string;
+  name: string;
+  phone: string;
+  assignedVehicle: string;
+  vehicleModel?: string;
+  rentalPlan: string;
+  currentWeekOs: number;
+  status: 'active' | 'idle';
+  hisaabCount: number;
+}
+
 export interface Fleet {
   operatorCode: string;
   operatorName: string;
@@ -168,6 +181,7 @@ export interface Fleet {
   depositPaidSoFar?: number;
   depositPending?: number;
   vehicles: FleetVehicle[];
+  drivers?: FleetDriverItem[];
 }
 
 export interface Ticket {

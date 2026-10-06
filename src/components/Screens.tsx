@@ -58,10 +58,11 @@ import {
   Sparkles,
   ShieldAlert,
   ArrowUpRight,
-  ArrowRight
+  ArrowRight,
+  Users
 } from 'lucide-react';
 
-import { User as UserType, Vehicle, HisaabWeek, Fleet, Ticket, Notification, RentalPlan, FleetVehicle, Announcement, Language } from '../types';
+import { User as UserType, Vehicle, HisaabWeek, Fleet, Ticket, Notification, RentalPlan, FleetVehicle, FleetDriverItem, Announcement, Language } from '../types';
 import { USER_DATA, VEHICLE_DATA, LETZRYD_UPI_ID, ANNOUNCEMENTS_DATA } from '../data';
 import { BACKEND_URL } from '../api';
 
@@ -930,9 +931,10 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
 
             {(() => {
-              const rawDue = w.toCollect || (w.currentWeekOs > 0 ? w.currentWeekOs : 0);
               const paid = w.paidAmount || 0;
-              const remainingDue = Math.max(0, rawDue - paid);
+              const remainingDue = (w.toCollect !== undefined && w.toCollect !== null)
+                ? w.toCollect
+                : Math.max(0, (w.currentWeekOs > 0 ? w.currentWeekOs : 0) - paid);
               const isPayout = w.currentWeekOs < 0;
 
               return (
@@ -2630,8 +2632,11 @@ interface OperatorScreenProps {
 
 export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'vehicles' | 'drivers'>('vehicles');
 
   const totalVehicles = fleet.vehicles.length;
+  const driversList = fleet.drivers || [];
+  const totalDrivers = driversList.length || totalVehicles;
   const totalToPay = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
   const totalToCollect = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
 
@@ -2641,6 +2646,14 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
       v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.driverName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredDriversList = driversList.filter(
+    (d) =>
+      d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.driverCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      d.phone.includes(searchQuery) ||
+      d.assignedVehicle.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (val: number) => {
@@ -2658,26 +2671,30 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
           {t('operator.dashboardTitle', 'Fleet Overview')}
         </h2>
         <p className="font-sans text-xs text-text-muted mt-0.5">
-          {t('operator.statusSubtitle', 'Real-time settlement status')} ({totalVehicles} {t('operator.vehiclesUnit', 'Vehicles')})
+          {t('operator.statusSubtitle', 'Real-time settlement status')} ({totalVehicles} {t('operator.vehiclesUnit', 'Vehicles')} • {totalDrivers} {t('operator.driversUnit', 'Drivers')})
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2 font-sans text-xs">
-        <div className="p-2.5 sm:p-3 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
+      <div className="grid grid-cols-4 gap-2 font-sans text-xs">
+        <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.toPay', 'TO PAY')}</p>
           <p className="font-sans text-xs sm:text-sm font-bold text-green mt-1 whitespace-nowrap font-mono">
             +{formatCurrency(totalToPay)}
           </p>
         </div>
-        <div className="p-2.5 sm:p-3 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
+        <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.toCollect', 'TO COLLECT')}</p>
           <p className="font-sans text-xs sm:text-sm font-bold text-red-600 mt-1 whitespace-nowrap font-mono">
             -{formatCurrency(totalToCollect)}
           </p>
         </div>
-        <div className="p-2.5 sm:p-3 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
+        <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
           <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.cars', 'CARS')}</p>
           <p className="font-sans text-xs sm:text-sm font-bold text-text mt-1">{totalVehicles}</p>
+        </div>
+        <div className="p-2 sm:p-2.5 bg-surface border border-border rounded-xl text-center shadow-xs flex flex-col justify-between">
+          <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider">{t('operator.drivers', 'DRIVERS')}</p>
+          <p className="font-sans text-xs sm:text-sm font-bold text-primary mt-1">{totalDrivers}</p>
         </div>
       </div>
 
@@ -2691,7 +2708,7 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
             <span>
               <span className="text-text-muted font-medium">{t('hisaab.paid', 'Paid:')} </span>
               <span className="font-bold text-green">
-                ₹{(fleet.depositPaidSoFar || 20000).toLocaleString('en-IN', { minimumFractionDigits: (fleet.depositPaidSoFar || 20000) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                ₹{(fleet.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (fleet.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
               </span>
             </span>
             <span>
@@ -2711,86 +2728,206 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('operator.searchVehiclePlaceholder', 'Search vehicle number, model or driver...')}
+          placeholder={activeTab === 'vehicles' ? t('operator.searchVehiclePlaceholder', 'Search vehicle number, model or driver...') : t('operator.searchDriverPlaceholder', 'Search driver name, code, phone, or car...')}
           className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-bg text-xs font-medium outline-none focus:border-primary transition-colors"
         />
       </div>
 
-      {/* VEHICLE FLEET LIST CARD */}
-      <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
-        <div className="border-b border-border/60 pb-2 flex items-center justify-between">
-          <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-            <Car className="w-3.5 h-3.5 text-primary" />
-            <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')} ({vehicleFleetList.length})</span>
-          </h3>
-          <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
-        </div>
+      {/* SEGMENTED TAB SWITCHER */}
+      <div className="flex bg-surface p-1 rounded-xl border border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('vehicles')}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeTab === 'vehicles' ? 'bg-bg text-primary shadow-xs border border-border/60' : 'text-text-muted hover:text-text'
+          }`}
+        >
+          <Car className="w-3.5 h-3.5" />
+          <span>{t('operator.vehiclesTab', 'Vehicles')} ({totalVehicles})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('drivers')}
+          className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeTab === 'drivers' ? 'bg-bg text-primary shadow-xs border border-border/60' : 'text-text-muted hover:text-text'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>{t('operator.driversTab', 'Drivers Roster')} ({totalDrivers})</span>
+        </button>
+      </div>
 
-        <div className="divide-y divide-border/60">
-          {vehicleFleetList.length === 0 ? (
-            <div className="py-6 text-center text-text-muted text-xs">
-              {searchQuery ? t('operator.noVehiclesMatch', 'No vehicles match your search') : t('operator.noVehicles', 'No vehicles assigned to this fleet')}
-            </div>
-          ) : (
-            vehicleFleetList.map((v) => (
-              <div
-                key={`v-${v.number}`}
-                onClick={() => onSelectVehicle(v.number)}
-                className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
-                    <Car className="w-4 h-4" />
-                  </div>
+      {/* TAB CONTENT: DRIVERS ROSTER */}
+      {activeTab === 'drivers' ? (
+        <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
+          <div className="border-b border-border/60 pb-2 flex items-center justify-between">
+            <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-primary" />
+              <span>{t('operator.driversRoster', 'DRIVERS ROSTER')} ({filteredDriversList.length})</span>
+            </h3>
+            <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
+          </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
-                        {v.number}
-                      </span>
-                      <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
-                        {v.make} {v.model}
-                      </span>
+          <div className="divide-y divide-border/60">
+            {filteredDriversList.length === 0 ? (
+              <div className="py-6 text-center text-text-muted text-xs">
+                {searchQuery ? t('operator.noDriversMatch', 'No drivers match your search') : t('operator.noDrivers', 'No drivers enrolled in this roster')}
+              </div>
+            ) : (
+              filteredDriversList.map((d) => {
+                const isAssigned = d.assignedVehicle && !d.assignedVehicle.toLowerCase().startsWith('unassigned');
+                const targetVeh = isAssigned ? d.assignedVehicle.replace(/\s*\(Alloc\)/, '').trim() : null;
+                return (
+                  <div
+                    key={`d-${d.driverId}`}
+                    onClick={() => {
+                      if (targetVeh) {
+                        onSelectVehicle(targetVeh);
+                      }
+                    }}
+                    className={`py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 rounded-md px-1 transition-colors group ${
+                      targetVeh ? 'cursor-pointer' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-blue-500/10 border-blue-500/20 text-blue-600 font-bold text-xs">
+                        <Users className="w-4 h-4" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-sans text-xs font-bold text-text truncate">
+                            {d.name}
+                          </span>
+                          <span className="font-mono text-[10px] text-text-muted bg-bg px-1 rounded border border-border/40">
+                            {d.driverCode}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-text-muted font-sans flex-wrap">
+                          <span>{d.phone}</span>
+                          <span>•</span>
+                          {isAssigned ? (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-mono">
+                              🚗 {d.assignedVehicle}
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-700 border border-amber-500/20">
+                              Unassigned
+                            </span>
+                          )}
+                          <span>•</span>
+                          <span className="text-[10px] font-medium">{d.rentalPlan}</span>
+                        </div>
+                      </div>
                     </div>
-                    <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1 truncate">
-                      <span className="text-[10px] uppercase font-bold text-text-muted/80">Assigned Driver:</span>
-                      <span className="font-semibold text-text truncate">{v.driverName || 'Unassigned'}</span>
-                    </p>
-                  </div>
-                </div>
 
-                {(() => {
-                  const latestH = v.hisaabWeeks && v.hisaabWeeks.length > 0 ? v.hisaabWeeks[0] : null;
-                  const effectiveOs = v.currentWeekOs !== 0 
-                    ? v.currentWeekOs 
-                    : (latestH ? ((latestH.toPay || 0) > 0 ? -latestH.toPay : (latestH.toCollect || latestH.currentWeekOs || 0)) : 0);
-
-                  return (
                     <div className="text-right shrink-0 flex flex-col items-end">
-                      {effectiveOs < 0 ? (
+                      {d.currentWeekOs < 0 ? (
                         <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
-                          +{formatCurrency(effectiveOs)}
+                          +{formatCurrency(d.currentWeekOs)}
                         </span>
-                      ) : effectiveOs > 0 ? (
+                      ) : d.currentWeekOs > 0 ? (
                         <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
-                          -{formatCurrency(effectiveOs)}
+                          -{formatCurrency(d.currentWeekOs)}
                         </span>
                       ) : (
                         <span className="font-sans text-xs font-bold text-text-muted font-mono">
                           ₹0
                         </span>
                       )}
-                      <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
-                        View Hisaab →
-                      </span>
+                      {targetVeh ? (
+                        <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
+                          View Hisaab →
+                        </span>
+                      ) : (
+                        <span className="font-sans text-[10px] text-text-muted mt-0.5">
+                          {d.hisaabCount > 0 ? `${d.hisaabCount} wks` : 'No car'}
+                        </span>
+                      )}
                     </div>
-                  );
-                })()}
-              </div>
-            ))
-          )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
-      </div>
+      ) : (
+        /* TAB CONTENT: VEHICLE FLEET LIST CARD */
+        <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
+          <div className="border-b border-border/60 pb-2 flex items-center justify-between">
+            <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+              <Car className="w-3.5 h-3.5 text-primary" />
+              <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')} ({vehicleFleetList.length})</span>
+            </h3>
+            <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
+          </div>
+
+          <div className="divide-y divide-border/60">
+            {vehicleFleetList.length === 0 ? (
+              <div className="py-6 text-center text-text-muted text-xs">
+                {searchQuery ? t('operator.noVehiclesMatch', 'No vehicles match your search') : t('operator.noVehicles', 'No vehicles assigned to this fleet')}
+              </div>
+            ) : (
+              vehicleFleetList.map((v) => (
+                <div
+                  key={`v-${v.number}`}
+                  onClick={() => onSelectVehicle(v.number)}
+                  className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                      <Car className="w-4 h-4" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
+                          {v.number}
+                        </span>
+                        <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
+                          {v.make} {v.model}
+                        </span>
+                      </div>
+                      <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1 truncate">
+                        <span className="text-[10px] uppercase font-bold text-text-muted/80">Assigned Driver:</span>
+                        <span className="font-semibold text-text truncate">{v.driverName || 'Unassigned'}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const latestH = v.hisaabWeeks && v.hisaabWeeks.length > 0 ? v.hisaabWeeks[0] : null;
+                    const effectiveOs = v.currentWeekOs !== 0 
+                      ? v.currentWeekOs 
+                      : (latestH ? ((latestH.toPay || 0) > 0 ? -latestH.toPay : (latestH.toCollect || latestH.currentWeekOs || 0)) : 0);
+
+                    return (
+                      <div className="text-right shrink-0 flex flex-col items-end">
+                        {effectiveOs < 0 ? (
+                          <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
+                            +{formatCurrency(effectiveOs)}
+                          </span>
+                        ) : effectiveOs > 0 ? (
+                          <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
+                            -{formatCurrency(effectiveOs)}
+                          </span>
+                        ) : (
+                          <span className="font-sans text-xs font-bold text-text-muted font-mono">
+                            ₹0
+                          </span>
+                        )}
+                        <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
+                          View Hisaab →
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

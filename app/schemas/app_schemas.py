@@ -140,8 +140,21 @@ class FleetVehicleResponse(BaseSchema):
     status: str = "active"
     hisaab_count: int = 0
 
+class FleetDriverItemResponse(BaseSchema):
+    app_driver_id: int
+    driver_code: Optional[str] = None
+    full_name: str
+    phone: str
+    assigned_vehicle: Optional[str] = "Unassigned"
+    vehicle_model: Optional[str] = None
+    rental_plan: Optional[str] = "Fixed"
+    current_week_os: float = 0.0
+    status: str = "active"
+    hisaab_count: int = 0
+
 class OperatorFleetResponse(OperatorProfileResponse):
     vehicles: List[FleetVehicleResponse] = []
+    drivers: List[FleetDriverItemResponse] = []
 
 # Hisaab Schemas
 class HisaabBreakdownResponse(BaseSchema):

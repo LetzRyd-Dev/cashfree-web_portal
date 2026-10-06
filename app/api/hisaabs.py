@@ -63,6 +63,7 @@ from sqlalchemy import text
 def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
     target_op_id = op.app_operator_id if op else (int(operator_id) if str(operator_id).isdigit() else None)
+    core_op_id = op.operator_id if (op and op.operator_id) else target_op_id
     if target_op_id is None:
         return {"operator_id": operator_id, "count": 0, "data": []}
     
@@ -110,10 +111,10 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             SUM(COALESCE(letzryd_earning, 0.00)) as letzryd_earning,
             SUM(COALESCE(paid_amount, 0.00)) as paid_amount
         FROM app_hisaabs
-        WHERE app_operator_id = :op_id
+        WHERE app_operator_id IN (:op_id, :core_op_id)
         GROUP BY week_number
         ORDER BY week_number DESC
-    """), {"op_id": target_op_id}).mappings().fetchall()
+    """), {"op_id": target_op_id, "core_op_id": core_op_id}).mappings().fetchall()
 
     op_code = op.operator_code if op else str(target_op_id)
     data = []

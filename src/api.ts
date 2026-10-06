@@ -52,7 +52,7 @@ export function mapDriverToUser(d: any): User {
     depositPaidSoFar: d.deposit_paid || 0,
     depositPending: d.deposit_pending || 0,
     depositNextDueDate: d.deposit_next_due || '',
-    cumulativeOwed: Math.abs(d.cw_os || 0),
+    cumulativeOwed: Number(d.cumulative_owed ?? d.cw_to_collect ?? (d.cw_os && d.cw_os > 0 ? d.cw_os : 0)),
     weeklyIncentiveTargetTrips: d.incentive_trips_target || 260,
     completedTripsThisWeek: d.cw_incentive_trips_done || 0,
     weeklyIncentiveReward: d.incentive_reward_amt || 1500,
@@ -147,8 +147,12 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
     ? new Date(h.last_refreshed_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' } as any)
     : '';
     const currentWeekOs = Number(h.current_period_os) || 0;
-    const toCollect = currentWeekOs > 0 ? currentWeekOs : (h.to_collect && h.to_collect > 0 && currentWeekOs >= 0 ? Number(h.to_collect) : 0);
-    const toPay = currentWeekOs < 0 ? Math.abs(currentWeekOs) : (h.to_pay && h.to_pay > 0 && currentWeekOs <= 0 ? Number(h.to_pay) : 0);
+    const toCollect = (h.to_collect !== undefined && h.to_collect !== null)
+      ? Number(h.to_collect)
+      : (currentWeekOs > 0 ? currentWeekOs : 0);
+    const toPay = (h.to_pay !== undefined && h.to_pay !== null)
+      ? Number(h.to_pay)
+      : (currentWeekOs < 0 ? Math.abs(currentWeekOs) : 0);
     return {
       weekNumber: h.week_number,
       hisaabNumber: h.hisaab_number,

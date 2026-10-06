@@ -102,9 +102,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             if target_hisaab:
                 t_prev_paid = round(float(target_hisaab.paid_amount or 0), 2)
-                if not target_hisaab.weekly_hisaab_due:
-                    target_hisaab.weekly_hisaab_due = round(float(target_hisaab.to_collect or 0) + t_prev_paid, 2)
-                t_orig = round(float(target_hisaab.weekly_hisaab_due or target_hisaab.to_collect or 0), 2)
+                t_orig = round(float(target_hisaab.to_collect or 0) + t_prev_paid, 2)
                 t_rem_due = round(max(0.0, t_orig - t_prev_paid), 2)
                 t_pay = round(min(t_rem_due, rem_cash), 2)
 
@@ -157,7 +155,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     AppHisaabs.app_driver_id == driver.app_driver_id,
                     AppHisaabs.to_collect > 0,
                     AppHisaabs.payment_status != "settled"
-                ).order_by(AppHisaabs.week_number.desc()).all()
+                ).order_by(AppHisaabs.week_number.asc()).all()
 
                 for oh in other_unpaid_hisaabs:
                     if rem_cash <= 0:
@@ -165,9 +163,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     if target_hisaab and oh.app_hisaab_id == target_hisaab.app_hisaab_id:
                         continue
                     oh_prev_paid = round(float(oh.paid_amount or 0), 2)
-                    if not oh.weekly_hisaab_due:
-                        oh.weekly_hisaab_due = round(float(oh.to_collect or 0) + oh_prev_paid, 2)
-                    oh_orig = round(float(oh.weekly_hisaab_due or oh.to_collect or 0), 2)
+                    oh_orig = round(float(oh.to_collect or 0) + oh_prev_paid, 2)
                     oh_rem_due = round(max(0.0, oh_orig - oh_prev_paid), 2)
                     oh_pay = round(min(oh_rem_due, rem_cash), 2)
 
@@ -229,8 +225,12 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
         ).first()
         if op:
             # Tier 1: Pay down operator fleet driver debts (e.g. Sushant who owes ₹1,850)
+            op_filter = (AppDrivers.operator_id == op.app_operator_id)
+            if op.operator_id:
+                op_filter = op_filter | (AppDrivers.operator_id == op.operator_id)
+
             fleet_drivers_with_debt = db.query(AppDrivers).filter(
-                AppDrivers.operator_id == op.app_operator_id,
+                op_filter,
                 AppDrivers.cw_to_collect > 0
             ).order_by(AppDrivers.app_driver_id).all()
 
@@ -250,15 +250,13 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 # Also update that driver's weekly hisaab record(s)
                 d_hisaabs = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == d.app_driver_id
-                ).order_by(AppHisaabs.week_number.desc()).all()
+                ).order_by(AppHisaabs.week_number.asc()).all()
                 rem_h_paid = d_paid
                 for dh in d_hisaabs:
                     if rem_h_paid <= 0:
                         break
                     cur_paid = round(float(dh.paid_amount or 0), 2)
-                    if not dh.weekly_hisaab_due:
-                        dh.weekly_hisaab_due = round(float(dh.to_collect or 0) + cur_paid, 2)
-                    dh_orig = round(float(dh.weekly_hisaab_due or dh.to_collect or 0), 2)
+                    dh_orig = round(float(dh.to_collect or 0) + cur_paid, 2)
                     dh_rem = round(max(0.0, dh_orig - cur_paid), 2)
                     if dh_rem > 0 and dh.payment_status != "settled":
                         h_pay = round(min(dh_rem, rem_h_paid), 2)
@@ -278,9 +276,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 rem_for_debt = round(max(0.0, rem_for_debt - d_paid), 2)
 
             # Operator total fleet debt remaining
-            all_op_drivers = db.query(AppDrivers).filter(
-                AppDrivers.operator_id == op.app_operator_id
-            ).all()
+            all_op_drivers = db.query(AppDrivers).filter(op_filter).all()
             op.cw_to_collect = round(sum(float(d.cw_to_collect or 0) for d in all_op_drivers), 2)
             if op.cw_to_collect <= 0:
                 op.lw_status = "paid"

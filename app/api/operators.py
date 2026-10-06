@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.app_models import AppOperators, AppDrivers, AppHisaabs, AppDriverAllocations
-from app.schemas.app_schemas import OperatorProfileResponse, OperatorFleetResponse, FleetVehicleResponse
+from app.schemas.app_schemas import OperatorProfileResponse, OperatorFleetResponse, FleetVehicleResponse, FleetDriverItemResponse
 from app.services.helpers import clean_phone_number, resolve_operator
 
 router = APIRouter(prefix="/operators", tags=["Operators"])
@@ -39,6 +39,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
 
     vehicles = []
     seen_vehicles = {}
+    driver_items = []
     for d in drivers:
         driver_ids = [d.app_driver_id]
         if d.driver_id:
@@ -85,30 +86,46 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         else:
             cw_os = float(d.cw_os or 0.0)
 
-        veh_obj = FleetVehicleResponse(
-            vehicle_number=veh_num,
-            vehicle_make=d.vehicle_make,
-            vehicle_model=d.vehicle_model,
-            driver_name=d.full_name or "Driver",
-            driver_id=d.app_driver_id,
-            driver_phone=d.phone or "",
-            daily_rate=float(d.vehicle_daily_rate or 1000.0),
+        # Build individual driver roster item
+        assigned_label = d.vehicle_reg_number if d.vehicle_reg_number else ("Unassigned" if veh_num.startswith("UNASSIGNED") else f"{veh_num} (Alloc)")
+        driver_items.append(FleetDriverItemResponse(
+            app_driver_id=d.app_driver_id,
+            driver_code=d.driver_code or f"DRV-{d.app_driver_id}",
+            full_name=d.full_name or "Driver",
+            phone=d.phone or "",
+            assigned_vehicle=assigned_label,
+            vehicle_model=d.vehicle_model or "Maruti Wagonr Tour H3 CNG",
+            rental_plan=getattr(d, 'rental_plan', None) or "Fixed",
             current_week_os=cw_os,
             status="active" if d.is_active else "idle",
             hisaab_count=len(hisaabs)
-        )
+        ))
 
-        if veh_num not in seen_vehicles:
-            seen_vehicles[veh_num] = len(vehicles)
-            vehicles.append(veh_obj)
-        else:
-            idx = seen_vehicles[veh_num]
-            existing_v = vehicles[idx]
-            if len(hisaabs) > existing_v.hisaab_count:
-                vehicles[idx] = veh_obj
-            elif len(hisaabs) == existing_v.hisaab_count:
-                if cw_os != 0 and existing_v.current_week_os == 0:
+        if not veh_num.startswith("UNASSIGNED"):
+            veh_obj = FleetVehicleResponse(
+                vehicle_number=veh_num,
+                vehicle_make=d.vehicle_make,
+                vehicle_model=d.vehicle_model,
+                driver_name=d.full_name or "Driver",
+                driver_id=d.app_driver_id,
+                driver_phone=d.phone or "",
+                daily_rate=float(d.vehicle_daily_rate or 1000.0),
+                current_week_os=cw_os,
+                status="active" if d.is_active else "idle",
+                hisaab_count=len(hisaabs)
+            )
+
+            if veh_num not in seen_vehicles:
+                seen_vehicles[veh_num] = len(vehicles)
+                vehicles.append(veh_obj)
+            else:
+                idx = seen_vehicles[veh_num]
+                existing_v = vehicles[idx]
+                if len(hisaabs) > existing_v.hisaab_count:
                     vehicles[idx] = veh_obj
+                elif len(hisaabs) == existing_v.hisaab_count:
+                    if cw_os != 0 and existing_v.current_week_os == 0:
+                        vehicles[idx] = veh_obj
 
     cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers) if drivers else float(op.cw_to_pay or 0.0)
     cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers) if drivers else float(op.cw_to_collect or 0.0)
@@ -159,7 +176,8 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         lw_fleet_trips=op.lw_fleet_trips or 0,
         lw_fleet_gross_earnings=float(op.lw_fleet_gross_earnings or 0.0),
         lw_status=op.lw_status or "unpaid",
-        vehicles=vehicles
+        vehicles=vehicles,
+        drivers=driver_items
     )
 
 @router.get("/{operator_id}/fleet")

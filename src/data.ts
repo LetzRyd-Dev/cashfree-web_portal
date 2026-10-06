@@ -1557,7 +1557,18 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "operator.vehicleFleet": "VEHICLE FLEET",
   "operator.tapToView": "Tap to view Hisaab",
   "ticket.submitted": "Support ticket filed successfully!",
-  "payment.noted": "Payment logged! Verification will complete shortly."
+  "payment.noted": "Payment logged! Verification will complete shortly.",
+  "relation.select": "-- Select Relation --",
+  "hisaab.accidentCharges": "Accident Charges",
+  "operator.noVehicles": "No vehicles assigned to this fleet",
+  "operator.noVehiclesMatch": "No vehicles match your search",
+  "operator.driversRoster": "DRIVERS ROSTER",
+  "operator.vehiclesTab": "Vehicles",
+  "operator.driversTab": "Drivers Roster",
+  "operator.driversUnit": "Drivers",
+  "operator.noDrivers": "No drivers enrolled in this roster",
+  "operator.noDriversMatch": "No drivers match your search",
+  "home.allSettled": "ALL DUES SETTLED"
 };
 
 export const TRANSLATIONS_HI: Record<string, string> = {
