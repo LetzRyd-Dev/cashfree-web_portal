@@ -74,9 +74,17 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         cw_os = 0.0
         if hisaabs:
             latest_h = hisaabs[0]
-            to_pay = float(getattr(latest_h, 'to_pay', 0) or 0.0)
-            to_col = float(getattr(latest_h, 'to_collect', 0) or getattr(latest_h, 'current_period_os', 0) or 0.0)
-            if to_pay > 0:
+            to_pay = float(latest_h.to_pay if getattr(latest_h, 'to_pay', None) is not None else 0.0)
+            to_col = float(latest_h.to_collect if getattr(latest_h, 'to_collect', None) is not None else 0.0)
+            if to_pay == 0.0 and to_col == 0.0 and getattr(latest_h, 'current_period_os', None) is not None:
+                cpos = float(latest_h.current_period_os)
+                if cpos > 0:
+                    to_col = cpos
+                elif cpos < 0:
+                    to_pay = abs(cpos)
+            if to_pay > 0 and to_col > 0:
+                cw_os = round(to_col - to_pay, 2)
+            elif to_pay > 0:
                 cw_os = -to_pay
             elif to_col > 0:
                 cw_os = to_col
@@ -155,12 +163,37 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     matched_keys = set()
     for v in vehicles:
         clean_v = v.vehicle_number.replace(' ', '').replace('-', '').upper()
+        matched_key = None
         if clean_v in week_hisaabs_by_v:
-            matched_keys.add(clean_v)
-            items = week_hisaabs_by_v[clean_v]
-            to_pay = sum(float(getattr(wh, 'to_pay', 0) or 0.0) for _, wh in items)
-            to_col = sum(float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0) for _, wh in items)
-            v.current_week_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+            matched_key = clean_v
+        else:
+            for k, items in week_hisaabs_by_v.items():
+                if k in matched_keys:
+                    continue
+                if clean_v.endswith(k) or k.endswith(clean_v):
+                    matched_key = k
+                    break
+                if v.driver_id and any(wh.app_driver_id == v.driver_id for _, wh in items):
+                    matched_key = k
+                    break
+
+        if matched_key:
+            matched_keys.add(matched_key)
+            items = week_hisaabs_by_v[matched_key]
+            to_pay = 0.0
+            to_col = 0.0
+            for _, wh in items:
+                wh_pay = float(wh.to_pay if getattr(wh, 'to_pay', None) is not None else 0.0)
+                wh_col = float(wh.to_collect if getattr(wh, 'to_collect', None) is not None else 0.0)
+                if wh_pay == 0.0 and wh_col == 0.0 and getattr(wh, 'current_period_os', None) is not None:
+                    cpos = float(wh.current_period_os)
+                    if cpos > 0:
+                        wh_col = cpos
+                    elif cpos < 0:
+                        wh_pay = abs(cpos)
+                to_pay += wh_pay
+                to_col += wh_col
+            v.current_week_os = round(to_col - to_pay, 2)
             v.status = "active"
             v.hisaab_count = max(v.hisaab_count, len(items))
         else:
@@ -179,9 +212,20 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
                     drv_name = d_obj.full_name or "Fleet Driver"
                     drv_phone = d_obj.phone or ""
 
-            to_pay = sum(float(getattr(w, 'to_pay', 0) or 0.0) for _, w in items)
-            to_col = sum(float(getattr(w, 'to_collect', 0) or getattr(w, 'current_period_os', 0) or 0.0) for _, w in items)
-            v_cw_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
+            to_pay = 0.0
+            to_col = 0.0
+            for _, w in items:
+                w_pay = float(w.to_pay if getattr(w, 'to_pay', None) is not None else 0.0)
+                w_col = float(w.to_collect if getattr(w, 'to_collect', None) is not None else 0.0)
+                if w_pay == 0.0 and w_col == 0.0 and getattr(w, 'current_period_os', None) is not None:
+                    cpos = float(w.current_period_os)
+                    if cpos > 0:
+                        w_col = cpos
+                    elif cpos < 0:
+                        w_pay = abs(cpos)
+                to_pay += w_pay
+                to_col += w_col
+            v_cw_os = round(to_col - to_pay, 2)
 
             seen_vehicles[orig_v_num] = len(vehicles)
             vehicles.append(FleetVehicleResponse(
@@ -210,6 +254,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
     total_veh = len(vehicles) if vehicles else max(len(drivers), (op.total_vehicles or 0))
     active_veh = len([v for v in vehicles if v.status == "active"]) if vehicles else max(len([d for d in drivers if d.is_active]), (op.active_vehicles or 0))
+    idle_veh = len([v for v in vehicles if v.status == "idle"]) if vehicles else max(0, total_veh - active_veh)
 
     # Address resolution: if missing, check if operator exists in app_drivers
     address = op.address
@@ -237,7 +282,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         assigned_manager_phone=mgr_phone,
         total_vehicles=total_veh,
         active_vehicles=active_veh,
-        idle_vehicles=op.idle_vehicles or 0,
+        idle_vehicles=idle_veh,
         total_drivers=max(len(drivers), (op.total_drivers or 0)),
         deposit_total_req=float(op.deposit_total_req or 0.0),
         deposit_paid=float(op.deposit_paid or 0.0),
@@ -296,14 +341,24 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
         if latest_hisaabs:
             cw_to_pay = sum(float(h.to_pay or 0.0) for h in latest_hisaabs)
             cw_to_collect = sum(float(h.to_collect or 0.0) for h in latest_hisaabs)
+            cw_gross = sum(float(h.total_gross_earnings or 0.0) for h in latest_hisaabs)
+            cw_trips = sum(int(h.completed_trips or ((h.uber_trips or 0) + (h.ola_trips or 0) + (h.rapido_trips or 0)) or 0) for h in latest_hisaabs)
         elif drivers:
             cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers)
             cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers)
+            cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers)
+            cw_trips = sum(int(d.cw_trips or 0) for d in drivers)
+        else:
+            cw_gross = float(op.cw_fleet_gross_earnings or 0.0)
+            cw_trips = int(op.cw_fleet_trips or 0)
             
         if drivers:
             total_vehicles = max(len(drivers), total_vehicles)
             active_vehicles = max(len([d for d in drivers if d.is_active]), active_vehicles)
             total_drivers = max(len(drivers), total_drivers)
+    else:
+        cw_gross = float(op.cw_fleet_gross_earnings or 0.0)
+        cw_trips = int(op.cw_fleet_trips or 0)
 
     # Address resolution: if missing, check if operator exists in app_drivers
     address = op.address
@@ -322,6 +377,8 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
     company_name = op.company_name or op.contact_person_name or "Fleet Operator"
     contact_person = op.contact_person_name or op.company_name or "Fleet Operator"
 
+    idle_veh = max(0, total_vehicles - active_vehicles) if total_vehicles > active_vehicles else (op.idle_vehicles or 0)
+
     return OperatorProfileResponse(
         app_operator_id=op.app_operator_id,
         operator_code=op.operator_code or f"OPR-{op.app_operator_id}",
@@ -334,7 +391,7 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
         assigned_manager_phone=mgr_phone,
         total_vehicles=total_vehicles,
         active_vehicles=active_vehicles,
-        idle_vehicles=op.idle_vehicles or 0,
+        idle_vehicles=idle_veh,
         total_drivers=total_drivers,
         deposit_total_req=float(op.deposit_total_req or 0.0),
         deposit_paid=float(op.deposit_paid or 0.0),
@@ -343,8 +400,8 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
         referral_reward_amt=float(op.referral_reward_amt or 2000.0),
         upi_id=op.upi_id or "",
         bank_account_last4=op.bank_account_last4 or "",
-        cw_fleet_trips=op.cw_fleet_trips or 0,
-        cw_fleet_gross_earnings=float(op.cw_fleet_gross_earnings or 0.0),
+        cw_fleet_trips=cw_trips,
+        cw_fleet_gross_earnings=cw_gross,
         cw_to_collect=cw_to_collect,
         cw_to_pay=cw_to_pay,
         lw_fleet_trips=op.lw_fleet_trips or 0,

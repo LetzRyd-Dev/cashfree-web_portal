@@ -146,6 +146,8 @@ export interface HisaabWeek {
   isFleetManaged?: boolean;
   grossEarnings?: number;
   cashCollected?: number;
+  totalKm?: number;
+  completedTrips?: number;
 }
 
 export interface FleetVehicle {

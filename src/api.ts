@@ -204,6 +204,8 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
     isFleetManaged: Boolean(h.is_fleet_managed || (h.app_operator_id && h.app_operator_id > 0)),
     grossEarnings: Number(h.total_gross_earnings || ((h.uber_revenue || 0) + (h.ola_revenue || 0) + (h.rapido_revenue || 0) + (h.uber_toll || 0) + (h.ola_toll || 0) + (h.rapido_toll || 0) + (h.uber_incentive || 0) + (h.ola_incentive || 0) + (h.rapido_incentive || 0))),
     cashCollected: Math.abs(Number(h.uber_cash || 0)) + Math.abs(Number(h.ola_cash || 0)) + Math.abs(Number(h.rapido_cash || 0)),
+    totalKm: Number(h.total_km || (h.gps_total_km || 0) || ((h.uber_km || 0) + (h.ola_km || 0) + (h.rapido_km || 0))),
+    completedTrips: Number(h.completed_trips || ((h.uber_trips || 0) + (h.ola_trips || 0) + (h.rapido_trips || 0))),
   };
 }
 

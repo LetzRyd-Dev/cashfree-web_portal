@@ -1563,7 +1563,7 @@ export default function App() {
                             const grossFares = (activeWeek.grossEarnings && activeWeek.grossEarnings > 0)
                               ? activeWeek.grossEarnings
                               : ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0));
-                            const totalTrips = (activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0);
+                            const totalTrips = (activeWeek.completedTrips || 0) || ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0));
 
                             return (
                               <div className="flex justify-between items-center gap-2 pt-0.5">
@@ -1578,12 +1578,12 @@ export default function App() {
                                     +₹{grossFares.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                   </div>
                                   <span className="text-[10px] text-text-muted font-medium mt-0.5 block">
-                                    {totalTrips} Rides • {activeWeek.activeDays || 6} Days Active
+                                    {totalTrips} Rides • {activeWeek.activeDays ?? 0} Days Active
                                   </span>
                                 </div>
                                 <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                   <TrendingUp className="w-3 h-3 text-green" />
-                                  12.5% vs last week
+                                  {activeWeek.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% vs last week` : 'Current Week'}
                                 </span>
                               </div>
                             );
@@ -1592,7 +1592,7 @@ export default function App() {
                           {/* Merged Weekly Incentive Goal Progress Section */}
                           {(() => {
                             const target = driverUser.weeklyIncentiveTargetTrips || 1;
-                            const completed = driverUser.completedTripsThisWeek || 0;
+                            const completed = driverUser.completedTripsThisWeek || (activeWeek ? ((activeWeek.completedTrips || 0) || ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0))) : 0);
                             const progressPct = Math.min(100, Math.max(0, (completed / target) * 100));
                             const remaining = Math.max(0, target - completed);
 
@@ -1653,9 +1653,9 @@ export default function App() {
                           {(() => {
                             const grossFares = (activeWeek?.grossEarnings && activeWeek.grossEarnings > 0)
                               ? activeWeek.grossEarnings
-                              : (activeWeek ? ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0)) : 0);
-                            const totalTrips = activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0)) : 1150;
-                            const totalVehicles = operatorFleet.vehicles.length || 22;
+                              : (activeWeek ? ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0)) : (operatorFleet?.cw_fleet_gross_earnings || 0));
+                            const totalTrips = activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : (operatorFleet?.cw_fleet_trips || 0);
+                            const totalVehicles = operatorFleet.vehicles.length || operatorFleet.totalVehicles || 0;
 
                             return (
                               <div className="flex justify-between items-center gap-2 pt-0.5">
@@ -1688,24 +1688,24 @@ export default function App() {
                         <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs font-sans">
                           <div className="grid grid-cols-4 divide-x divide-border/70 text-center">
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek?.activeDays || 6}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek?.activeDays ?? 0}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.daysActive', 'Days Active')}</p>
                             </div>
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-text leading-none">
-                                {driverUser.completedTripsThisWeek || (activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : 0)}
+                                {activeWeek ? ((activeWeek.completedTrips || 0) || ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0))) : (driverUser.completedTripsThisWeek || 0)}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.trips', 'Trips')}</p>
                             </div>
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-text leading-none">
-                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalKm ? Math.round(activeWeek.gps.totalKm).toLocaleString('en-IN') : '2,441')}
+                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalGpsKm ? Math.round(activeWeek.gps.totalGpsKm).toLocaleString('en-IN') : '0')}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KMs')}</p>
                             </div>
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-green leading-none">
-                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '6.4%'}
+                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '0%'}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.deadMilesPct', 'Dead Miles %')}</p>
                             </div>
@@ -1722,7 +1722,7 @@ export default function App() {
                             </div>
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-text leading-none">
-                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalKm ? Math.round(activeWeek.gps.totalKm).toLocaleString('en-IN') : '12,205')}
+                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalGpsKm ? Math.round(activeWeek.gps.totalGpsKm).toLocaleString('en-IN') : '0')}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KM')}</p>
                             </div>
@@ -1732,7 +1732,7 @@ export default function App() {
                             </div>
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-green leading-none">
-                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '8.2%'}
+                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '0%'}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.deadMilesPct', 'Dead Miles %')}</p>
                             </div>
@@ -1742,47 +1742,73 @@ export default function App() {
 
                       {/* 4. LAST WEEK HISAAB & SECURITY DEPOSIT (CLICKABLE CARD) */}
                       {loginType === 'driver' ? (
-                        isFleetDriver && !prevWeek ? (
-                          <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left space-y-2.5 font-sans">
-                            <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
-                              <span className="font-bold text-text uppercase tracking-wider text-[10px]">
-                                Fleet Settlement Status
-                              </span>
-                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
-                                Operator Handled
-                              </span>
-                            </div>
-                            <p className="text-xs text-text-muted leading-tight">
-                              All prior week hisaabs and collections for vehicle <strong>{!driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' ? 'Unassigned' : driverVehicle.number}</strong> are managed by <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>.
-                            </p>
-                            <div className="border-t border-border/60 pt-2 flex items-center justify-between text-xs">
-                              <span className="font-bold text-text uppercase tracking-wider text-[10px]">
-                                {t('home.deposit', 'Security Deposit')}
-                              </span>
-                              <div className="flex items-center gap-2 text-[10px] font-sans">
-                                <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                  {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
-                                </span>
+                        (() => {
+                          const targetWeek = prevWeek || activeWeek;
+                          const targetWeekIdx = prevWeek ? 1 : 0;
+                          if (isFleetDriver && !targetWeek) {
+                            return (
+                              <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left space-y-2.5 font-sans">
+                                <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
+                                  <span className="font-bold text-text uppercase tracking-wider text-[10px]">
+                                    Fleet Settlement Status
+                                  </span>
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                    Operator Handled
+                                  </span>
+                                </div>
+                                <p className="text-xs text-text-muted leading-tight">
+                                  All prior week hisaabs and collections for vehicle <strong>{!driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' ? 'Unassigned' : driverVehicle.number}</strong> are managed by <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>.
+                                </p>
+                                <div className="border-t border-border/60 pt-2 flex items-center justify-between text-xs">
+                                  <span className="font-bold text-text uppercase tracking-wider text-[10px]">
+                                    {t('home.deposit', 'Security Deposit')}
+                                  </span>
+                                  <div className="flex items-center gap-2 text-[10px] font-sans">
+                                    <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
+                                      {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        ) : prevWeek ? (
-                        <div
-                          onClick={() => { setDriverWeekIndex(1); navigateTo('hisaab'); }}
-                          className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
-                        >
-                          {prevWeek && (
-                            <>
+                            );
+                          }
+                          if (!targetWeek) return null;
+
+                          const isWeeklyPayout = (targetWeek.currentWeekOs || 0) < 0 || ((targetWeek.toPay || 0) > 0 && (targetWeek.toCollect || 0) <= 0);
+                          const payoutAmt = (targetWeek.toPay && targetWeek.toPay > 0) ? targetWeek.toPay : Math.abs(targetWeek.currentWeekOs || 0);
+                          const isSettled = targetWeek.paymentStatus === 'settled' || targetWeek.status === 'settled_pay';
+                          const isAllPaid = isSettled || ((targetWeek.toCollect || 0) <= 0 && (targetWeek.currentWeekOs || 0) <= 0 && !isWeeklyPayout);
+
+                          return (
+                            <div
+                              onClick={() => { setDriverWeekIndex(targetWeekIdx); navigateTo('hisaab'); }}
+                              className="bg-surface border border-border/80 hover:border-primary/50 rounded-2xl p-3.5 shadow-xs text-left space-y-3 font-sans cursor-pointer transition-all hover:shadow-md group overflow-hidden"
+                            >
                               <div className="flex justify-between items-center border-b border-border/60 pb-2.5">
                                 <span className="font-sans text-[11px] font-bold text-text uppercase tracking-wider group-hover:text-primary transition-colors">
-                                  {t('home.lastWeekHisaab', 'LAST WEEK HISAAB')}
+                                  {prevWeek ? t('home.lastWeekHisaab', 'LAST WEEK HISAAB') : t('home.currentSettlement', 'CURRENT SETTLEMENT STATUS')}
                                 </span>
                                 <span className="text-[10px] font-semibold text-text-muted font-mono bg-bg px-2 py-0.5 rounded-md border border-border/50">
-                                  {t('home.week', 'Week')} #{prevWeek.weekNumber} • {prevWeek.hisaabNumber}
+                                  {t('home.week', 'Week')} #{targetWeek.weekNumber} • {targetWeek.hisaabNumber}
                                 </span>
                               </div>
 
-                              {prevWeek.paymentStatus === 'settled' || prevWeek.status === 'settled_pay' || ((prevWeek.toCollect || 0) <= 0 && (prevWeek.currentWeekOs || 0) <= 0) ? (
+                              {isWeeklyPayout ? (
+                                <div className="flex justify-between items-center gap-2 pt-0.5">
+                                  <div>
+                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
+                                      {isSettled ? t('home.payoutPaid', 'Payout to Bank') : t('home.payoutPending', 'Payout Processing')}
+                                    </div>
+                                    <div className="font-sans text-xl font-bold text-green mt-0.5 whitespace-nowrap font-mono">
+                                      +₹{payoutAmt.toLocaleString('en-IN', { minimumFractionDigits: payoutAmt % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                    </div>
+                                  </div>
+                                  <span className={`flex items-center gap-1.5 font-sans text-[10px] font-bold px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap border ${isSettled ? 'text-green bg-green-light border-green-200/50' : 'text-blue-700 bg-blue-50 border-blue-200'}`}>
+                                    {isSettled ? <CheckCircle2 className="w-3.5 h-3.5 text-green" /> : <Clock className="w-3.5 h-3.5 text-blue-600" />}
+                                    {isSettled ? t('home.paidToBank', 'Paid to Bank') : t('home.payoutDue', 'Payout Due')}
+                                  </span>
+                                </div>
+                              ) : isAllPaid ? (
                                 <div className="flex justify-between items-center gap-2 pt-0.5">
                                   <div>
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.balanceDue', 'Balance Due')}</div>
@@ -1790,9 +1816,7 @@ export default function App() {
                                   </div>
                                   <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-green bg-green-light px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                     <CheckCircle2 className="w-3.5 h-3.5 text-green" />
-                                    {prevWeek.currentWeekOs < 0
-                                      ? t('home.paidToBank', 'Paid to Bank')
-                                      : t('home.paidToLetzryd', 'Paid to LetzRyd')}
+                                    {t('home.allSettled', 'All Settled')}
                                   </span>
                                 </div>
                               ) : (
@@ -1801,7 +1825,7 @@ export default function App() {
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.totalOutstandingDue', 'Total Outstanding Due')}</div>
                                     <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5 whitespace-nowrap font-mono">
                                       -₹{(() => {
-                                        const due = Math.max(0, (prevWeek.toCollect || prevWeek.currentWeekOs || 0) - (prevWeek.paidAmount || 0)) + (driverUser.depositPending || 0);
+                                        const due = Math.max(0, (targetWeek.toCollect || targetWeek.currentWeekOs || 0) - (targetWeek.paidAmount || 0)) + (driverUser.depositPending || 0);
                                         return due.toLocaleString('en-IN', {
                                           minimumFractionDigits: due % 1 !== 0 ? 2 : 0,
                                           maximumFractionDigits: 2,
@@ -1820,7 +1844,7 @@ export default function App() {
                                     ) : (
                                       <button
                                         onClick={() => {
-                                          setDriverWeekIndex(1); // Point to Last Week (Week 29)
+                                          setDriverWeekIndex(targetWeekIdx);
                                           navigateTo('settle');
                                         }}
                                         className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105 whitespace-nowrap"
@@ -1831,25 +1855,24 @@ export default function App() {
                                   </div>
                                 </div>
                               )}
-                            </>
-                          )}
 
-                          {/* Merged Security Deposit Strip for Driver */}
-                          <div className="border-t border-border/60 pt-2.5 flex items-center justify-between text-xs">
-                            <span className="font-bold text-text uppercase tracking-wider text-[10px]">
-                              {t('home.deposit', 'Security Deposit')}
-                            </span>
-                            <div className="flex items-center gap-2 text-[10px] font-sans">
-                              <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
-                              </span>
-                              <span className={`px-2.5 py-0.5 rounded-full font-bold border ${(driverUser.depositPending || 0) > 0 ? 'bg-amber-50 text-amber-700 border-amber-200/70' : 'bg-green-50 text-green-700 border-green-200/70'}`}>
-                                {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPending || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
-                              </span>
+                              {/* Merged Security Deposit Strip for Driver */}
+                              <div className="border-t border-border/60 pt-2.5 flex items-center justify-between text-xs">
+                                <span className="font-bold text-text uppercase tracking-wider text-[10px]">
+                                  {t('home.deposit', 'Security Deposit')}
+                                </span>
+                                <div className="flex items-center gap-2 text-[10px] font-sans">
+                                  <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
+                                    {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                  </span>
+                                  <span className={`px-2.5 py-0.5 rounded-full font-bold border ${(driverUser.depositPending || 0) > 0 ? 'bg-amber-50 text-amber-700 border-amber-200/70' : 'bg-green-50 text-green-700 border-green-200/70'}`}>
+                                    {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPending || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                        ) : null
+                          );
+                        })()
                       ) : (
                         <div
                           onClick={() => navigateTo('settle')}
@@ -1870,23 +1893,28 @@ export default function App() {
                               ? activeWeek.cashCollected
                               : (activeWeek ? (Math.abs(activeWeek.platforms?.uber?.cashCollection || 0) + Math.abs(activeWeek.platforms?.ola?.cashCollection || 0) + Math.abs(activeWeek.platforms?.rapido?.cashCollection || 0)) : 0);
 
-                            const opDue = (activeWeek && activeWeek.toCollect !== undefined && activeWeek.toCollect !== null && activeWeek.toCollect > 0)
+                            const fleetSumToCollect = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
+                            const fleetSumToPay = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
+                            const totalToCollect = (activeWeek && activeWeek.toCollect !== undefined && activeWeek.toCollect !== null)
                               ? activeWeek.toCollect
-                              : (activeWeek?.amountDue || operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0));
-                            const opPayout = (activeWeek && activeWeek.toPay !== undefined && activeWeek.toPay !== null && activeWeek.toPay > 0)
+                              : fleetSumToCollect;
+                            const totalToPay = (activeWeek && activeWeek.toPay !== undefined && activeWeek.toPay !== null)
                               ? activeWeek.toPay
-                              : operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
-                            const isPayout = opPayout > 0 && opDue <= 0;
-                            const netSettlementAmt = isPayout ? opPayout : opDue;
+                              : fleetSumToPay;
+
+                            // Net settlement: SUM(to_collect) - SUM(to_pay)
+                            const netSettlement = totalToCollect - totalToPay;
+                            const isPayout = netSettlement < 0;
+                            const netSettlementAmt = Math.abs(netSettlement);
 
                             return (
                               <>
                                 <div className="flex flex-wrap items-start justify-between gap-2 pt-0.5">
                                   <div className="min-w-0">
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
-                                      {isPayout ? t('home.payoutToBank', 'Payout to Bank') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')}
+                                      {isPayout ? t('home.payoutToBank', 'Payout to Bank') : netSettlement === 0 ? t('home.settlementCleared', 'Settlement Status') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')}
                                     </div>
-                                    <div className={`font-sans text-2xl font-extrabold mt-0.5 whitespace-nowrap font-mono ${isPayout ? 'text-green' : netSettlementAmt === 0 ? 'text-green' : 'text-red-600'}`}>
+                                    <div className={`font-sans text-2xl font-extrabold mt-0.5 whitespace-nowrap font-mono ${isPayout ? 'text-green' : netSettlement === 0 ? 'text-green' : 'text-red-600'}`}>
                                       {isPayout 
                                         ? `+₹${netSettlementAmt.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                                         : netSettlementAmt === 0 
@@ -2031,7 +2059,7 @@ export default function App() {
                   )}
 
                   {currentScreen === 'settle' && (() => {
-                    const currentH = hisaabWeeks[driverWeekIndex];
+                    const currentH = hisaabWeeks[driverWeekIndex] || (hisaabWeeks.length > 0 ? hisaabWeeks[0] : null);
                     const isWeeklyPayout = (currentH?.currentWeekOs || 0) < 0 || ((currentH?.toPay || 0) > 0 && (currentH?.toCollect || 0) <= 0 && (currentH?.currentWeekOs || 0) <= 0);
                     const rawDue = currentH ? (isWeeklyPayout ? 0 : Math.max(0, (currentH.currentWeekOs > 0 ? currentH.currentWeekOs : (currentH.toCollect || 0)))) : 0;
                     const paidSoFar = currentH?.paidAmount || 0;
@@ -2039,10 +2067,12 @@ export default function App() {
                     const pendingDep = loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0);
                     const challanAmt = loginType === 'operator' ? 0 : (currentH?.challan || 0);
 
-                    const totalOperatorDue = (currentH?.amountDue && currentH.amountDue > 0)
-                      ? currentH.amountDue
-                      : (operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0) || remainingHisaabDue);
-                    const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : remainingHisaabDue;
+                    const fleetNetOs = operatorFleet.vehicles.reduce((sum, v) => sum + v.currentWeekOs, 0);
+                    const opNetDue = currentH
+                      ? ((currentH.toCollect ?? 0) - (currentH.toPay ?? 0))
+                      : fleetNetOs;
+                    const totalOperatorDue = Math.max(0, opNetDue - (currentH?.paidAmount || 0));
+                    const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : Math.max(0, remainingHisaabDue - challanAmt);
                     const finalTotalAmount = finalHisaabAmount + pendingDep + challanAmt;
 
                     return (
@@ -2051,7 +2081,7 @@ export default function App() {
                         hisaabAmount={finalHisaabAmount}
                         pendingDeposit={pendingDep}
                         challansAmount={challanAmt}
-                        weekRange={`${currentH?.weekStart} to ${currentH?.weekEnd}`}
+                        weekRange={currentH?.weekStart && currentH?.weekEnd ? `${currentH.weekStart} to ${currentH.weekEnd}` : 'Current Settlement Period'}
                         upiId={LETZRYD_UPI_ID}
                         driverName={driverUser.name}
                         driverPhone={driverUser.phone}

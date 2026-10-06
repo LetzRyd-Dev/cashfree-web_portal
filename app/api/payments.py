@@ -124,8 +124,10 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     if target_hisaab.week_number >= active_week_num or not target_hisaab.is_locked:
                         driver.cw_to_collect = round(max(0.0, float(driver.cw_to_collect or 0) - t_pay), 2)
                         driver.cw_os = round(max(0.0, float(driver.cw_os or 0) - t_pay), 2)
+                        driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - t_pay), 2)
                     else:
                         driver.lw_os = round(max(0.0, float(driver.lw_os or 0) - t_pay), 2)
+                        driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - t_pay), 2)
                         if driver.lw_os <= 0:
                             driver.lw_status = "paid"
                         else:
@@ -181,6 +183,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                         oh.payment_status = "partial"
 
                     # Update driver lw_os if prior week
+                    driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - oh_pay), 2)
                     if oh.week_number < active_week_num or oh.is_locked:
                         driver.lw_os = round(max(0.0, float(driver.lw_os or 0) - oh_pay), 2)
                         if driver.lw_os <= 0:
@@ -396,7 +399,10 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
     try:
         amt = round(float(req.amount), 2)
     except (ValueError, TypeError):
-        amt = 1.0
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payment amount must be a valid number"
+        )
 
     if amt <= 0:
         raise HTTPException(
@@ -596,7 +602,7 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
     Queries Cashfree API to verify payment status.
     On SUCCESS → updates app_payments + app_hisaabs + app_drivers/operators + fires notification.
     """
-    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
+    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
 
     is_success = False
     payment_mode = "Cashfree Gateway"
@@ -755,7 +761,7 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
         payment_status = "SUCCESS"
 
     if order_id and payment_status == "SUCCESS":
-        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
+        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
         if payment and payment.status != "SUCCESS":
             payment.status = "SUCCESS"
             payment.completed_at = datetime.now(timezone.utc)

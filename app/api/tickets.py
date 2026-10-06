@@ -32,6 +32,7 @@ def list_tickets(
                 target_id = driver.app_driver_id
             else:
                 op = resolve_operator(c_str, db)
+                target_id = op.app_operator_id if op else (int(c_str) if c_str.isdigit() else creator_id)
         if not isinstance(target_id, int):
             try:
                 target_id = int(target_id)

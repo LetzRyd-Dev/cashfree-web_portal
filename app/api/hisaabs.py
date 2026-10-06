@@ -16,10 +16,22 @@ def get_hisaabs_by_driver_phone(phone: str, db: Session = Depends(get_db)):
     driver = resolve_driver(clean, db)
     if not driver:
         raise HTTPException(status_code=404, detail=f"No driver found with phone {phone}")
-    target_ids = [driver.app_driver_id]
-    if driver.driver_id:
-        target_ids.append(driver.driver_id)
-    hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id.in_(target_ids)).order_by(AppHisaabs.week_number.desc()).all()
+    hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == driver.app_driver_id).order_by(AppHisaabs.week_number.desc()).all()
+    if not hisaabs and driver.driver_id and driver.driver_id != driver.app_driver_id:
+        cand = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == driver.driver_id).order_by(AppHisaabs.week_number.desc()).all()
+        clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper() if driver.vehicle_reg_number else None
+        clean_code = driver.driver_code.replace(' ', '').replace('-', '').upper() if driver.driver_code else None
+        matched = []
+        for h in cand:
+            h_no = (h.hisaab_number or "").upper().replace(' ', '').replace('-', '')
+            if clean_code and clean_code in h_no:
+                matched.append(h)
+            elif clean_v and clean_v in h_no:
+                matched.append(h)
+            elif not clean_code and not clean_v:
+                matched.append(h)
+        if matched:
+            hisaabs = matched
     if not hisaabs and driver.vehicle_reg_number:
         clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
         hisaabs = db.query(AppHisaabs).filter(
@@ -30,37 +42,50 @@ def get_hisaabs_by_driver_phone(phone: str, db: Session = Depends(get_db)):
 @router.get("/driver/{driver_id}")
 def get_driver_hisaabs(driver_id: Union[int, str], db: Session = Depends(get_db)):
     driver = resolve_driver(str(driver_id), db)
-    target_ids = []
-    if driver:
-        if driver.app_driver_id:
-            target_ids.append(driver.app_driver_id)
-        if driver.driver_id:
-            target_ids.append(driver.driver_id)
-    elif str(driver_id).isdigit():
-        target_ids.append(int(driver_id))
-
     hisaabs = []
-    if target_ids:
+    if driver:
         hisaabs = db.query(AppHisaabs).filter(
-            AppHisaabs.app_driver_id.in_(target_ids)
+            AppHisaabs.app_driver_id == driver.app_driver_id
         ).order_by(AppHisaabs.week_number.desc()).all()
+        if not hisaabs and driver.driver_id and driver.driver_id != driver.app_driver_id:
+            cand = db.query(AppHisaabs).filter(AppHisaabs.app_driver_id == driver.driver_id).order_by(AppHisaabs.week_number.desc()).all()
+            clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper() if driver.vehicle_reg_number else None
+            clean_code = driver.driver_code.replace(' ', '').replace('-', '').upper() if driver.driver_code else None
+            matched = []
+            for h in cand:
+                h_no = (h.hisaab_number or "").upper().replace(' ', '').replace('-', '')
+                if clean_code and clean_code in h_no:
+                    matched.append(h)
+                elif clean_v and clean_v in h_no:
+                    matched.append(h)
+                elif not clean_code and not clean_v:
+                    matched.append(h)
+            if matched:
+                hisaabs = matched
+        if not hisaabs and driver.vehicle_reg_number:
+            clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
+            hisaabs = db.query(AppHisaabs).filter(
+                AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
+            ).order_by(AppHisaabs.week_number.desc()).all()
+    elif str(driver_id).isdigit():
+        hisaabs = db.query(AppHisaabs).filter(
+            AppHisaabs.app_driver_id == int(driver_id)
+        ).order_by(AppHisaabs.week_number.desc()).all()
+    return {"driver_id": driver.app_driver_id if driver else driver_id, "count": len(hisaabs), "data": [_map_hisaab(h) for h in hisaabs]}
 
-    if not hisaabs and driver and driver.vehicle_reg_number:
-        clean_v = driver.vehicle_reg_number.replace(' ', '').replace('-', '').upper()
-        hisaabs = db.query(AppHisaabs).filter(
-            AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
-        ).order_by(AppHisaabs.week_number.desc()).all()
-    return {"driver_id": driver.app_driver_id if driver else (target_ids[0] if target_ids else driver_id), "count": len(hisaabs), "data": [_map_hisaab(h) for h in hisaabs]}
+from sqlalchemy import text, or_
 
 @router.get("/vehicle/{vehicle_number}")
 def get_vehicle_hisaabs(vehicle_number: str, db: Session = Depends(get_db)):
     clean_v = vehicle_number.replace(' ', '').replace('-', '').upper()
+    suffix = clean_v[-6:] if len(clean_v) >= 6 else clean_v
     hisaabs = db.query(AppHisaabs).filter(
-        AppHisaabs.hisaab_number.ilike(f"%{clean_v}%")
+        or_(
+            AppHisaabs.hisaab_number.ilike(f"%{clean_v}%"),
+            AppHisaabs.hisaab_number.ilike(f"%{suffix}%")
+        )
     ).order_by(AppHisaabs.week_number.desc()).all()
     return {"vehicle_number": vehicle_number, "count": len(hisaabs), "data": [_map_hisaab(h) for h in hisaabs]}
-
-from sqlalchemy import text
 
 @router.get("/operator/{operator_id}")
 def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get_db)):

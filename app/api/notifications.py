@@ -18,29 +18,47 @@ def get_notifications(
     query = db.query(AppNotifications)
 
     if target_id is not None:
+        target_ids = [target_id]
         if target_type == 'operator':
             op = resolve_operator(str(target_id), db)
-            resolved_id = op.app_operator_id if op else target_id
+            if op:
+                if op.app_operator_id:
+                    target_ids.append(op.app_operator_id)
+                if op.operator_id:
+                    target_ids.append(op.operator_id)
         elif target_type == 'driver':
             driver = resolve_driver(str(target_id), db)
-            resolved_id = driver.app_driver_id if driver else target_id
+            if driver:
+                if driver.app_driver_id:
+                    target_ids.append(driver.app_driver_id)
+                if driver.driver_id:
+                    target_ids.append(driver.driver_id)
         else:
             driver = resolve_driver(str(target_id), db)
             if driver:
-                resolved_id = driver.app_driver_id
+                if driver.app_driver_id:
+                    target_ids.append(driver.app_driver_id)
+                if driver.driver_id:
+                    target_ids.append(driver.driver_id)
             else:
                 op = resolve_operator(str(target_id), db)
-                resolved_id = op.app_operator_id if op else target_id
+                if op:
+                    if op.app_operator_id:
+                        target_ids.append(op.app_operator_id)
+                    if op.operator_id:
+                        target_ids.append(op.operator_id)
+
+        target_ids = list(set(target_ids))
 
         if target_type:
             query = query.filter(
-                ((AppNotifications.target_id == resolved_id) & (AppNotifications.target_type == target_type))
+                (AppNotifications.target_id.in_(target_ids) & (AppNotifications.target_type == target_type))
                 | ((AppNotifications.target_type == target_type) & (AppNotifications.target_id.is_(None)))
                 | (AppNotifications.target_type == 'all')
             )
         else:
             query = query.filter(
-                (AppNotifications.target_id == resolved_id)
+                AppNotifications.target_id.in_(target_ids)
                 | (AppNotifications.target_id.is_(None))
                 | (AppNotifications.target_type == 'all')
             )

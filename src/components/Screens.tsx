@@ -446,7 +446,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
               </div>
               <span className="font-sans text-xs font-semibold text-text">Odometer Reading</span>
             </div>
-            <span className="font-mono text-xs font-bold text-text">{vehicle.odometer ? `${vehicle.odometer.toLocaleString('en-IN')} km` : '124,380 km'}</span>
+            <span className="font-mono text-xs font-bold text-text">{vehicle.odometer !== undefined && vehicle.odometer !== null ? `${vehicle.odometer.toLocaleString('en-IN')} km` : '0 km'}</span>
           </div>
 
           {vehicle.allocationStart && (
@@ -872,7 +872,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
 
       {/* 2. MERGED WEEKLY HISAAB STATEMENT CARD */}
       {(() => {
-        const totalRides = (w.platforms.uber?.trips || 0) + (w.platforms.ola?.trips || 0) + (w.platforms.rapido?.trips || 0);
+        const totalRides = (w.completedTrips || 0) || ((w.platforms.uber?.trips || 0) + (w.platforms.ola?.trips || 0) + (w.platforms.rapido?.trips || 0));
         
         // 1. Gross Earnings across platforms (Fares + Tolls + Incentives)
         const uberGross = (w.platforms.uber?.revenue || 0) + (w.platforms.uber?.toll || 0) + (w.platforms.uber?.incentive || 0);
@@ -964,9 +964,10 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             {(() => {
               const paid = w.paidAmount || 0;
               const remainingDue = (w.toCollect !== undefined && w.toCollect !== null)
-                ? w.toCollect
+                ? Math.max(0, w.toCollect - paid)
                 : Math.max(0, (w.currentWeekOs > 0 ? w.currentWeekOs : 0) - paid);
-              const isPayout = w.currentWeekOs < 0;
+              const isPayout = (w.currentWeekOs || 0) < 0 || ((w.toPay || 0) > 0 && (w.toCollect || 0) <= 0);
+              const payoutAmt = (w.toPay && w.toPay > 0) ? w.toPay : Math.abs(w.currentWeekOs || 0);
 
               return (
                 <div className="pt-3 border-t border-dashed border-border/80 flex items-center justify-between">
@@ -980,7 +981,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
                   </div>
                   <div className={`font-mono text-sm font-black ${isPayout ? 'text-green' : remainingDue === 0 ? 'text-green' : 'text-red-600'}`}>
                     {isPayout
-                      ? `+₹${Math.abs(w.currentWeekOs).toLocaleString('en-IN', { minimumFractionDigits: Math.abs(w.currentWeekOs) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`
+                      ? `+₹${payoutAmt.toLocaleString('en-IN', { minimumFractionDigits: payoutAmt % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`
                       : remainingDue === 0
                       ? '₹0'
                       : `-₹${remainingDue.toLocaleString('en-IN', { minimumFractionDigits: remainingDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`}
@@ -1125,7 +1126,9 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
             <div className="flex justify-between items-center pt-1 border-t border-border/60">
               <span className="text-text-muted">{t('hisaab.deadMilePenalty', 'Dead Mile Penalty Due')}</span>
-              <span className="font-bold text-green font-mono">₹0.00</span>
+              <span className={`font-bold font-mono ${(w.gps.deadKmPenalty ?? 0) > 0 ? 'text-amber-700' : 'text-green'}`}>
+                ₹{(w.gps.deadKmPenalty ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           </div>
         )}
@@ -1365,6 +1368,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         weekRange,
         app_hisaab_id: hisaabId || null,   // Link to specific hisaab
         payer_type: payerType || 'driver',  // driver or operator
+        operator_id: payerType === 'operator' && driverId ? (parseInt(driverId) || undefined) : undefined,
         return_url: typeof window !== 'undefined' ? `${window.location.origin}/?order_id={order_id}` : undefined,
       };
 
@@ -1445,7 +1449,6 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     setPaymentState('form');
     setPaymentSessionId('');
     setCurrentOrderId('');
-    onConfirmPayment(activePayAmount);
   };
 
   // Verify real order with backend (Only triggers success if truly verified by Cashfree)
@@ -1714,7 +1717,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           <span className="font-sans text-xs font-bold text-text-muted uppercase tracking-wider">
             {t('home.totalOutstandingDue', 'Total Outstanding Due')}
           </span>
-          <span className="font-sans text-xl font-black text-red-600">
+          <span className={`font-sans text-xl font-black ${totalDueAmount === 0 ? 'text-green' : 'text-red-600'}`}>
             ₹{totalDueAmount.toLocaleString('en-IN', {
               minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0,
               maximumFractionDigits: 2,
@@ -2640,7 +2643,7 @@ export const RentalScreen: React.FC<RentalScreenProps> = ({ plan, t }) => {
       </div>
 
       <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
-        <h3 className="font-sans text-lg font-extrabold text-text">{plan.name} Plan</h3>
+        <h3 className="font-sans text-lg font-extrabold text-text">{plan.name.toLowerCase().endsWith('plan') ? plan.name : `${plan.name} Plan`}</h3>
         <p className="font-sans text-xs text-text-muted mt-0.5">Active since {plan.planStart}</p>
         <div className="mt-3 pt-3 border-t border-border">
           <div className="font-sans text-2xl font-extrabold text-primary">
@@ -2772,14 +2775,17 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
                 className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${v.status === 'idle' ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'}`}>
                     <Car className="w-4 h-4" />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
                         {v.number}
+                      </span>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider ${v.status === 'idle' ? 'bg-zinc-100 text-zinc-600 border border-zinc-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                        {v.status === 'idle' ? 'Idle' : 'Active'}
                       </span>
                       <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
                         {v.make} {v.model}
