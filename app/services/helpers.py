@@ -140,7 +140,7 @@ def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
         if m:
             num_id = int(m.group(1))
 
-    if num_id is not None and num_id > 0:
+    if num_id is not None and num_id >= 0:
         op = db.query(AppOperators).filter(AppOperators.app_operator_id == num_id).first()
         if op:
             return op

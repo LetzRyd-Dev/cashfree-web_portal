@@ -1675,7 +1675,7 @@ export default function App() {
                                 </div>
                                 <span className="flex items-center gap-1 font-sans text-[10px] font-bold text-green bg-green-light px-2.5 py-1 rounded-full shrink-0 whitespace-nowrap border border-green-200/50">
                                   <TrendingUp className="w-3 h-3 text-green" />
-                                  12.5% vs last week
+                                  {activeWeek?.growthPct ? `${activeWeek.growthPct > 0 ? '+' : ''}${activeWeek.growthPct}% vs last week` : 'Current Week'}
                                 </span>
                               </div>
                             );
@@ -1688,7 +1688,7 @@ export default function App() {
                         <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs font-sans">
                           <div className="grid grid-cols-4 divide-x divide-border/70 text-center">
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek ? activeWeek.activeDays : 6}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">{activeWeek?.activeDays || 6}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.daysActive', 'Days Active')}</p>
                             </div>
                             <div className="px-1">
@@ -1698,11 +1698,15 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.trips', 'Trips')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">2,441</p>
+                              <p className="font-sans text-base font-black text-text leading-none">
+                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalKm ? Math.round(activeWeek.gps.totalKm).toLocaleString('en-IN') : '2,441')}
+                              </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KMs')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-green leading-none">{activeWeek ? `${activeWeek.gps.deadMilePct}%` : '6.4%'}</p>
+                              <p className="font-sans text-base font-black text-green leading-none">
+                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '6.4%'}
+                              </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.deadMilesPct', 'Dead Miles %')}</p>
                             </div>
                           </div>
@@ -1712,12 +1716,14 @@ export default function App() {
                           <div className="grid grid-cols-4 divide-x divide-border/70 text-center">
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-text leading-none">
-                                {activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0)) : 1150}
+                                {activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : 1150}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.trips', 'Trips')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">12,205</p>
+                              <p className="font-sans text-base font-black text-text leading-none">
+                                {activeWeek?.totalKm ? Math.round(activeWeek.totalKm).toLocaleString('en-IN') : (activeWeek?.gps?.totalKm ? Math.round(activeWeek.gps.totalKm).toLocaleString('en-IN') : '12,205')}
+                              </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KM')}</p>
                             </div>
                             <div className="px-1">
@@ -1725,7 +1731,9 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('operator.cars', 'Total Cars')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-green leading-none">8.2%</p>
+                              <p className="font-sans text-base font-black text-green leading-none">
+                                {activeWeek?.gps?.deadMilePct != null ? `${activeWeek.gps.deadMilePct}%` : '8.2%'}
+                              </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.deadMilesPct', 'Dead Miles %')}</p>
                             </div>
                           </div>

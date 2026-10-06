@@ -33,8 +33,11 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
     
+    op_filter_ids = [op.app_operator_id]
+    if op.operator_id and op.operator_id not in op_filter_ids:
+        op_filter_ids.append(op.operator_id)
     drivers = db.query(AppDrivers).filter(
-        AppDrivers.operator_id == op.app_operator_id
+        AppDrivers.operator_id.in_(op_filter_ids)
     ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
@@ -135,26 +138,39 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     week_hisaabs_by_v = {}
     for h in op_hisaabs:
         if h.week_number == latest_week:
+            v_num = None
             parts = h.hisaab_number.split('-') if h.hisaab_number else []
-            if len(parts) >= 3 and parts[0] == 'HSB':
+            if len(parts) >= 3 and parts[0] in ('HSB', 'HS'):
                 v_num = parts[2].upper()
-                week_hisaabs_by_v[v_num] = h
+            elif len(parts) >= 4 and parts[0] == 'HIS':
+                v_num = parts[3].upper()
+            elif len(parts) >= 2:
+                v_num = parts[-1].upper()
+            
+            if v_num:
+                clean_key = v_num.replace(' ', '').replace('-', '').upper()
+                week_hisaabs_by_v.setdefault(clean_key, []).append((v_num, h))
 
     # Re-align current week OS for drivers' assigned vehicles with the latest week hisaab
+    matched_keys = set()
     for v in vehicles:
-        if v.vehicle_number in week_hisaabs_by_v:
-            wh = week_hisaabs_by_v[v.vehicle_number]
-            to_pay = float(getattr(wh, 'to_pay', 0) or 0.0)
-            to_col = float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0)
+        clean_v = v.vehicle_number.replace(' ', '').replace('-', '').upper()
+        if clean_v in week_hisaabs_by_v:
+            matched_keys.add(clean_v)
+            items = week_hisaabs_by_v[clean_v]
+            to_pay = sum(float(getattr(wh, 'to_pay', 0) or 0.0) for _, wh in items)
+            to_col = sum(float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0) for _, wh in items)
             v.current_week_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
             v.status = "active"
+            v.hisaab_count = max(v.hisaab_count, len(items))
         else:
             v.current_week_os = 0.0
             v.status = "idle"
 
     # Add any remaining vehicles that ran in the current active week
-    for v_num, wh in week_hisaabs_by_v.items():
-        if v_num not in seen_vehicles:
+    for clean_key, items in week_hisaabs_by_v.items():
+        if clean_key not in matched_keys:
+            orig_v_num, wh = items[0]
             drv_name = "Fleet Vehicle"
             drv_phone = ""
             if wh.app_driver_id:
@@ -163,13 +179,13 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
                     drv_name = d_obj.full_name or "Fleet Driver"
                     drv_phone = d_obj.phone or ""
 
-            to_pay = float(getattr(wh, 'to_pay', 0) or 0.0)
-            to_col = float(getattr(wh, 'to_collect', 0) or getattr(wh, 'current_period_os', 0) or 0.0)
+            to_pay = sum(float(getattr(w, 'to_pay', 0) or 0.0) for _, w in items)
+            to_col = sum(float(getattr(w, 'to_collect', 0) or getattr(w, 'current_period_os', 0) or 0.0) for _, w in items)
             v_cw_os = -to_pay if to_pay > 0 else (to_col if to_col > 0 else 0.0)
 
-            seen_vehicles[v_num] = len(vehicles)
+            seen_vehicles[orig_v_num] = len(vehicles)
             vehicles.append(FleetVehicleResponse(
-                vehicle_number=v_num,
+                vehicle_number=orig_v_num,
                 vehicle_make="Maruti",
                 vehicle_model=getattr(wh, 'vehicle_model', None) or "WagonR Tour H3 CNG",
                 driver_name=drv_name,
@@ -178,13 +194,20 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
                 daily_rate=float(getattr(wh, 'applied_daily_rent', 1000.0) or 1000.0),
                 current_week_os=v_cw_os,
                 status="active",
-                hisaab_count=1
+                hisaab_count=len(items)
             ))
 
-    cw_to_pay = sum(abs(v.current_week_os) for v in vehicles if v.current_week_os < 0)
-    cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)
-    cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers) if drivers else float(op.cw_fleet_gross_earnings or 0.0)
-    cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
+    latest_week_hisaabs = [h for h in op_hisaabs if h.week_number == latest_week]
+    if latest_week_hisaabs:
+        cw_to_pay = sum(float(h.to_pay or 0.0) for h in latest_week_hisaabs)
+        cw_to_collect = sum(float(h.to_collect or 0.0) for h in latest_week_hisaabs)
+        cw_gross = sum(float(h.total_gross_earnings or 0.0) for h in latest_week_hisaabs)
+        cw_trips = sum(int(h.completed_trips or ((h.uber_trips or 0) + (h.ola_trips or 0) + (h.rapido_trips or 0)) or 0) for h in latest_week_hisaabs)
+    else:
+        cw_to_pay = sum(abs(v.current_week_os) for v in vehicles if v.current_week_os < 0)
+        cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)
+        cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers) if drivers else float(op.cw_fleet_gross_earnings or 0.0)
+        cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
     total_veh = len(vehicles) if vehicles else max(len(drivers), (op.total_vehicles or 0))
     active_veh = len([v for v in vehicles if v.status == "active"]) if vehicles else max(len([d for d in drivers if d.is_active]), (op.active_vehicles or 0))
 
@@ -256,13 +279,28 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
     total_drivers = op.total_drivers or 0
 
     if db is not None:
+        op_filter_ids = [op.app_operator_id]
+        if op.operator_id and op.operator_id not in op_filter_ids:
+            op_filter_ids.append(op.operator_id)
         drivers = db.query(AppDrivers).filter(
-            AppDrivers.operator_id == op.app_operator_id
+            AppDrivers.operator_id.in_(op_filter_ids)
         ).all()
         
-        if drivers:
+        op_hisaabs = db.query(AppHisaabs).filter(
+            AppHisaabs.app_operator_id.in_(op_filter_ids)
+        ).order_by(AppHisaabs.week_number.desc()).all()
+        
+        latest_week = max([h.week_number for h in op_hisaabs], default=40)
+        latest_hisaabs = [h for h in op_hisaabs if h.week_number == latest_week]
+        
+        if latest_hisaabs:
+            cw_to_pay = sum(float(h.to_pay or 0.0) for h in latest_hisaabs)
+            cw_to_collect = sum(float(h.to_collect or 0.0) for h in latest_hisaabs)
+        elif drivers:
             cw_to_pay = sum(float(d.cw_to_pay or 0.0) for d in drivers)
             cw_to_collect = sum(float(d.cw_to_collect or 0.0) for d in drivers)
+            
+        if drivers:
             total_vehicles = max(len(drivers), total_vehicles)
             active_vehicles = max(len([d for d in drivers if d.is_active]), active_vehicles)
             total_drivers = max(len(drivers), total_drivers)
