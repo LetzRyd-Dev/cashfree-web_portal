@@ -1,0 +1,3121 @@
+{
+  "section_1_drivers": {
+    "stats": {
+      "total_rows": 2578,
+      "count_app_driver_id": 2578,
+      "uniq_app_driver_id": 2578,
+      "count_driver_id": 2577,
+      "uniq_driver_id": 2462,
+      "count_driver_code": 2569,
+      "uniq_driver_code": 2569,
+      "empty_driver_code": 9,
+      "count_phone": 2577,
+      "uniq_phone": 2577,
+      "empty_phone": 1,
+      "count_operator_id": 2555,
+      "uniq_operator_id": 174
+    },
+    "duplicate_driver_ids_count": 114,
+    "duplicate_driver_ids": [
+      {
+        "driver_id": 8,
+        "count": 3,
+        "app_driver_ids": [
+          5529,
+          11,
+          4105
+        ],
+        "names": [
+          "FAIZAL N",
+          "VIKRAM REDDY",
+          "Nisamudeen K P"
+        ],
+        "phones": [
+          "7356420267",
+          "4593605307",
+          "9686629897"
+        ]
+      },
+      {
+        "driver_id": 2,
+        "count": 2,
+        "app_driver_ids": [
+          1929,
+          5531
+        ],
+        "names": [
+          "K. R. RAO (VENKATESHWARA LOGISTICS)",
+          "Rajesh Verma"
+        ],
+        "phones": [
+          "9812345678",
+          "9876543210"
+        ]
+      },
+      {
+        "driver_id": 3,
+        "count": 2,
+        "app_driver_ids": [
+          1977,
+          5532
+        ],
+        "names": [
+          "VIKRAM ADITYA",
+          "Sunil Chhetri"
+        ],
+        "phones": [
+          "9848022338",
+          "9876543211"
+        ]
+      },
+      {
+        "driver_id": 4,
+        "count": 2,
+        "app_driver_ids": [
+          2148,
+          5533
+        ],
+        "names": [
+          "PRAVEEN KUMAR",
+          "Suresh Kumar"
+        ],
+        "phones": [
+          "9955112233",
+          "9876543212"
+        ]
+      },
+      {
+        "driver_id": 5,
+        "count": 2,
+        "app_driver_ids": [
+          5534,
+          8
+        ],
+        "names": [
+          "Ramesh Babu",
+          "ANJALI DEVI"
+        ],
+        "phones": [
+          "9876543213",
+          "1575950169"
+        ]
+      },
+      {
+        "driver_id": 60,
+        "count": 2,
+        "app_driver_ids": [
+          3525,
+          1089
+        ],
+        "names": [
+          "Hallappa Pujari",
+          "Y SHIVA KUMAR"
+        ],
+        "phones": [
+          "9061304710",
+          "8886464668"
+        ]
+      },
+      {
+        "driver_id": 100,
+        "count": 2,
+        "app_driver_ids": [
+          3212,
+          1323
+        ],
+        "names": [
+          "Rowson Shaikh",
+          "NARENDRA H"
+        ],
+        "phones": [
+          "8652242569",
+          "9110417668"
+        ]
+      },
+      {
+        "driver_id": 105,
+        "count": 2,
+        "app_driver_ids": [
+          4098,
+          1989
+        ],
+        "names": [
+          "Abhishek Megharaj",
+          "PAPLU DAS"
+        ],
+        "phones": [
+          "9686227027",
+          "9864162199"
+        ]
+      },
+      {
+        "driver_id": 109,
+        "count": 2,
+        "app_driver_ids": [
+          1364,
+          4197
+        ],
+        "names": [
+          "RAVIKUMAR S",
+          "Anil Kumar Cp"
+        ],
+        "phones": [
+          "9148304440",
+          "9747438353"
+        ]
+      },
+      {
+        "driver_id": 146,
+        "count": 2,
+        "app_driver_ids": [
+          247,
+          3290
+        ],
+        "names": [
+          "B NAGESWARARAO",
+          "Ramjan Shaikh"
+        ],
+        "phones": [
+          "7036422148",
+          "8828828214"
+        ]
+      },
+      {
+        "driver_id": 148,
+        "count": 2,
+        "app_driver_ids": [
+          311,
+          3720
+        ],
+        "names": [
+          "BHARATH B R",
+          "C Yeswanth Kumar Raju"
+        ],
+        "phones": [
+          "7259647574",
+          "9346939240"
+        ]
+      },
+      {
+        "driver_id": 154,
+        "count": 2,
+        "app_driver_ids": [
+          2829,
+          456
+        ],
+        "names": [
+          "Abdul Rehman",
+          "MOULALI"
+        ],
+        "phones": [
+          "7985502746",
+          "7676103335"
+        ]
+      },
+      {
+        "driver_id": 155,
+        "count": 2,
+        "app_driver_ids": [
+          3259,
+          460
+        ],
+        "names": [
+          "Chaudhary Tours & Travels",
+          "PRADEEPA K N"
+        ],
+        "phones": [
+          "8766692181",
+          "7676337650"
+        ]
+      },
+      {
+        "driver_id": 157,
+        "count": 2,
+        "app_driver_ids": [
+          1,
+          485
+        ],
+        "names": [
+          "Vivek",
+          "INAYATH C R"
+        ],
+        "phones": [
+          "9901484683",
+          "7760158614"
+        ]
+      },
+      {
+        "driver_id": 181,
+        "count": 2,
+        "app_driver_ids": [
+          963,
+          2995
+        ],
+        "names": [
+          "RAFIQUL ISLAM",
+          "Mohammed Yakub Pasha"
+        ],
+        "phones": [
+          "8638774490",
+          "8143180885"
+        ]
+      },
+      {
+        "driver_id": 187,
+        "count": 2,
+        "app_driver_ids": [
+          1115,
+          3239
+        ],
+        "names": [
+          "MOHAMMAD ASHRAF",
+          "Vamsidhar Rayudu"
+        ],
+        "phones": [
+          "8921219326",
+          "8688846466"
+        ]
+      },
+      {
+        "driver_id": 202,
+        "count": 2,
+        "app_driver_ids": [
+          1467,
+          2
+        ],
+        "names": [
+          "MOHAMMED FURKHAN",
+          "Sushant"
+        ],
+        "phones": [
+          "9353695904",
+          "9140631755"
+        ]
+      },
+      {
+        "driver_id": 205,
+        "count": 2,
+        "app_driver_ids": [
+          3236,
+          1509
+        ],
+        "names": [
+          "Durga Prasad",
+          "SRINATHA S K"
+        ],
+        "phones": [
+          "8686871476",
+          "9380877926"
+        ]
+      },
+      {
+        "driver_id": 222,
+        "count": 2,
+        "app_driver_ids": [
+          3234,
+          1822
+        ],
+        "names": [
+          "P Krishna Kishore",
+          "SARVOTHAMA K R"
+        ],
+        "phones": [
+          "8686660067",
+          "9686629787"
+        ]
+      },
+      {
+        "driver_id": 240,
+        "count": 2,
+        "app_driver_ids": [
+          3964,
+          99
+        ],
+        "names": [
+          "Ganesh Tambe",
+          "VENUGOPAL H S"
+        ],
+        "phones": [
+          "9594813454",
+          "6361251588"
+        ]
+      },
+      {
+        "driver_id": 273,
+        "count": 2,
+        "app_driver_ids": [
+          852,
+          3129
+        ],
+        "names": [
+          "MOHD KHALEEL",
+          "Rehan Ansari"
+        ],
+        "phones": [
+          "8317695070",
+          "8433036322"
+        ]
+      },
+      {
+        "driver_id": 279,
+        "count": 2,
+        "app_driver_ids": [
+          977,
+          4123
+        ],
+        "names": [
+          "K PRAVEEN",
+          "Gannavarapu Venkatesh"
+        ],
+        "phones": [
+          "8660544919",
+          "9704251666"
+        ]
+      },
+      {
+        "driver_id": 284,
+        "count": 2,
+        "app_driver_ids": [
+          1028,
+          4435
+        ],
+        "names": [
+          "MOHAMMED BILAL",
+          "Farooque Shaikh"
+        ],
+        "phones": [
+          "8792816919",
+          "9967668006"
+        ]
+      },
+      {
+        "driver_id": 306,
+        "count": 2,
+        "app_driver_ids": [
+          3549,
+          1463
+        ],
+        "names": [
+          "Jaidul Islam",
+          "SHARATH KUMAR K"
+        ],
+        "phones": [
+          "9074091514",
+          "9353393531"
+        ]
+      },
+      {
+        "driver_id": 307,
+        "count": 2,
+        "app_driver_ids": [
+          4463,
+          1475
+        ],
+        "names": [
+          "S Nagaraju",
+          "ANANDHU ASOKAN"
+        ],
+        "phones": [
+          "9985257591",
+          "9353915002"
+        ]
+      },
+      {
+        "driver_id": 312,
+        "count": 2,
+        "app_driver_ids": [
+          1605,
+          3
+        ],
+        "names": [
+          "ASIF S",
+          "Aayush"
+        ],
+        "phones": [
+          "9533199269",
+          "9930420065"
+        ]
+      },
+      {
+        "driver_id": 324,
+        "count": 2,
+        "app_driver_ids": [
+          3281,
+          1819
+        ],
+        "names": [
+          "Pukhrimayum Arju Ali",
+          "MOHAMADALI P"
+        ],
+        "phones": [
+          "8798326877",
+          "9686312159"
+        ]
+      },
+      {
+        "driver_id": 333,
+        "count": 2,
+        "app_driver_ids": [
+          2642,
+          2196
+        ],
+        "names": [
+          "Badruddin Shaikh",
+          "SATHISH NAYAKA P"
+        ],
+        "phones": [
+          "7506053080",
+          "9980879695"
+        ]
+      },
+      {
+        "driver_id": 347,
+        "count": 2,
+        "app_driver_ids": [
+          2912,
+          301
+        ],
+        "names": [
+          "Jagadeesh J L",
+          "MANI GANDAN A"
+        ],
+        "phones": [
+          "8086346773",
+          "7259103078"
+        ]
+      },
+      {
+        "driver_id": 348,
+        "count": 2,
+        "app_driver_ids": [
+          303,
+          2708
+        ],
+        "names": [
+          "SIDDAPPA",
+          "Sandeep Chauhan"
+        ],
+        "phones": [
+          "7259183927",
+          "7678015267"
+        ]
+      },
+      {
+        "driver_id": 350,
+        "count": 2,
+        "app_driver_ids": [
+          338,
+          3866
+        ],
+        "names": [
+          "MOHAN KUMAR A",
+          "Kutadi Paramjyothi"
+        ],
+        "phones": [
+          "7338048121",
+          "9515373762"
+        ]
+      },
+      {
+        "driver_id": 375,
+        "count": 2,
+        "app_driver_ids": [
+          2427,
+          887
+        ],
+        "names": [
+          "Gannavarapu Venkatesh",
+          "MANDAR JANARDHAN KALASKAR"
+        ],
+        "phones": [
+          "7013652530",
+          "8446291496"
+        ]
+      },
+      {
+        "driver_id": 386,
+        "count": 2,
+        "app_driver_ids": [
+          1064,
+          4272
+        ],
+        "names": [
+          "HANAMANT JEND",
+          "Kadali Sridhar"
+        ],
+        "phones": [
+          "8867137790",
+          "9866127538"
+        ]
+      },
+      {
+        "driver_id": 402,
+        "count": 2,
+        "app_driver_ids": [
+          1469,
+          4018
+        ],
+        "names": [
+          "MOHAMMED MIZANUR",
+          "Chandrakant Pandey"
+        ],
+        "phones": [
+          "9353712517",
+          "9623815235"
+        ]
+      },
+      {
+        "driver_id": 418,
+        "count": 2,
+        "app_driver_ids": [
+          1907,
+          5
+        ],
+        "names": [
+          "MOHAMMAD ASIF K",
+          "Mohammed Ali"
+        ],
+        "phones": [
+          "9746974561",
+          "9848012346"
+        ]
+      },
+      {
+        "driver_id": 437,
+        "count": 2,
+        "app_driver_ids": [
+          4499,
+          178
+        ],
+        "names": [
+          "Vikas Kumar",
+          "VISHWANATH SINGH"
+        ],
+        "phones": [
+          "9997709907",
+          "6386466808"
+        ]
+      },
+      {
+        "driver_id": 494,
+        "count": 2,
+        "app_driver_ids": [
+          1373,
+          3186
+        ],
+        "names": [
+          "IBRAR AHMAD",
+          "Abinav T"
+        ],
+        "phones": [
+          "9152115236",
+          "8593954204"
+        ]
+      },
+      {
+        "driver_id": 501,
+        "count": 2,
+        "app_driver_ids": [
+          1491,
+          6
+        ],
+        "names": [
+          "AMIR KHAN",
+          "Anil Verma"
+        ],
+        "phones": [
+          "9372340656",
+          "9848012347"
+        ]
+      },
+      {
+        "driver_id": 518,
+        "count": 2,
+        "app_driver_ids": [
+          3618,
+          1773
+        ],
+        "names": [
+          "Sanjay Kumar",
+          "KASHIM KHAN"
+        ],
+        "phones": [
+          "9136840411",
+          "9651853160"
+        ]
+      },
+      {
+        "driver_id": 522,
+        "count": 2,
+        "app_driver_ids": [
+          3108,
+          1841
+        ],
+        "names": [
+          "Vinod Jadhav",
+          "KHALID SHAIKH"
+        ],
+        "phones": [
+          "8369021590",
+          "9721787225"
+        ]
+      },
+      {
+        "driver_id": 557,
+        "count": 2,
+        "app_driver_ids": [
+          3116,
+          584
+        ],
+        "names": [
+          "Ajeet Kumar",
+          "PAWAN KUMAR JAISWAL"
+        ],
+        "phones": [
+          "8425818037",
+          "7977425750"
+        ]
+      },
+      {
+        "driver_id": 564,
+        "count": 2,
+        "app_driver_ids": [
+          2907,
+          694
+        ],
+        "names": [
+          "Ajeet Kumar Yadav",
+          "ABUSHAMA HUSSAIN"
+        ],
+        "phones": [
+          "8081042677",
+          "8092069003"
+        ]
+      },
+      {
+        "driver_id": 578,
+        "count": 2,
+        "app_driver_ids": [
+          3704,
+          998
+        ],
+        "names": [
+          "Gokul Chavan",
+          "MOHANKUMAR V"
+        ],
+        "phones": [
+          "9321646198",
+          "8722462027"
+        ]
+      },
+      {
+        "driver_id": 614,
+        "count": 2,
+        "app_driver_ids": [
+          3757,
+          1762
+        ],
+        "names": [
+          "Waseem Ansari",
+          "MANSOOR K S"
+        ],
+        "phones": [
+          "9372450699",
+          "9633508790"
+        ]
+      },
+      {
+        "driver_id": 657,
+        "count": 2,
+        "app_driver_ids": [
+          590,
+          2680
+        ],
+        "names": [
+          "PAGILLA REVANTH",
+          "Biju Biswakarma"
+        ],
+        "phones": [
+          "7981270029",
+          "7619131291"
+        ]
+      },
+      {
+        "driver_id": 696,
+        "count": 2,
+        "app_driver_ids": [
+          1546,
+          4255
+        ],
+        "names": [
+          "VEMULA MADHUSUDAN",
+          "Faisal"
+        ],
+        "phones": [
+          "9398435730",
+          "9847969314"
+        ]
+      },
+      {
+        "driver_id": 757,
+        "count": 2,
+        "app_driver_ids": [
+          3474,
+          567
+        ],
+        "names": [
+          "Surabhi Shyam",
+          "NARENDRA DAS"
+        ],
+        "phones": [
+          "9032378550",
+          "7908335016"
+        ]
+      },
+      {
+        "driver_id": 812,
+        "count": 2,
+        "app_driver_ids": [
+          3449,
+          1728
+        ],
+        "names": [
+          "D Manoj Kumar",
+          "HARIJAN BHARATH KUMAR"
+        ],
+        "phones": [
+          "9014405260",
+          "9618389048"
+        ]
+      },
+      {
+        "driver_id": 861,
+        "count": 2,
+        "app_driver_ids": [
+          3778,
+          566
+        ],
+        "names": [
+          "Nitish Kumar",
+          "SOMASHEKHAR"
+        ],
+        "phones": [
+          "9381891907",
+          "7907569799"
+        ]
+      },
+      {
+        "driver_id": 869,
+        "count": 2,
+        "app_driver_ids": [
+          855,
+          3801
+        ],
+        "names": [
+          "MANCHU GUNASEKHAR",
+          "Sunil"
+        ],
+        "phones": [
+          "8328405353",
+          "9392583608"
+        ]
+      },
+      {
+        "driver_id": 871,
+        "count": 2,
+        "app_driver_ids": [
+          3564,
+          858
+        ],
+        "names": [
+          "Kishore",
+          "PAINAMPURAM KISHORE CHANDRA"
+        ],
+        "phones": [
+          "9094642222",
+          "8332019049"
+        ]
+      },
+      {
+        "driver_id": 881,
+        "count": 2,
+        "app_driver_ids": [
+          4086,
+          993
+        ],
+        "names": [
+          "Fazil",
+          "SIVAN B"
+        ],
+        "phones": [
+          "9666186828",
+          "8714942767"
+        ]
+      },
+      {
+        "driver_id": 895,
+        "count": 2,
+        "app_driver_ids": [
+          1304,
+          3365
+        ],
+        "names": [
+          "GOUNI SUSHEEL PRASANNA GOUD",
+          "Sayad Azmat"
+        ],
+        "phones": [
+          "9100530506",
+          "8919747762"
+        ]
+      },
+      {
+        "driver_id": 956,
+        "count": 2,
+        "app_driver_ids": [
+          571,
+          2441
+        ],
+        "names": [
+          "KAMBALAPALLI SIVAPPA",
+          "Ramroop Yadav"
+        ],
+        "phones": [
+          "7975149889",
+          "7021306591"
+        ]
+      },
+      {
+        "driver_id": 981,
+        "count": 2,
+        "app_driver_ids": [
+          2376,
+          1112
+        ],
+        "names": [
+          "Sumin K S",
+          "KANKANAMPATI SRINIVAS"
+        ],
+        "phones": [
+          "6364314104",
+          "8919750334"
+        ]
+      },
+      {
+        "driver_id": 1005,
+        "count": 2,
+        "app_driver_ids": [
+          3779,
+          1647
+        ],
+        "names": [
+          "Linto Joseph A",
+          "MUHAMMED SHAHIM N T"
+        ],
+        "phones": [
+          "9385900177",
+          "9544949426"
+        ]
+      },
+      {
+        "driver_id": 1036,
+        "count": 2,
+        "app_driver_ids": [
+          76,
+          2481
+        ],
+        "names": [
+          "M SATHISH KUMAR",
+          "Aboobacker T.p"
+        ],
+        "phones": [
+          "6305533966",
+          "7034748426"
+        ]
+      },
+      {
+        "driver_id": 1052,
+        "count": 2,
+        "app_driver_ids": [
+          3643,
+          273
+        ],
+        "names": [
+          "Tipu Sultan",
+          "NITUL SAIKIA"
+        ],
+        "phones": [
+          "9167567426",
+          "7093822274"
+        ]
+      },
+      {
+        "driver_id": 1071,
+        "count": 2,
+        "app_driver_ids": [
+          2588,
+          787
+        ],
+        "names": [
+          "Abdul Basith M",
+          "SHIVAKUMAR P"
+        ],
+        "phones": [
+          "7349678100",
+          "8197916008"
+        ]
+      },
+      {
+        "driver_id": 1078,
+        "count": 2,
+        "app_driver_ids": [
+          2755,
+          1048
+        ],
+        "names": [
+          "Sachin Kumar",
+          "IQRAR AHMED CHOUDHARY"
+        ],
+        "phones": [
+          "7800123878",
+          "8850417752"
+        ]
+      },
+      {
+        "driver_id": 1087,
+        "count": 2,
+        "app_driver_ids": [
+          2759,
+          1330
+        ],
+        "names": [
+          "Amarjith P M",
+          "BASAVARAJ"
+        ],
+        "phones": [
+          "7829960581",
+          "9113041959"
+        ]
+      },
+      {
+        "driver_id": 1113,
+        "count": 2,
+        "app_driver_ids": [
+          1821,
+          4430
+        ],
+        "names": [
+          "S VINODA",
+          "Hemanth Kumar"
+        ],
+        "phones": [
+          "9686567498",
+          "9966700466"
+        ]
+      },
+      {
+        "driver_id": 1138,
+        "count": 2,
+        "app_driver_ids": [
+          4316,
+          118
+        ],
+        "names": [
+          "Muhammad Midhilaj Ap",
+          "MAHANTHESH"
+        ],
+        "phones": [
+          "9895112588",
+          "6362713350"
+        ]
+      },
+      {
+        "driver_id": 1158,
+        "count": 2,
+        "app_driver_ids": [
+          3490,
+          589
+        ],
+        "names": [
+          "Nisamudeen K P",
+          "GOLLA SRI RAM YADAV"
+        ],
+        "phones": [
+          "9036461336",
+          "7981122153"
+        ]
+      },
+      {
+        "driver_id": 1215,
+        "count": 2,
+        "app_driver_ids": [
+          2964,
+          1938
+        ],
+        "names": [
+          "Munnawar Firoz Khan",
+          "PREM KUMAR"
+        ],
+        "phones": [
+          "8108843716",
+          "9835339654"
+        ]
+      },
+      {
+        "driver_id": 1266,
+        "count": 2,
+        "app_driver_ids": [
+          548,
+          3217
+        ],
+        "names": [
+          "SACHIN C SHEKAR",
+          "Dinesh Pannalal Jaiswal"
+        ],
+        "phones": [
+          "7899013343",
+          "8657369740"
+        ]
+      },
+      {
+        "driver_id": 1306,
+        "count": 2,
+        "app_driver_ids": [
+          4493,
+          1452
+        ],
+        "names": [
+          "Ashif M P",
+          "PAMARTHI LAKSHMANARAO"
+        ],
+        "phones": [
+          "9995479818",
+          "9347209649"
+        ]
+      },
+      {
+        "driver_id": 1307,
+        "count": 2,
+        "app_driver_ids": [
+          1466,
+          3674
+        ],
+        "names": [
+          "SRINIVAS K H",
+          "Samson Yona"
+        ],
+        "phones": [
+          "9353656659",
+          "9207080037"
+        ]
+      },
+      {
+        "driver_id": 1360,
+        "count": 2,
+        "app_driver_ids": [
+          2293,
+          629
+        ],
+        "names": [
+          "Mohd Abdul Muneeb",
+          "MOHAMMED RIYAZ AHMED M R"
+        ],
+        "phones": [
+          "6301998819",
+          "8015352351"
+        ]
+      },
+      {
+        "driver_id": 1362,
+        "count": 2,
+        "app_driver_ids": [
+          4438,
+          687
+        ],
+        "names": [
+          "Jitendra Khadye",
+          "SHAHUL HAMEED"
+        ],
+        "phones": [
+          "9970610316",
+          "8089141929"
+        ]
+      },
+      {
+        "driver_id": 1384,
+        "count": 2,
+        "app_driver_ids": [
+          1068,
+          3109
+        ],
+        "names": [
+          "MOHAMMED NAYAZ PASHA",
+          "Ritesh Giridharilal Dubey"
+        ],
+        "phones": [
+          "8867679552",
+          "8369506358"
+        ]
+      },
+      {
+        "driver_id": 1414,
+        "count": 2,
+        "app_driver_ids": [
+          1769,
+          4005
+        ],
+        "names": [
+          "MUHAMMED RAUOOF K P",
+          "Manisha Sandeep Gupta"
+        ],
+        "phones": [
+          "9645047102",
+          "9619005917"
+        ]
+      },
+      {
+        "driver_id": 1462,
+        "count": 2,
+        "app_driver_ids": [
+          505,
+          4450
+        ],
+        "names": [
+          "BASAVARAJ PATIL",
+          "Saleel K M"
+        ],
+        "phones": [
+          "7795223424",
+          "9972961791"
+        ]
+      },
+      {
+        "driver_id": 1501,
+        "count": 2,
+        "app_driver_ids": [
+          1351,
+          2532
+        ],
+        "names": [
+          "ABRAR MOHAMMED SHAIKH",
+          "Shujjat Rahat Khan"
+        ],
+        "phones": [
+          "9136555480",
+          "7208639607"
+        ]
+      },
+      {
+        "driver_id": 1511,
+        "count": 2,
+        "app_driver_ids": [
+          1720,
+          4202
+        ],
+        "names": [
+          "AMJAD KHAN",
+          "Shadab Ali"
+        ],
+        "phones": [
+          "9611570771",
+          "9762820094"
+        ]
+      },
+      {
+        "driver_id": 1526,
+        "count": 2,
+        "app_driver_ids": [
+          2528,
+          1972
+        ],
+        "names": [
+          "Mohd Shamsheer",
+          "ABDUL JALEEL"
+        ],
+        "phones": [
+          "7207086828",
+          "9847205667"
+        ]
+      },
+      {
+        "driver_id": 1554,
+        "count": 2,
+        "app_driver_ids": [
+          482,
+          2296
+        ],
+        "names": [
+          "NANDKISHOR RANE",
+          "Mohd Hasan"
+        ],
+        "phones": [
+          "7738229265",
+          "6302485113"
+        ]
+      },
+      {
+        "driver_id": 1556,
+        "count": 2,
+        "app_driver_ids": [
+          3557,
+          524
+        ],
+        "names": [
+          "Sahil Wahed Khan",
+          "MO ALTAF"
+        ],
+        "phones": [
+          "9082445337",
+          "7860561997"
+        ]
+      },
+      {
+        "driver_id": 1557,
+        "count": 2,
+        "app_driver_ids": [
+          3515,
+          530
+        ],
+        "names": [
+          "Shaik Khalleel Basha",
+          "CHANDAN N V"
+        ],
+        "phones": [
+          "9052136251",
+          "7892176883"
+        ]
+      },
+      {
+        "driver_id": 1562,
+        "count": 2,
+        "app_driver_ids": [
+          2816,
+          702
+        ],
+        "names": [
+          "Shaji Upendranadh",
+          "KHAN MAZHAR"
+        ],
+        "phones": [
+          "7977315771",
+          "8097036230"
+        ]
+      },
+      {
+        "driver_id": 1576,
+        "count": 2,
+        "app_driver_ids": [
+          3816,
+          913
+        ],
+        "names": [
+          "Sidhin Sebastian",
+          "AFSAN M"
+        ],
+        "phones": [
+          "9400372675",
+          "8547077803"
+        ]
+      },
+      {
+        "driver_id": 1588,
+        "count": 2,
+        "app_driver_ids": [
+          1289,
+          4492
+        ],
+        "names": [
+          "SHANKAR LAXMAN GORE",
+          "Mohammed Shibil K M"
+        ],
+        "phones": [
+          "9076447545",
+          "9995302335"
+        ]
+      },
+      {
+        "driver_id": 1590,
+        "count": 2,
+        "app_driver_ids": [
+          2830,
+          1307
+        ],
+        "names": [
+          "Abdul Razzak",
+          "AAKBAR ALI"
+        ],
+        "phones": [
+          "7989192081",
+          "9101449870"
+        ]
+      },
+      {
+        "driver_id": 1615,
+        "count": 2,
+        "app_driver_ids": [
+          2604,
+          1920
+        ],
+        "names": [
+          "Asma",
+          "SHIHAB K K"
+        ],
+        "phones": [
+          "7386525651",
+          "9778356488"
+        ]
+      },
+      {
+        "driver_id": 1672,
+        "count": 2,
+        "app_driver_ids": [
+          715,
+          4050
+        ],
+        "names": [
+          "MIR HAIDER ALI",
+          "Muhammed Rufiyas M"
+        ],
+        "phones": [
+          "8105347151",
+          "9645063745"
+        ]
+      },
+      {
+        "driver_id": 1713,
+        "count": 2,
+        "app_driver_ids": [
+          1756,
+          2480
+        ],
+        "names": [
+          "M D ASRAF",
+          "Shuhaib Cv"
+        ],
+        "phones": [
+          "9632595269",
+          "7034607989"
+        ]
+      },
+      {
+        "driver_id": 1715,
+        "count": 2,
+        "app_driver_ids": [
+          3672,
+          1765
+        ],
+        "names": [
+          "Muhammed Nishal",
+          "MOHAMMED AZEEMUSHAN"
+        ],
+        "phones": [
+          "9188702257",
+          "9633810860"
+        ]
+      },
+      {
+        "driver_id": 1899,
+        "count": 2,
+        "app_driver_ids": [
+          4189,
+          1687
+        ],
+        "names": [
+          "Asif M",
+          "RAVI"
+        ],
+        "phones": [
+          "9746417417",
+          "9591606085"
+        ]
+      },
+      {
+        "driver_id": 1907,
+        "count": 2,
+        "app_driver_ids": [
+          1826,
+          3545
+        ],
+        "names": [
+          "K U SIDDALINGESHWARA",
+          "Abdurah\u03bc\u03b1\u03bd \u03a4 \u039a"
+        ],
+        "phones": [
+          "9686822736",
+          "9072491415"
+        ]
+      },
+      {
+        "driver_id": 1919,
+        "count": 2,
+        "app_driver_ids": [
+          2032,
+          3793
+        ],
+        "names": [
+          "GURUPRASAD D",
+          "Rayapalli Naga Yaswanth"
+        ],
+        "phones": [
+          "9886331143",
+          "9391757100"
+        ]
+      },
+      {
+        "driver_id": 1950,
+        "count": 2,
+        "app_driver_ids": [
+          528,
+          4391
+        ],
+        "names": [
+          "ROSHAN DORAJI KANTIPOODI",
+          "Ilyas Valiyaparambath"
+        ],
+        "phones": [
+          "7888151715",
+          "9947189540"
+        ]
+      },
+      {
+        "driver_id": 1959,
+        "count": 2,
+        "app_driver_ids": [
+          769,
+          3271
+        ],
+        "names": [
+          "AJAYA KUMAR",
+          "Anurag P P"
+        ],
+        "phones": [
+          "8150851083",
+          "8792132319"
+        ]
+      },
+      {
+        "driver_id": 1974,
+        "count": 2,
+        "app_driver_ids": [
+          1238,
+          3966
+        ],
+        "names": [
+          "VIJAY KUMAR S",
+          "Mirza Ikram Ali Baig"
+        ],
+        "phones": [
+          "9036665117",
+          "9603195889"
+        ]
+      },
+      {
+        "driver_id": 1984,
+        "count": 2,
+        "app_driver_ids": [
+          1422,
+          3347
+        ],
+        "names": [
+          "MUHIB ULLAH MAZUMDER",
+          "Haritha Mohan"
+        ],
+        "phones": [
+          "9282973166",
+          "8891759906"
+        ]
+      },
+      {
+        "driver_id": 1994,
+        "count": 2,
+        "app_driver_ids": [
+          4060,
+          1637
+        ],
+        "names": [
+          "Nandhyala Reddy Prakash",
+          "CHRISTY K"
+        ],
+        "phones": [
+          "9652588460",
+          "9539571874"
+        ]
+      },
+      {
+        "driver_id": 1997,
+        "count": 2,
+        "app_driver_ids": [
+          3176,
+          1680
+        ],
+        "names": [
+          "Al Ameen R",
+          "RAMESH D N"
+        ],
+        "phones": [
+          "8590717144",
+          "9591156629"
+        ]
+      },
+      {
+        "driver_id": 2014,
+        "count": 2,
+        "app_driver_ids": [
+          2598,
+          2048
+        ],
+        "names": [
+          "Rishan R",
+          "ANKUR"
+        ],
+        "phones": [
+          "7356813050",
+          "9896481122"
+        ]
+      },
+      {
+        "driver_id": 2029,
+        "count": 2,
+        "app_driver_ids": [
+          67,
+          4113
+        ],
+        "names": [
+          "V CHANDRA SHEKAR",
+          "Bijay Kumar Khuntia"
+        ],
+        "phones": [
+          "6302970070",
+          "9700442626"
+        ]
+      },
+      {
+        "driver_id": 2034,
+        "count": 2,
+        "app_driver_ids": [
+          2594,
+          150
+        ],
+        "names": [
+          "Hashim O",
+          "MADHU V N"
+        ],
+        "phones": [
+          "7356358699",
+          "6364354451"
+        ]
+      },
+      {
+        "driver_id": 2041,
+        "count": 2,
+        "app_driver_ids": [
+          290,
+          2897
+        ],
+        "names": [
+          "MOHAMMED ABRAR",
+          "Vishnunath R"
+        ],
+        "phones": [
+          "7204331206",
+          "8075506754"
+        ]
+      },
+      {
+        "driver_id": 2157,
+        "count": 2,
+        "app_driver_ids": [
+          2405,
+          700
+        ],
+        "names": [
+          "Neeraj Yadav",
+          "KARTHIK P"
+        ],
+        "phones": [
+          "6393483338",
+          "8095945911"
+        ]
+      },
+      {
+        "driver_id": 2264,
+        "count": 2,
+        "app_driver_ids": [
+          396,
+          3748
+        ],
+        "names": [
+          "MALLIKARAJUNA GUGGARI",
+          "Nekibur Rohman"
+        ],
+        "phones": [
+          "7483334090",
+          "9365099241"
+        ]
+      },
+      {
+        "driver_id": 2275,
+        "count": 2,
+        "app_driver_ids": [
+          1037,
+          3687
+        ],
+        "names": [
+          "SAHIDUL KHAN",
+          "Mantipalli Madhusudan"
+        ],
+        "phones": [
+          "8822832902",
+          "9281420466"
+        ]
+      },
+      {
+        "driver_id": 2315,
+        "count": 2,
+        "app_driver_ids": [
+          2555,
+          1384
+        ],
+        "names": [
+          "Sarath S Kumar",
+          "KANDULA VENKATA SUBBA RAO"
+        ],
+        "phones": [
+          "7306049265",
+          "9177892555"
+        ]
+      },
+      {
+        "driver_id": 2326,
+        "count": 2,
+        "app_driver_ids": [
+          3477,
+          1538
+        ],
+        "names": [
+          "K Ganesh",
+          "JIYABUR RAHANBARBHUIYA"
+        ],
+        "phones": [
+          "9032600868",
+          "9394704386"
+        ]
+      },
+      {
+        "driver_id": 2383,
+        "count": 2,
+        "app_driver_ids": [
+          2928,
+          973
+        ],
+        "names": [
+          "Muhammed Rafeek C M",
+          "AMIR HUSSAIN"
+        ],
+        "phones": [
+          "8089662746",
+          "8660331346"
+        ]
+      },
+      {
+        "driver_id": 2413,
+        "count": 2,
+        "app_driver_ids": [
+          2801,
+          728
+        ],
+        "names": [
+          "Shibujan M",
+          "ELDHOSE PAUL"
+        ],
+        "phones": [
+          "7907841571",
+          "8111918947"
+        ]
+      },
+      {
+        "driver_id": 2433,
+        "count": 2,
+        "app_driver_ids": [
+          1652,
+          3240
+        ],
+        "names": [
+          "MANNE KRANTHI KIRAN",
+          "Mohd Sabir Ansari"
+        ],
+        "phones": [
+          "9550226664",
+          "8688925420"
+        ]
+      },
+      {
+        "driver_id": 2444,
+        "count": 2,
+        "app_driver_ids": [
+          594,
+          2994
+        ],
+        "names": [
+          "PULI ADAM",
+          "Aswin K Babuji"
+        ],
+        "phones": [
+          "7989530091",
+          "8138096016"
+        ]
+      },
+      {
+        "driver_id": 2487,
+        "count": 2,
+        "app_driver_ids": [
+          1512,
+          2998
+        ],
+        "names": [
+          "V JANAKIRAM",
+          "Doneti Tarun Kumar"
+        ],
+        "phones": [
+          "9381351037",
+          "8143524398"
+        ]
+      },
+      {
+        "driver_id": 2493,
+        "count": 2,
+        "app_driver_ids": [
+          3904,
+          2013
+        ],
+        "names": [
+          "Rohith K T",
+          "KAILASH"
+        ],
+        "phones": [
+          "9539428009",
+          "9880515731"
+        ]
+      },
+      {
+        "driver_id": 2494,
+        "count": 2,
+        "app_driver_ids": [
+          4187,
+          1803
+        ],
+        "names": [
+          "Naseer M",
+          "KV KUMAR REDDY"
+        ],
+        "phones": [
+          "9746144432",
+          "9666171822"
+        ]
+      },
+      {
+        "driver_id": 1,
+        "count": 2,
+        "app_driver_ids": [
+          1829,
+          5530
+        ],
+        "names": [
+          "BALAJI TRANSPORT SERVICES (BALAJI NAIDU)",
+          "Bharath B R"
+        ],
+        "phones": [
+          "9700123456",
+          "7483731338"
+        ]
+      },
+      {
+        "driver_id": 2512,
+        "count": 2,
+        "app_driver_ids": [
+          2406,
+          1232
+        ],
+        "names": [
+          "Shanavvar Julfakar Ansari",
+          "ROSHAN YOUSOUF"
+        ],
+        "phones": [
+          "6398705842",
+          "9036302959"
+        ]
+      }
+    ],
+    "duplicate_driver_codes_count": 0,
+    "duplicate_driver_codes": [],
+    "duplicate_driver_phones_count": 0,
+    "null_code_or_phone_drivers": [
+      {
+        "app_driver_id": 7,
+        "driver_id": null,
+        "full_name": "System Onboarded Driver",
+        "phone": null,
+        "driver_code": "SYSTEM_ONBOARDED",
+        "operator_id": null,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393878,
+        "driver_id": 99991,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "9999988888",
+        "driver_code": null,
+        "operator_id": 0,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393887,
+        "driver_id": 99993,
+        "full_name": "FLEET DRIVER 1",
+        "phone": "9999966666",
+        "driver_code": null,
+        "operator_id": 38053,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393888,
+        "driver_id": 99994,
+        "full_name": "FLEET DRIVER 2",
+        "phone": "9999955555",
+        "driver_code": null,
+        "operator_id": 38053,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393942,
+        "driver_id": 99580,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "99544ce6",
+        "driver_code": null,
+        "operator_id": 0,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393943,
+        "driver_id": 97284,
+        "full_name": "FLEET DRIVER 1",
+        "phone": "879d5c8e",
+        "driver_code": null,
+        "operator_id": 38058,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393944,
+        "driver_id": 96284,
+        "full_name": "FLEET DRIVER 2",
+        "phone": "869d5c8e",
+        "driver_code": null,
+        "operator_id": 38058,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393991,
+        "driver_id": 99247,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "9989af61",
+        "driver_code": null,
+        "operator_id": 0,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393992,
+        "driver_id": 97629,
+        "full_name": "FLEET DRIVER 1",
+        "phone": "87f88d06",
+        "driver_code": null,
+        "operator_id": 38063,
+        "joined_date": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393993,
+        "driver_id": 96629,
+        "full_name": "FLEET DRIVER 2",
+        "phone": "86f88d06",
+        "driver_code": null,
+        "operator_id": 38063,
+        "joined_date": null,
+        "is_active": true
+      }
+    ],
+    "test_dummy_drivers": [
+      {
+        "app_driver_id": 7,
+        "driver_id": null,
+        "full_name": "System Onboarded Driver",
+        "phone": null,
+        "driver_code": "SYSTEM_ONBOARDED",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 5287,
+        "driver_id": 2530,
+        "full_name": "Alloc Test Driver",
+        "phone": "9999977777",
+        "driver_code": "DRV-AL-777",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8023,
+        "driver_id": 69,
+        "full_name": "TEST",
+        "phone": "7474949494",
+        "driver_code": "LETZHYD7474949494",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8074,
+        "driver_id": 55,
+        "full_name": "TESTONE - RAJESH KUMAR",
+        "phone": "9111222001",
+        "driver_code": "LETZBLR9111222001",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8075,
+        "driver_id": 59,
+        "full_name": "TESTTHREE - AMIT SHARMA",
+        "phone": "9111222003",
+        "driver_code": "LETZMUM9111222003",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8076,
+        "driver_id": 58,
+        "full_name": "TESTFOUR - VIJAY PRAKASH",
+        "phone": "9111222004",
+        "driver_code": "LETZBLR9111222004",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8077,
+        "driver_id": 30,
+        "full_name": "TEST CANDIDATE 99",
+        "phone": "9112233445",
+        "driver_code": "LETZBLR9112233445",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 8144,
+        "driver_id": 57,
+        "full_name": "AUTOMATED TEST DRIVER 749913",
+        "phone": "9876749913",
+        "driver_code": "LETZBLR9876749913",
+        "operator_id": null,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 370964,
+        "driver_id": 2546,
+        "full_name": "TEST DELHI CANDIDATE",
+        "phone": "9999900088",
+        "driver_code": "LETZDEL9999900088",
+        "operator_id": null,
+        "is_active": false
+      },
+      {
+        "app_driver_id": 371151,
+        "driver_id": 2547,
+        "full_name": "TEST AUDITOR DRIVER DELHI",
+        "phone": "9999900099",
+        "driver_code": "LETZDEL9999900099",
+        "operator_id": null,
+        "is_active": false
+      },
+      {
+        "app_driver_id": 393878,
+        "driver_id": 99991,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "9999988888",
+        "driver_code": null,
+        "operator_id": 0,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393887,
+        "driver_id": 99993,
+        "full_name": "FLEET DRIVER 1",
+        "phone": "9999966666",
+        "driver_code": null,
+        "operator_id": 38053,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393888,
+        "driver_id": 99994,
+        "full_name": "FLEET DRIVER 2",
+        "phone": "9999955555",
+        "driver_code": null,
+        "operator_id": 38053,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393942,
+        "driver_id": 99580,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "99544ce6",
+        "driver_code": null,
+        "operator_id": 0,
+        "is_active": true
+      },
+      {
+        "app_driver_id": 393991,
+        "driver_id": 99247,
+        "full_name": "AUDIT TEST DRIVER",
+        "phone": "9989af61",
+        "driver_code": null,
+        "operator_id": 0,
+        "is_active": true
+      }
+    ],
+    "code_prefix_distribution": [
+      {
+        "pattern_prefix": "LETZBLR (Bangalore)",
+        "count": 1630
+      },
+      {
+        "pattern_prefix": "LETZHYD (Hyderabad)",
+        "count": 405
+      },
+      {
+        "pattern_prefix": "DRV-AL- (Allocation Form)",
+        "count": 304
+      },
+      {
+        "pattern_prefix": "LETZMUM (Mumbai)",
+        "count": 210
+      },
+      {
+        "pattern_prefix": "NULL",
+        "count": 9
+      },
+      {
+        "pattern_prefix": "LR-DRV- (Standard Portal ID)",
+        "count": 6
+      },
+      {
+        "pattern_prefix": "DRV- (Generic ID)",
+        "count": 5
+      },
+      {
+        "pattern_prefix": "LETZDEL (Delhi)",
+        "count": 3
+      },
+      {
+        "pattern_prefix": "OTHER: LETZKOC936",
+        "count": 1
+      },
+      {
+        "pattern_prefix": "OTHER: LR-7356420",
+        "count": 1
+      },
+      {
+        "pattern_prefix": "OTHER: LETZPUN359",
+        "count": 1
+      },
+      {
+        "pattern_prefix": "OTHER: LR-HYD-004",
+        "count": 1
+      },
+      {
+        "pattern_prefix": "SYSTEM_ONBOARDED",
+        "count": 1
+      },
+      {
+        "pattern_prefix": "OTHER: LETZAHM938",
+        "count": 1
+      }
+    ],
+    "code_regex_distribution": [
+      {
+        "regex_pattern": "LETZ<CITY><10-digit-phone>",
+        "count": 2251
+      },
+      {
+        "regex_pattern": "DRV-AL-<int>",
+        "count": 304
+      },
+      {
+        "regex_pattern": "NULL",
+        "count": 9
+      },
+      {
+        "regex_pattern": "LR-DRV-<int>",
+        "count": 6
+      },
+      {
+        "regex_pattern": "DRV-<int>",
+        "count": 5
+      },
+      {
+        "regex_pattern": "UNMATCHED: LR-HYD-0041",
+        "count": 1
+      },
+      {
+        "regex_pattern": "SYSTEM_ONBOARDED",
+        "count": 1
+      },
+      {
+        "regex_pattern": "UNMATCHED: LR-7356420267",
+        "count": 1
+      }
+    ],
+    "unmapped_operator_ids": []
+  },
+  "section_2_operators": {
+    "stats": {
+      "total_rows": 946,
+      "count_app_operator_id": 946,
+      "uniq_app_operator_id": 946,
+      "count_operator_id": 946,
+      "uniq_operator_id": 944,
+      "count_operator_code": 946,
+      "uniq_operator_code": 945,
+      "empty_operator_code": 0,
+      "count_phone": 946,
+      "uniq_phone": 946,
+      "empty_phone": 0,
+      "count_app_driver_id": 3,
+      "uniq_app_driver_id": 1
+    },
+    "duplicate_operator_codes": [
+      {
+        "operator_code": "OP-501",
+        "count": 2,
+        "app_operator_ids": [
+          2,
+          940
+        ],
+        "operator_ids": [
+          2,
+          1
+        ],
+        "company_names": [
+          "Samvreeddhi Mobility Fleet",
+          "Samvreeddhi Mobility Fleet"
+        ],
+        "phones": [
+          "9848012345",
+          "7483731338"
+        ]
+      }
+    ],
+    "op_501_investigation": [
+      {
+        "app_operator_id": 940,
+        "operator_id": 1,
+        "app_driver_id": null,
+        "operator_code": "OP-501",
+        "operator_type": "Fleet Operator",
+        "phone": "7483731338",
+        "company_name": "Samvreeddhi Mobility Fleet",
+        "contact_person_name": "Samvreeddhi Mobility Fleet",
+        "total_vehicles": 0,
+        "active_vehicles": 0,
+        "is_active": true,
+        "created_at": "2026-10-01 13:00:00.101792+00:00"
+      },
+      {
+        "app_operator_id": 2,
+        "operator_id": 2,
+        "app_driver_id": null,
+        "operator_code": "OP-501",
+        "operator_type": "Fleet Owner",
+        "phone": "9848012345",
+        "company_name": "Samvreeddhi Mobility Fleet",
+        "contact_person_name": "Samvreeddhi",
+        "total_vehicles": 2,
+        "active_vehicles": 2,
+        "is_active": true,
+        "created_at": "2026-10-01 12:48:54.405740+00:00"
+      }
+    ],
+    "duplicate_operator_ids": [
+      {
+        "operator_id": 1,
+        "count": 2,
+        "app_operator_ids": [
+          1,
+          940
+        ],
+        "operator_codes": [
+          "OPR-HYD-001",
+          "OP-501"
+        ],
+        "company_names": [
+          "Anurag & RK Fleet Logistics",
+          "Samvreeddhi Mobility Fleet"
+        ],
+        "phones": [
+          "9691938866",
+          "7483731338"
+        ]
+      },
+      {
+        "operator_id": 2,
+        "count": 2,
+        "app_operator_ids": [
+          2,
+          941
+        ],
+        "operator_codes": [
+          "OP-501",
+          "OP-502"
+        ],
+        "company_names": [
+          "Samvreeddhi Mobility Fleet",
+          "LetzRyd Operations Ltd"
+        ],
+        "phones": [
+          "9848012345",
+          "9876543214"
+        ]
+      }
+    ],
+    "code_prefix_distribution": [
+      {
+        "pattern_prefix": "LETZBLR (Bangalore)",
+        "count": 612
+      },
+      {
+        "pattern_prefix": "LETZHYD (Hyderabad)",
+        "count": 202
+      },
+      {
+        "pattern_prefix": "LETZMUM (Mumbai)",
+        "count": 122
+      },
+      {
+        "pattern_prefix": "OP-###",
+        "count": 6
+      },
+      {
+        "pattern_prefix": "LETZDEL (Delhi)",
+        "count": 2
+      },
+      {
+        "pattern_prefix": "OPR-###",
+        "count": 2
+      }
+    ],
+    "matched_phones_with_drivers_count": 919,
+    "matched_phones_sample": [
+      {
+        "app_operator_id": 38053,
+        "operator_id": 99992,
+        "operator_code": "OP-AUDIT",
+        "company_name": "AUDIT FLEET OP",
+        "op_phone": "9999977777",
+        "op_driver_fk": 0,
+        "app_driver_id": 5287,
+        "driver_id": 2530,
+        "driver_code": "DRV-AL-777",
+        "full_name": "Alloc Test Driver",
+        "drv_phone": "9999977777",
+        "drv_operator_fk": null
+      },
+      {
+        "app_operator_id": 742,
+        "operator_id": 519,
+        "operator_code": "LETZBLRIP9656907001",
+        "company_name": "RISHAD P V",
+        "op_phone": "9656907001",
+        "op_driver_fk": null,
+        "app_driver_id": 4068,
+        "driver_id": 4453,
+        "driver_code": "DRV-AL-4453",
+        "full_name": "Rishad P V",
+        "drv_phone": "9656907001",
+        "drv_operator_fk": 742
+      },
+      {
+        "app_operator_id": 244,
+        "operator_id": 1955,
+        "operator_code": "LETZHYDIP8008334715",
+        "company_name": "RAVULA RAVI",
+        "op_phone": "8008334715",
+        "op_driver_fk": null,
+        "app_driver_id": 2856,
+        "driver_id": 5856,
+        "driver_code": "DRV-AL-5856",
+        "full_name": "Ravula Ravi",
+        "drv_phone": "8008334715",
+        "drv_operator_fk": 244
+      },
+      {
+        "app_operator_id": 883,
+        "operator_id": 1228,
+        "operator_code": "LETZBLRIP9946200494",
+        "company_name": "JINIL JESTIN",
+        "op_phone": "9946200494",
+        "op_driver_fk": null,
+        "app_driver_id": 4385,
+        "driver_id": 4590,
+        "driver_code": "DRV-AL-4590",
+        "full_name": "Jinil Jestin",
+        "drv_phone": "9946200494",
+        "drv_operator_fk": 883
+      },
+      {
+        "app_operator_id": 900,
+        "operator_id": 2321,
+        "operator_code": "LETZHYD9951277247",
+        "company_name": "GUNDETI RATNAKAR",
+        "op_phone": "9951277247",
+        "op_driver_fk": null,
+        "app_driver_id": 2140,
+        "driver_id": 2321,
+        "driver_code": "LETZHYD9951277247",
+        "full_name": "GUNDETI RATNAKAR",
+        "drv_phone": "9951277247",
+        "drv_operator_fk": 0
+      },
+      {
+        "app_operator_id": 15,
+        "operator_id": 1034,
+        "operator_code": "LETZBLRIP6282079702",
+        "company_name": "HASEEN K K",
+        "op_phone": "6282079702",
+        "op_driver_fk": null,
+        "app_driver_id": 2275,
+        "driver_id": 3910,
+        "driver_code": "DRV-AL-3910",
+        "full_name": "Haseen K K",
+        "drv_phone": "6282079702",
+        "drv_operator_fk": 428
+      },
+      {
+        "app_operator_id": 240,
+        "operator_id": 2396,
+        "operator_code": "LETZHYD7995510309",
+        "company_name": "TAMMISETTI NAGENDRA BABU",
+        "op_phone": "7995510309",
+        "op_driver_fk": null,
+        "app_driver_id": 606,
+        "driver_id": 2396,
+        "driver_code": "LETZHYD7995510309",
+        "full_name": "TAMMISETTI NAGENDRA BABU",
+        "drv_phone": "7995510309",
+        "drv_operator_fk": 314
+      },
+      {
+        "app_operator_id": 729,
+        "operator_id": 1013,
+        "operator_code": "LETZHYDIP9640404017",
+        "company_name": "PASUPUREDDY KARTHIK",
+        "op_phone": "9640404017",
+        "op_driver_fk": null,
+        "app_driver_id": 4046,
+        "driver_id": 7053,
+        "driver_code": "DRV-AL-7053",
+        "full_name": "Pasupureddy Karthik",
+        "drv_phone": "9640404017",
+        "drv_operator_fk": 729
+      },
+      {
+        "app_operator_id": 741,
+        "operator_id": 2107,
+        "operator_code": "LETZBLR9656623255",
+        "company_name": "RINTO ANTONY",
+        "op_phone": "9656623255",
+        "op_driver_fk": null,
+        "app_driver_id": 1784,
+        "driver_id": 2107,
+        "driver_code": "LETZBLR9656623255",
+        "full_name": "RINTO ANTONY",
+        "drv_phone": "9656623255",
+        "drv_operator_fk": 0
+      },
+      {
+        "app_operator_id": 127,
+        "operator_id": 549,
+        "operator_code": "LETZBLRIP7349678100",
+        "company_name": "ABDUL BASITH M",
+        "op_phone": "7349678100",
+        "op_driver_fk": null,
+        "app_driver_id": 2588,
+        "driver_id": 1071,
+        "driver_code": "DRV-AL-1071",
+        "full_name": "Abdul Basith M",
+        "drv_phone": "7349678100",
+        "drv_operator_fk": 938
+      },
+      {
+        "app_operator_id": 144,
+        "operator_id": 2371,
+        "operator_code": "LETZMUMIP7434833277",
+        "company_name": "NADIM KHAN",
+        "op_phone": "7434833277",
+        "op_driver_fk": null,
+        "app_driver_id": 2626,
+        "driver_id": 7394,
+        "driver_code": "DRV-AL-7394",
+        "full_name": "Nadim Khan",
+        "drv_phone": "7434833277",
+        "drv_operator_fk": 673
+      },
+      {
+        "app_operator_id": 475,
+        "operator_id": 782,
+        "operator_code": "LETZMUMIP9004200105",
+        "company_name": "GAADYLO ENTERPRISES",
+        "op_phone": "9004200105",
+        "op_driver_fk": null,
+        "app_driver_id": 3426,
+        "driver_id": 549,
+        "driver_code": "DRV-AL-549",
+        "full_name": "Gaadylo Enterprises",
+        "drv_phone": "9004200105",
+        "drv_operator_fk": 475
+      },
+      {
+        "app_operator_id": 838,
+        "operator_id": 1721,
+        "operator_code": "LETZMUMIP9867127947",
+        "company_name": "MOHD AHSAN KHAN",
+        "op_phone": "9867127947",
+        "op_driver_fk": null,
+        "app_driver_id": 4279,
+        "driver_id": 7033,
+        "driver_code": "DRV-AL-7033",
+        "full_name": "Ahsan Khan",
+        "drv_phone": "9867127947",
+        "drv_operator_fk": 838
+      },
+      {
+        "app_operator_id": 864,
+        "operator_id": 1027,
+        "operator_code": "LETZBLRIP9900425089",
+        "company_name": "LATHEEF K M",
+        "op_phone": "9900425089",
+        "op_driver_fk": null,
+        "app_driver_id": 4330,
+        "driver_id": 6389,
+        "driver_code": "DRV-AL-6389",
+        "full_name": "Latheef K M",
+        "drv_phone": "9900425089",
+        "drv_operator_fk": 864
+      },
+      {
+        "app_operator_id": 780,
+        "operator_id": 1815,
+        "operator_code": "LETZBLRIP9744122493",
+        "company_name": "MOHAMMED ANAS",
+        "op_phone": "9744122493",
+        "op_driver_fk": null,
+        "app_driver_id": 4178,
+        "driver_id": 5239,
+        "driver_code": "DRV-AL-5239",
+        "full_name": "Mohammed Anas",
+        "drv_phone": "9744122493",
+        "drv_operator_fk": 780
+      },
+      {
+        "app_operator_id": 5,
+        "operator_id": 934,
+        "operator_code": "LETZBLR6001917351",
+        "company_name": "AJAHARUL ISLAM",
+        "op_phone": "6001917351",
+        "op_driver_fk": null,
+        "app_driver_id": 16,
+        "driver_id": 934,
+        "driver_code": "LETZBLR6001917351",
+        "full_name": "AJAHARUL ISLAM",
+        "drv_phone": "6001917351",
+        "drv_operator_fk": 391
+      },
+      {
+        "app_operator_id": 1,
+        "operator_id": 1,
+        "operator_code": "OPR-HYD-001",
+        "company_name": "Anurag & RK Fleet Logistics",
+        "op_phone": "9691938866",
+        "op_driver_fk": null,
+        "app_driver_id": 999990,
+        "driver_id": 999990,
+        "driver_code": "LR-DRV-999990",
+        "full_name": "Anurag",
+        "drv_phone": "9691938866",
+        "drv_operator_fk": 0
+      },
+      {
+        "app_operator_id": 529,
+        "operator_id": 1186,
+        "operator_code": "LETZMUMIP9067770406",
+        "company_name": "HARSHASD RAM KARALE",
+        "op_phone": "9067770406",
+        "op_driver_fk": null,
+        "app_driver_id": 3538,
+        "driver_id": 3526,
+        "driver_code": "DRV-AL-3526",
+        "full_name": "Harshasd Ram Karale",
+        "drv_phone": "9067770406",
+        "drv_operator_fk": 838
+      },
+      {
+        "app_operator_id": 822,
+        "operator_id": 1820,
+        "operator_code": "LETZBLRIP9847381899",
+        "company_name": "SHARAFUDHEEN THOPPEKKATTU",
+        "op_phone": "9847381899",
+        "op_driver_fk": null,
+        "app_driver_id": 4252,
+        "driver_id": 7236,
+        "driver_code": "DRV-AL-7236",
+        "full_name": "Sharafudheen Thoppekkattu",
+        "drv_phone": "9847381899",
+        "drv_operator_fk": 822
+      },
+      {
+        "app_operator_id": 124,
+        "operator_id": 2224,
+        "operator_code": "LETZHYDIP7339213418",
+        "company_name": "ADHITHYAN M",
+        "op_phone": "7339213418",
+        "op_driver_fk": null,
+        "app_driver_id": 2583,
+        "driver_id": 6650,
+        "driver_code": "DRV-AL-6650",
+        "full_name": "Adhithyan M",
+        "drv_phone": "7339213418",
+        "drv_operator_fk": 124
+      }
+    ]
+  },
+  "section_3_relations_and_other_tables": {
+    "app_hisaabs_stats": {
+      "total_rows": 11004,
+      "count_app_hisaab_id": 11004,
+      "uniq_app_hisaab_id": 11004,
+      "count_hisaab_number": 11004,
+      "uniq_hisaab_number": 11004,
+      "empty_hisaab_number": 0,
+      "distinct_drivers": 833,
+      "distinct_operators": 165
+    },
+    "hisaab_number_patterns": [
+      {
+        "pattern": "OTHER: HSB-CY26WK40-KA",
+        "count": 1122
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK38-KA",
+        "count": 1101
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK39-KA",
+        "count": 1100
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK37-KA",
+        "count": 1066
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK36-KA",
+        "count": 986
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK26-KA",
+        "count": 785
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK27-KA",
+        "count": 610
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK40-MH",
+        "count": 300
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK38-MH",
+        "count": 299
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK40-TG",
+        "count": 296
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK39-TG",
+        "count": 295
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK37-MH",
+        "count": 294
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK39-MH",
+        "count": 293
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK36-MH",
+        "count": 276
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK37-TG",
+        "count": 253
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK38-TG",
+        "count": 252
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK36-TG",
+        "count": 232
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK26-MH",
+        "count": 179
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK27-MH",
+        "count": 174
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK27-TG",
+        "count": 170
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK26-TG",
+        "count": 170
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK40-TS",
+        "count": 82
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK39-TS",
+        "count": 82
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK37-TS",
+        "count": 82
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK38-TS",
+        "count": 82
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK27-TS",
+        "count": 81
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK26-TS",
+        "count": 81
+      },
+      {
+        "pattern": "OTHER: HIS-2026-033-KA",
+        "count": 47
+      },
+      {
+        "pattern": "OTHER: HIS-2026-032-KA",
+        "count": 47
+      },
+      {
+        "pattern": "OTHER: HIS-2026-034-KA",
+        "count": 44
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK36-TS",
+        "count": 34
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK39-HR",
+        "count": 30
+      },
+      {
+        "pattern": "OTHER: HSB-CY26WK40-HR",
+        "count": 30
+      },
+      {
+        "pattern": "OTHER: HIS-2026-028-EV",
+        "count": 4
+      },
+      {
+        "pattern": "OTHER: HIS-2026-029-EV",
+        "count": 4
+      },
+      {
+        "pattern": "OTHER: HIS-2026-030-EV",
+        "count": 4
+      },
+      {
+        "pattern": "OTHER: HS-AUD-544ce6",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-AUD-89af61",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-F1-9d5c8e",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-F2-9d5c8e",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-AUDIT-001",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-029-V0",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-030-NB",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-028-V0",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-F2-f88d06",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-030-AQ",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-028-AQ",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-AUDIT-F2",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-029-AQ",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-030-V0",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HIS-2026-034-MH",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-F1-f88d06",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: HS-AUDIT-F1",
+        "count": 1
+      }
+    ],
+    "orphaned_hisaab_drivers": [],
+    "orphaned_hisaab_operators": [],
+    "unmapped_hisaab_allocations": 0,
+    "app_payments_stats": {
+      "total_rows": 54,
+      "count_app_payment_id": 54,
+      "uniq_app_payment_id": 54,
+      "count_cf_order_id": 54,
+      "uniq_cf_order_id": 54,
+      "empty_cf_order_id": 0,
+      "count_cf_payment_id": 12,
+      "uniq_cf_payment_id": 2,
+      "count_app_hisaab_id": 35
+    },
+    "duplicate_cf_orders": [],
+    "cf_order_patterns": [
+      {
+        "pattern": "OTHER: ORDER_LR_179122",
+        "count": 21
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_179126",
+        "count": 7
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_07DD29",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_6516A2",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_673A98",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_DE04B5",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_FF7994",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_3C7976",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_B2D32B",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_7DD2AE",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_0E5484",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_028EB3",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_FA7C57",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_42DE10",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_A142C7",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_25D2B6",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_FD3B32",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: order_demo_1001",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_4052B8",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_10FD6D",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_E6D169",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_07533E",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_78CD5F",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_B9AF2B",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_94961F",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_35FDA3",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_8E86BB",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: ORDER_LR_33E3E3",
+        "count": 1
+      }
+    ],
+    "orphaned_payment_hisaabs": [],
+    "orphaned_payers": [
+      {
+        "app_payment_id": 50,
+        "payer_type": "operator",
+        "payer_id": 4068,
+        "amount": 288015.25,
+        "status": "INITIATED"
+      },
+      {
+        "app_payment_id": 51,
+        "payer_type": "operator",
+        "payer_id": 4068,
+        "amount": 288015.25,
+        "status": "INITIATED"
+      },
+      {
+        "app_payment_id": 52,
+        "payer_type": "operator",
+        "payer_id": 4068,
+        "amount": 100.0,
+        "status": "INITIATED"
+      },
+      {
+        "app_payment_id": 53,
+        "payer_type": "operator",
+        "payer_id": 4068,
+        "amount": 288015.25,
+        "status": "INITIATED"
+      }
+    ],
+    "app_support_tickets_stats": {
+      "total_rows": 29,
+      "count_app_ticket_id": 29,
+      "uniq_app_ticket_id": 29,
+      "count_ticket_number": 29,
+      "uniq_ticket_number": 29,
+      "empty_ticket_number": 0
+    },
+    "ticket_patterns": [
+      {
+        "pattern": "OTHER: TKT-2026-181349",
+        "count": 2
+      },
+      {
+        "pattern": "OTHER: TKT-2026-181229",
+        "count": 2
+      },
+      {
+        "pattern": "OTHER: TKT-2026-182151",
+        "count": 2
+      },
+      {
+        "pattern": "OTHER: TKT-2026-125537",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-113358",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-182424",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-124954",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-115051",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-121120",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-181630",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-182209",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-181359",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-182307",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-183615",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-135421",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-135241",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-001",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-120252",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-120448",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-182935",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-181629",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-183138",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-115358",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-002",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-123856",
+        "count": 1
+      },
+      {
+        "pattern": "OTHER: TKT-2026-183423",
+        "count": 1
+      }
+    ],
+    "duplicate_tickets": [],
+    "orphaned_creators": [],
+    "app_driver_allocations_stats": {
+      "total_rows": 7940,
+      "count_app_allocation_id": 7940,
+      "uniq_app_allocation_id": 7940,
+      "count_core_allocation_id": 7940,
+      "uniq_core_allocation_id": 7940,
+      "distinct_drivers": 2288,
+      "distinct_operators": 29,
+      "distinct_vehicles": 1565,
+      "empty_vehicles": 0
+    },
+    "duplicate_core_allocations": [],
+    "orphaned_alloc_drivers": [],
+    "orphaned_alloc_operators": []
+  },
+  "section_4_frontend_and_api": {}
+}

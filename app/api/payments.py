@@ -230,7 +230,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
         if op:
             # Tier 1: Pay down operator fleet driver debts (e.g. Sushant who owes ₹1,850)
             fleet_drivers_with_debt = db.query(AppDrivers).filter(
-                (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id),
+                AppDrivers.operator_id == op.app_operator_id,
                 AppDrivers.cw_to_collect > 0
             ).order_by(AppDrivers.app_driver_id).all()
 
@@ -279,7 +279,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             # Operator total fleet debt remaining
             all_op_drivers = db.query(AppDrivers).filter(
-                (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id)
+                AppDrivers.operator_id == op.app_operator_id
             ).all()
             op.cw_to_collect = round(sum(float(d.cw_to_collect or 0) for d in all_op_drivers), 2)
             if op.cw_to_collect <= 0:

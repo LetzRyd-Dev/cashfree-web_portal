@@ -77,6 +77,36 @@ declare const Cashfree: (config: { mode: string }) => {
   }>;
 };
 
+export const OFFICIAL_MOBILE_HELPLINE = '9988770011';
+export const OFFICIAL_LANDLINE_HELPLINE = '080-4568-1234';
+
+export const isLandline = (phoneStr?: string): boolean => {
+  if (!phoneStr) return false;
+  const str = phoneStr.trim();
+  if (str.startsWith('080') || str.startsWith('040') || str.startsWith('022') || str.startsWith('011') || str.startsWith('0800') || str.startsWith('1800')) {
+    return true;
+  }
+  const digits = str.replace(/\D/g, '');
+  if (digits.startsWith('080') || digits.startsWith('0800') || digits.startsWith('1800') || digits.startsWith('804568')) {
+    return true;
+  }
+  return false;
+};
+
+export const getCleanMobileForWhatsApp = (phoneStr?: string): string => {
+  if (!phoneStr || isLandline(phoneStr)) {
+    return OFFICIAL_MOBILE_HELPLINE;
+  }
+  const digits = phoneStr.replace(/\D/g, '');
+  const mobile = digits.length === 12 && digits.startsWith('91') 
+    ? digits.slice(2) 
+    : digits.slice(-10);
+  if (/^[6-9]\d{9}$/.test(mobile)) {
+    return mobile;
+  }
+  return OFFICIAL_MOBILE_HELPLINE;
+};
+
 /* =========================================================================
    1. REFERRAL SCREEN
    ========================================================================= */
@@ -243,6 +273,8 @@ interface VehicleScreenProps {
 }
 
 export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
+  const isUnassigned = !vehicle?.number || vehicle.number === 'Unassigned' || vehicle.number.toLowerCase() === 'unassigned' || !vehicle.number.trim();
+
   const formatIndianDate = (dateStr: string) => {
     if (!dateStr) return '';
     const d = new Date(dateStr);
@@ -297,12 +329,43 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
     }
   };
 
+  if (isUnassigned) {
+    return (
+      <div className="space-y-4 text-left font-sans">
+        <div className="flex items-center justify-between">
+          <h2 className="font-sans text-base font-bold text-text">
+            {t('vehicle.title', 'Vehicle Details')}
+          </h2>
+          <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-amber-600" />
+            No Vehicle Assigned
+          </span>
+        </div>
+
+        <div className="bg-surface border border-border/80 rounded-2xl p-6 text-center shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center mx-auto">
+            <Car className="w-6 h-6 text-amber-600" />
+          </div>
+          <div>
+            <h3 className="font-sans text-sm font-bold text-text">No Vehicle Assigned</h3>
+            <p className="font-sans text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
+              There is currently no commercial vehicle allocated to your driver profile. Please contact your fleet operator or the LetzRyd operations desk for vehicle allocation.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 text-left font-sans">
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="font-sans text-base font-bold text-text">
           {t('vehicle.title', 'Vehicle Details')}
         </h2>
+        <span className="font-mono text-xs font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
+          {vehicle.number}
+        </span>
       </div>
 
       <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm text-left font-sans text-xs space-y-2.5">
@@ -581,30 +644,6 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
     }
     return (
       <div className="space-y-3 font-sans text-left">
-        {loginType === 'operator' && fleetVehicles && fleetVehicles.length > 0 && (
-          <div className="bg-surface border border-border/80 rounded-2xl p-3 shadow-xs space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-bold text-text uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                <Car className="w-3.5 h-3.5 text-primary" />
-                Select Fleet Driver / Vehicle:
-              </span>
-              <span className="text-[10px] font-semibold text-text-muted">
-                {fleetVehicles.length} Vehicles
-              </span>
-            </div>
-            <select
-              value={selectedVehicleNumber || fleetVehicles[0]?.number}
-              onChange={(e) => onSelectVehicle && onSelectVehicle(e.target.value)}
-              className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs font-bold text-text focus:outline-none focus:border-primary cursor-pointer"
-            >
-              {fleetVehicles.map(v => (
-                <option key={v.number} value={v.number}>
-                  {v.driverName} — {v.number} ({v.model}) [{v.currentWeekOs < 0 ? `+₹${Math.abs(v.currentWeekOs).toLocaleString('en-IN')}` : v.currentWeekOs > 0 ? `-₹${v.currentWeekOs.toLocaleString('en-IN')}` : '₹0'}]
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
         <div className="py-12 text-center text-text-muted flex flex-col items-center justify-center font-sans">
           <Activity className="w-12 h-12 opacity-35 mb-3" />
           <p className="text-sm font-semibold">{t('hisaab.noData', 'No records found for this vehicle')}</p>
@@ -752,31 +791,6 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
         </div>
       )}
 
-      {/* OPERATOR FLEET VEHICLE SWITCHER */}
-      {loginType === 'operator' && fleetVehicles && fleetVehicles.length > 0 && (
-        <div className="bg-surface border border-border/80 rounded-2xl p-3 shadow-xs space-y-2 font-sans">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-text uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-              <Car className="w-3.5 h-3.5 text-primary" />
-              Select Fleet Driver / Vehicle:
-            </span>
-            <span className="text-[10px] font-semibold text-text-muted">
-              {fleetVehicles.length} Vehicles
-            </span>
-          </div>
-          <select
-            value={selectedVehicleNumber || fleetVehicles[0]?.number}
-            onChange={(e) => onSelectVehicle && onSelectVehicle(e.target.value)}
-            className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs font-bold text-text focus:outline-none focus:border-primary cursor-pointer"
-          >
-            {fleetVehicles.map(v => (
-              <option key={v.number} value={v.number}>
-                {v.driverName} — {v.number} ({v.model}) [{v.currentWeekOs < 0 ? `+₹${Math.abs(v.currentWeekOs).toLocaleString('en-IN')}` : v.currentWeekOs > 0 ? `-₹${v.currentWeekOs.toLocaleString('en-IN')}` : '₹0'}]
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
 
       {/* 1. WEEK SELECTOR & DATE NAVIGATOR CARD */}
       <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs space-y-3 font-sans">
@@ -1921,6 +1935,7 @@ interface SupportScreenProps {
   user: UserType;
   tickets: Ticket[];
   hotline?: string;
+  loginType?: 'driver' | 'operator';
   onNewTicket: () => void;
   onSelectTicket: (ticket: Ticket) => void;
   onOpenSos?: () => void;
@@ -1931,11 +1946,13 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
   user,
   tickets,
   hotline,
+  loginType,
   onNewTicket,
   onSelectTicket,
   onOpenSos,
   t
 }) => {
+  const isOperator = loginType === 'operator' || user.operatorType === 'Fleet Owner' || Boolean(user.app_operator_id);
   const [ticketFilter, setTicketFilter] = useState<'open' | 'resolved' | 'all'>('open');
   const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
@@ -1948,11 +1965,35 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
     return true;
   });
 
-  const managerPhoneRaw = user.assignedManagerPhone || '9876543299';
-  const cleanPhone = managerPhoneRaw.replace(/[^0-9]/g, '').slice(-10);
-  const managerInitials = user.assignedManagerName
-    ? user.assignedManagerName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-    : 'RN';
+  const managerName = user.assignedManagerName && user.assignedManagerName !== 'Ramesh Naik'
+    ? user.assignedManagerName
+    : 'LetzRyd Operations Desk';
+  const managerInitials = managerName
+    .split(' ')
+    .filter(Boolean)
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'LR';
+
+  const rawPhone = (user.assignedManagerPhone || '').trim();
+  const isPhoneLandline = isLandline(rawPhone);
+  const hasPhone = Boolean(rawPhone && rawPhone !== '9876543299');
+
+  // Display phone: if landline, show cleanly; if mobile, show +91; if missing, show official mobile helpline
+  const displayPhoneText = hasPhone 
+    ? (isPhoneLandline ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10)}`)
+    : `+91 ${OFFICIAL_MOBILE_HELPLINE}`;
+
+  // Call Link: If valid number, dial it; if missing, dial helpline
+  const callPhoneHref = hasPhone 
+    ? (isPhoneLandline ? `tel:${rawPhone.replace(/[^0-9+]/g, '')}` : `tel:+91${rawPhone.replace(/\D/g, '').slice(-10)}`)
+    : `tel:+91${OFFICIAL_MOBILE_HELPLINE}`;
+
+  // WhatsApp Link: Must ALWAYS be a valid mobile number (never a landline or missing)
+  const whatsAppMobile = hasPhone && !isPhoneLandline
+    ? getCleanMobileForWhatsApp(rawPhone)
+    : OFFICIAL_MOBILE_HELPLINE;
 
   const formatIndianDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -2013,22 +2054,24 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
             {managerInitials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-sans text-[10px] font-extrabold text-primary uppercase tracking-wider">{t('support.manager', 'ASSIGNED DRIVER MANAGER')}</p>
-            <h4 className="font-sans text-sm font-bold text-text truncate mt-0.5">{user.assignedManagerName || 'Ramesh Naik'}</h4>
-            <p className="font-sans text-xs text-text-muted mt-0.5">+91 {cleanPhone}</p>
+            <p className="font-sans text-[10px] font-extrabold text-primary uppercase tracking-wider">
+              {isOperator ? 'ASSIGNED ACCOUNT MANAGER' : t('support.manager', 'ASSIGNED DRIVER MANAGER')}
+            </p>
+            <h4 className="font-sans text-sm font-bold text-text truncate mt-0.5">{managerName}</h4>
+            <p className="font-sans text-xs text-text-muted mt-0.5">{displayPhoneText}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 pt-0.5">
           <a
-            href={`tel:+91${cleanPhone}`}
+            href={callPhoneHref}
             className="flex-1 h-9 rounded-xl bg-green hover:bg-green/90 text-white font-sans text-xs font-bold flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer transition-all active:scale-98"
           >
             <PhoneCall className="w-3.5 h-3.5" />
-            <span>{t('support.callManager', 'Call Manager')}</span>
+            <span>{isOperator ? 'Call Account Manager' : t('support.callManager', 'Call Manager')}</span>
           </a>
           <a
-            href={`https://wa.me/91${cleanPhone}`}
+            href={`https://wa.me/91${whatsAppMobile}`}
             target="_blank"
             rel="noreferrer"
             className="h-9 px-3.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 font-sans text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-98 shrink-0"
@@ -2211,16 +2254,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
   const isOperator = loginType === 'operator';
   const [isEditing, setIsEditing] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const cleanInitialEmergencyName = isOperator
+    ? (user.assignedManagerName || user.emergencyName || '')
+    : (user.emergencyName && user.emergencyName !== 'Priya Kumar' ? user.emergencyName : '');
+  const cleanInitialEmergencyRelation = isOperator
+    ? (user.emergencyRelation || 'Account Manager')
+    : (user.emergencyRelation && user.emergencyRelation !== 'Spouse / Wife' ? user.emergencyRelation : (cleanInitialEmergencyName ? user.emergencyRelation || '' : ''));
+  const cleanInitialEmergencyPhone = isOperator
+    ? (user.assignedManagerPhone || user.emergencyPhone || '')
+    : (user.emergencyPhone && user.emergencyPhone !== '9876543211' && user.emergencyPhone !== '9876543299' ? user.emergencyPhone : '');
 
-  const [emergencyName, setEmergencyName] = useState(
-    user.emergencyName || (isOperator ? (user.assignedManagerName || '') : 'Priya Kumar')
-  );
-  const [emergencyRelation, setEmergencyRelation] = useState(
-    user.emergencyRelation || (isOperator ? 'Account Manager' : 'Spouse / Wife')
-  );
-  const [emergencyPhone, setEmergencyPhone] = useState(
-    user.emergencyPhone || (isOperator ? (user.assignedManagerPhone || '') : '9876543211')
-  );
+  const [emergencyName, setEmergencyName] = useState(cleanInitialEmergencyName);
+  const [emergencyRelation, setEmergencyRelation] = useState(cleanInitialEmergencyRelation);
+  const [emergencyPhone, setEmergencyPhone] = useState(cleanInitialEmergencyPhone);
   const [bloodGroup, setBloodGroup] = useState(user.bloodGroup || 'B+');
   const [address, setAddress] = useState(user.address || '');
 
@@ -2230,16 +2276,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       setEmergencyRelation(user.emergencyRelation || 'Account Manager');
       setEmergencyPhone(user.assignedManagerPhone || user.emergencyPhone || '');
     } else {
-      setEmergencyName(user.emergencyName || 'Priya Kumar');
-      setEmergencyRelation(user.emergencyRelation || 'Spouse / Wife');
-      setEmergencyPhone(user.emergencyPhone || '9876543211');
+      const cleanName = user.emergencyName && user.emergencyName !== 'Priya Kumar' ? user.emergencyName : '';
+      const cleanPhone = user.emergencyPhone && user.emergencyPhone !== '9876543211' && user.emergencyPhone !== '9876543299' ? user.emergencyPhone : '';
+      setEmergencyName(cleanName);
+      setEmergencyRelation(cleanName ? (user.emergencyRelation || '') : '');
+      setEmergencyPhone(cleanPhone);
     }
     setBloodGroup(user.bloodGroup || 'B+');
     setAddress(user.address || '');
   }, [user, loginType, isOperator]);
 
   const handleSave = () => {
-    const formattedContact = `${emergencyName} (${emergencyRelation}) - ${emergencyPhone}`;
+    const formattedContact = emergencyName || emergencyPhone
+      ? `${emergencyName}${emergencyRelation ? ` (${emergencyRelation})` : ''}${emergencyPhone ? ` - ${emergencyPhone}` : ''}`
+      : '';
     onUpdateContact({
       emergencyContact: formattedContact,
       emergencyName,
@@ -2299,7 +2349,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             {isOperator ? `${user.name} (Fleet Operator)` : user.name}
           </h3>
           <p className="font-mono text-xs font-medium text-text-muted mt-0.5 truncate">
-            {user.operatorCode ? `${user.operatorCode} • ` : ''}ID: <span className="text-text font-bold">{user.id}</span>
+            {user.operatorCode && user.operatorCode !== user.id ? `${user.operatorCode} • ` : ''}ID: <span className="text-text font-bold">{user.id}</span>
           </p>
         </div>
       </div>
@@ -2426,7 +2476,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 value={emergencyName}
                 onChange={(e) => setEmergencyName(e.target.value)}
                 className="w-full h-9 rounded-xl border border-border bg-bg px-3 font-bold text-text text-xs outline-none focus:border-primary"
-                placeholder={isOperator ? 'e.g. Ramesh Naik' : 'e.g. Sunita Kumar'}
+                placeholder={isOperator ? 'e.g. LetzRyd Operations Desk' : 'e.g. Sunita Kumar'}
               />
             </div>
 
@@ -2449,6 +2499,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                     onChange={(e) => setEmergencyRelation(e.target.value)}
                     className="w-full h-9 rounded-xl border border-border bg-bg px-2.5 font-bold text-text text-xs outline-none focus:border-primary cursor-pointer"
                   >
+                    <option value="">{t('relation.select', '-- Select Relation --')}</option>
                     <option value="Spouse / Wife">{t('relation.spouse', 'Spouse / Wife')}</option>
                     <option value="Father">{t('relation.father', 'Father')}</option>
                     <option value="Mother">{t('relation.mother', 'Mother')}</option>
@@ -2473,6 +2524,20 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               </div>
             </div>
           </div>
+        ) : (!isOperator && !emergencyName && !emergencyPhone) ? (
+          <div className="py-3 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-2">
+            <p className="font-sans text-xs text-amber-700 font-medium">
+              No emergency contact on file.
+            </p>
+            <button
+              type="button"
+              onClick={() => setIsEditing(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            >
+              <Edit2 className="w-3 h-3" />
+              Not Provided — Tap to Add Contact
+            </button>
+          </div>
         ) : (
           <div className="divide-y divide-border/50 font-sans text-xs">
             <div className="py-2.5 flex items-center justify-between gap-4">
@@ -2480,7 +2545,16 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 {isOperator ? 'Manager Name' : t('profile.emergencyPerson', 'Contact Person')}
               </span>
               <span className="font-sans font-bold text-text">
-                {isOperator ? (user.assignedManagerName || user.emergencyName || emergencyName || 'Ramesh Naik') : emergencyName}
+                {isOperator 
+                  ? (user.assignedManagerName || user.emergencyName || emergencyName || 'LetzRyd Operations Desk') 
+                  : (emergencyName || (
+                    <span 
+                      onClick={() => setIsEditing(true)} 
+                      className="text-amber-600 font-medium cursor-pointer hover:underline inline-flex items-center gap-1"
+                    >
+                      Not Provided — Tap to Add Contact
+                    </span>
+                  ))}
               </span>
             </div>
 
@@ -2489,7 +2563,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 {isOperator ? 'Role' : t('profile.emergencyRelation', 'Relation')}
               </span>
               <span className="font-sans font-bold text-text">
-                {isOperator ? (user.emergencyRelation || 'Account Manager') : getRelationLabel(emergencyRelation)}
+                {isOperator ? (user.emergencyRelation || 'Account Manager') : (emergencyRelation ? getRelationLabel(emergencyRelation) : '—')}
               </span>
             </div>
 
@@ -2498,7 +2572,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                 {isOperator ? 'Manager Phone' : t('profile.emergencyPhone', 'Emergency Mobile')}
               </span>
               <span className="font-mono font-bold text-text">
-                +91 {isOperator ? (user.assignedManagerPhone || user.emergencyPhone || emergencyPhone || '9876543299') : emergencyPhone}
+                {isOperator ? (() => {
+                  const p = (user.assignedManagerPhone || user.emergencyPhone || emergencyPhone || '').trim();
+                  if (!p) return `+91 ${OFFICIAL_MOBILE_HELPLINE}`;
+                  return isLandline(p) ? p : `+91 ${p.replace(/\D/g, '').slice(-10)}`;
+                })() : (emergencyPhone ? `+91 ${emergencyPhone.replace(/\D/g, '').slice(-10)}` : '—')}
               </span>
             </div>
           </div>
@@ -2552,26 +2630,18 @@ interface OperatorScreenProps {
 
 export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'drivers' | 'vehicles'>('drivers');
 
   const totalVehicles = fleet.vehicles.length;
   const totalToPay = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
   const totalToCollect = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
 
-  const driverVehicles = fleet.vehicles.filter(
-    (v) =>
-      v.driverName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const vehicleFleetList = fleet.vehicles.filter(
     (v) =>
       v.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
       v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.make.toLowerCase().includes(searchQuery.toLowerCase())
+      v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      v.driverName.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const activeList = activeTab === 'drivers' ? driverVehicles : vehicleFleetList;
 
   const formatCurrency = (val: number) => {
     const hasDecimals = val % 1 !== 0;
@@ -2634,134 +2704,82 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
         </div>
       </div>
 
-      {/* SEGMENTED TAB TOGGLE WITH SMOOTH INDICATOR */}
-      <div className="bg-bg border border-border p-1 rounded-xl flex font-sans text-xs font-bold relative">
-        <button
-          type="button"
-          onClick={() => setActiveTab('drivers')}
-          className={`flex-1 py-2 rounded-lg text-center cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 ${
-            activeTab === 'drivers'
-              ? 'bg-surface text-primary shadow-xs border border-border font-extrabold'
-              : 'text-text-muted hover:text-text'
-          }`}
-        >
-          <UserIcon className="w-3.5 h-3.5" />
-          <span>{t('operator.drivers', 'Drivers')} ({driverVehicles.length})</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('vehicles')}
-          className={`flex-1 py-2 rounded-lg text-center cursor-pointer transition-all duration-200 flex items-center justify-center gap-1.5 ${
-            activeTab === 'vehicles'
-              ? 'bg-surface text-primary shadow-xs border border-border font-extrabold'
-              : 'text-text-muted hover:text-text'
-          }`}
-        >
-          <Car className="w-3.5 h-3.5" />
-          <span>{t('operator.vehicles', 'Vehicles')} ({vehicleFleetList.length})</span>
-        </button>
-      </div>
-
+      {/* SEARCH BAR */}
       <div className="relative">
         <Search className="w-4 h-4 text-text-muted absolute left-3 top-3" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={activeTab === 'drivers' ? t('operator.searchDriverPlaceholder', 'Search driver name or vehicle...') : t('operator.searchVehiclePlaceholder', 'Search vehicle number, make or model...')}
+          placeholder={t('operator.searchVehiclePlaceholder', 'Search vehicle number, model or driver...')}
           className="w-full pl-9 pr-3 py-2 rounded-xl border border-border bg-bg text-xs font-medium outline-none focus:border-primary transition-colors"
         />
       </div>
 
-      {/* UNIFIED FLEET LIST CARD */}
+      {/* VEHICLE FLEET LIST CARD */}
       <div className="bg-surface border border-border rounded-xl p-3.5 shadow-sm space-y-2.5">
         <div className="border-b border-border/60 pb-2 flex items-center justify-between">
           <h3 className="font-sans text-xs font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
-            {activeTab === 'drivers' ? (
-              <>
-                <UserIcon className="w-3.5 h-3.5 text-primary" />
-                <span>{t('operator.driverFleet', 'DRIVER FLEET')}</span>
-              </>
-            ) : (
-              <>
-                <Car className="w-3.5 h-3.5 text-primary" />
-                <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')}</span>
-              </>
-            )}
+            <Car className="w-3.5 h-3.5 text-primary" />
+            <span>{t('operator.vehicleFleet', 'VEHICLE FLEET')} ({vehicleFleetList.length})</span>
           </h3>
           <span className="text-[10px] font-semibold text-text-muted">{t('operator.tapToView', 'Tap to view Hisaab')}</span>
         </div>
 
         <div className="divide-y divide-border/60">
-          {activeList.map((v) => (
-            <div
-              key={activeTab === 'drivers' ? `d-${v.number}-${v.driverName}` : `v-${v.number}`}
-              onClick={() => onSelectVehicle(v.number)}
-              className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                  activeTab === 'drivers'
-                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-600'
-                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
-                }`}>
-                  {activeTab === 'drivers' ? <UserIcon className="w-4 h-4" /> : <Car className="w-4 h-4" />}
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  {activeTab === 'drivers' ? (
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-sans text-xs font-bold text-text truncate">{v.driverName}</span>
-                        <span className={`text-[9px] font-bold px-1.5 py-0.2 rounded uppercase ${
-                          v.status === 'active' ? 'bg-green-500/10 text-green-700' : 'bg-gray-500/10 text-gray-600'
-                        }`}>
-                          {v.status}
-                        </span>
-                      </div>
-                      <p className="font-mono text-[11px] text-text-muted mt-0.5 truncate">
-                        {v.number} • <span className="font-sans">{v.model}</span>
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
-                          {v.number}
-                        </span>
-                        <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
-                          {v.make} {v.model}
-                        </span>
-                      </div>
-                      <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1">
-                        <span className="text-[10px] uppercase font-bold text-text-muted/80">Assigned Driver:</span>
-                        <span className="font-semibold text-text truncate">{v.driverName}</span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="text-right shrink-0 flex flex-col items-end">
-                {v.currentWeekOs < 0 ? (
-                  <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
-                    +{formatCurrency(v.currentWeekOs)}
-                  </span>
-                ) : v.currentWeekOs > 0 ? (
-                  <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
-                    -{formatCurrency(v.currentWeekOs)}
-                  </span>
-                ) : (
-                  <span className="font-sans text-xs font-bold text-text-muted font-mono">
-                    ₹0
-                  </span>
-                )}
-                <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
-                  View Hisaab →
-                </span>
-              </div>
+          {vehicleFleetList.length === 0 ? (
+            <div className="py-6 text-center text-text-muted text-xs">
+              {searchQuery ? t('operator.noVehiclesMatch', 'No vehicles match your search') : t('operator.noVehicles', 'No vehicles assigned to this fleet')}
             </div>
-          ))}
+          ) : (
+            vehicleFleetList.map((v) => (
+              <div
+                key={`v-${v.number}`}
+                onClick={() => onSelectVehicle(v.number)}
+                className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 hover:bg-bg/60 cursor-pointer rounded-md px-1 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border bg-emerald-500/10 border-emerald-500/20 text-emerald-600">
+                    <Car className="w-4 h-4" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-black text-text tracking-wide bg-bg px-1.5 py-0.5 rounded border border-border/60">
+                        {v.number}
+                      </span>
+                      <span className="text-[10px] font-semibold text-text-muted font-sans truncate">
+                        {v.make} {v.model}
+                      </span>
+                    </div>
+                    <p className="font-sans text-[11px] text-text-muted mt-1 flex items-center gap-1 truncate">
+                      <span className="text-[10px] uppercase font-bold text-text-muted/80">Assigned Driver:</span>
+                      <span className="font-semibold text-text truncate">{v.driverName || 'Unassigned'}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0 flex flex-col items-end">
+                  {v.currentWeekOs < 0 ? (
+                    <span className="font-sans text-xs font-bold text-green whitespace-nowrap font-mono">
+                      +{formatCurrency(v.currentWeekOs)}
+                    </span>
+                  ) : v.currentWeekOs > 0 ? (
+                    <span className="font-sans text-xs font-bold text-red-600 whitespace-nowrap font-mono">
+                      -{formatCurrency(v.currentWeekOs)}
+                    </span>
+                  ) : (
+                    <span className="font-sans text-xs font-bold text-text-muted font-mono">
+                      ₹0
+                    </span>
+                  )}
+                  <span className="font-sans text-[10px] font-bold text-primary group-hover:underline mt-0.5 whitespace-nowrap">
+                    View Hisaab →
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

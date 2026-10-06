@@ -129,9 +129,9 @@ class OperatorProfileResponse(BaseSchema):
     lw_status: str = "unpaid"
 
 class FleetVehicleResponse(BaseSchema):
-    vehicle_number: str
-    vehicle_make: str
-    vehicle_model: str
+    vehicle_number: Optional[str] = None
+    vehicle_make: Optional[str] = None
+    vehicle_model: Optional[str] = None
     driver_name: str
     driver_id: int
     driver_phone: str
@@ -245,7 +245,7 @@ class CreateOrderResponse(BaseSchema):
 # Support Ticket Schemas
 class CreateTicketRequest(BaseSchema):
     creator_type: str = "driver"
-    creator_id: int
+    creator_id: Union[int, str]
     category: str
     subject: str
     description: str

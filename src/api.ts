@@ -27,6 +27,8 @@ async function apiCall<T>(path: string, options?: RequestInit): Promise<T> {
 export function mapDriverToUser(d: any): User {
   return {
     id: d.driver_code || `LR-DRV-${d.app_driver_id}`,
+    app_driver_id: d.app_driver_id ? Number(d.app_driver_id) : undefined,
+    app_operator_id: d.app_operator_id ? Number(d.app_operator_id) : (d.operator_id ? Number(d.operator_id) : undefined),
     name: d.full_name || 'Driver',
     operatorCode: d.driver_code || '',
     phone: d.phone || '',
@@ -35,7 +37,7 @@ export function mapDriverToUser(d: any): User {
     aadhar: d.aadhar_number || '',
     dlNumber: d.dl_number || '',
     dlExpiry: d.dl_expiry || '',
-    emergencyContact: d.emergency_name ? `${d.emergency_name} (${d.emergency_relation}) - ${d.emergency_phone}` : '',
+    emergencyContact: d.emergency_name ? `${d.emergency_name}${d.emergency_relation ? ` (${d.emergency_relation})` : ''}${d.emergency_phone ? ` - ${d.emergency_phone}` : ''}` : '',
     emergencyName: d.emergency_name || '',
     emergencyRelation: d.emergency_relation || '',
     emergencyPhone: d.emergency_phone || '',
@@ -43,7 +45,7 @@ export function mapDriverToUser(d: any): User {
     bloodGroup: d.blood_group || '',
     dob: d.dob || '',
     operatorType: d.operator_name ? `Fleet: ${d.operator_name}` : 'LetzRyd Partner',
-    assignedManagerName: d.assigned_manager_name || 'LetzRyd Fleet Operations',
+    assignedManagerName: d.assigned_manager_name || 'LetzRyd Operations Desk',
     assignedManagerPhone: d.assigned_manager_phone || '080-4568-1234',
     depositAmount: d.deposit_total_req || 0,
     depositTotalRequired: d.deposit_total_req || 0,
@@ -63,6 +65,7 @@ export function mapDriverToUser(d: any): User {
 export function mapOperatorToUser(op: any): User {
   return {
     id: op.operator_code || `LR-OPR-${op.app_operator_id}`,
+    app_operator_id: op.app_operator_id ? Number(op.app_operator_id) : undefined,
     name: op.company_name || op.contact_person_name || 'Fleet Operator',
     operatorCode: op.operator_code || '',
     phone: op.phone || '',
@@ -71,15 +74,15 @@ export function mapOperatorToUser(op: any): User {
     aadhar: '',
     dlNumber: '',
     dlExpiry: '',
-    emergencyContact: op.assigned_manager_phone ? `${op.assigned_manager_name || 'Operations'} - ${op.assigned_manager_phone}` : '',
-    emergencyName: op.assigned_manager_name || 'LetzRyd Fleet Operations',
+    emergencyContact: op.assigned_manager_phone ? `${op.assigned_manager_name || 'LetzRyd Operations Desk'} - ${op.assigned_manager_phone}` : '',
+    emergencyName: op.assigned_manager_name || 'LetzRyd Operations Desk',
     emergencyRelation: 'Account Manager',
     emergencyPhone: op.assigned_manager_phone || '080-4568-1234',
     address: op.address || 'LetzRyd Operations Hub, Bengaluru',
     bloodGroup: '',
     dob: '',
     operatorType: 'Fleet Owner',
-    assignedManagerName: op.assigned_manager_name || 'LetzRyd Fleet Operations',
+    assignedManagerName: op.assigned_manager_name || 'LetzRyd Operations Desk',
     assignedManagerPhone: op.assigned_manager_phone || '080-4568-1234',
     depositAmount: op.deposit_total_req || 0,
     depositTotalRequired: op.deposit_total_req || 0,
@@ -97,35 +100,38 @@ export function mapOperatorToUser(op: any): User {
 }
 
 export function mapDriverToVehicle(d: any): Vehicle {
+  const regNumber = (d.vehicle_reg_number || '').trim();
+  const hasVehicle = Boolean(regNumber && regNumber !== 'Unassigned' && regNumber !== 'None');
   return {
-    number: d.vehicle_reg_number || 'KA05AQ7692',
-    make: d.vehicle_make || 'Maruti',
-    model: d.vehicle_model || 'Dzire CNG',
-    variant: d.vehicle_variant || 'VXi',
-    year: d.vehicle_year || 2021,
-    color: d.vehicle_color || 'White',
-    fuelType: d.vehicle_fuel_type || 'CNG',
-    odometer: d.vehicle_odometer_km || 124380,
-    fitnessExpiry: d.fitness_expiry || '2026-10-12',
-    insuranceExpiry: d.insurance_expiry || '2027-03-20',
-    rcExpiry: d.rc_expiry || '2036-05-01',
-    permitType: d.permit_type || 'Tourist Permit',
-    permitExpiry: d.permit_expiry || '2026-12-31',
-    pucExpiry: d.puc_expiry || '2026-08-15',
-    lastUpdatedOn: d.doc_last_updated || '2026-07-25',
+    number: hasVehicle ? regNumber : 'Unassigned',
+    make: hasVehicle ? (d.vehicle_make || 'Maruti') : '',
+    model: hasVehicle ? (d.vehicle_model || 'Dzire CNG') : '',
+    variant: hasVehicle ? (d.vehicle_variant || 'VXi') : '',
+    year: hasVehicle ? (d.vehicle_year || 2021) : 0,
+    color: hasVehicle ? (d.vehicle_color || 'White') : '',
+    fuelType: hasVehicle ? (d.vehicle_fuel_type || 'CNG') : '',
+    odometer: hasVehicle ? (d.vehicle_odometer_km || 0) : 0,
+    fitnessExpiry: hasVehicle ? (d.fitness_expiry || '') : '',
+    insuranceExpiry: hasVehicle ? (d.insurance_expiry || '') : '',
+    rcExpiry: hasVehicle ? (d.rc_expiry || '') : '',
+    permitType: hasVehicle ? (d.permit_type || '') : '',
+    permitExpiry: hasVehicle ? (d.permit_expiry || '') : '',
+    pucExpiry: hasVehicle ? (d.puc_expiry || '') : '',
+    lastUpdatedOn: d.doc_last_updated || '',
     platforms: {
-      uber: { status: 'active', rating: 4.87, trips: d.cw_trips || 233 },
-      ola: { status: 'active', rating: 4.75, trips: 65 },
-      rapido: { status: 'active', rating: 4.90, trips: 48 },
+      uber: { status: 'active', rating: 4.87, trips: d.cw_trips || 0 },
+      ola: { status: 'active', rating: 4.75, trips: 0 },
+      rapido: { status: 'active', rating: 4.90, trips: 0 },
     },
-    allocationStart: d.vehicle_allocated_from || d.joined_date || '2024-10-15',
+    allocationStart: d.vehicle_allocated_from || d.joined_date || '',
   };
 }
 
 export function mapDriverToRentalPlan(d: any): RentalPlan {
   const dailyRate = d.vehicle_daily_rate || 1000;
+  const planName = `${d.vehicle_make || ''} ${d.vehicle_model || ''}`.trim();
   return {
-    name: `${d.vehicle_make || ''} ${d.vehicle_model || ''} - Commercial Rental Plan`.trim(),
+    name: planName ? `${planName} - Commercial Rental Plan` : 'Commercial Rental Plan',
     dailyRate,
     planStart: d.vehicle_allocated_from || d.joined_date || '2024-10-15',
     activeMonths: 21,
@@ -245,6 +251,13 @@ export async function getOperatorByPhone(phone: string): Promise<any> {
 
 export async function getDriverHisaabs(driverId: number): Promise<any[]> {
   const res: any = await apiCall(`/api/hisaabs/driver/${driverId}`);
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.data)) return res.data;
+  return [];
+}
+
+export async function getOperatorHisaabs(operatorId: number | string): Promise<any[]> {
+  const res: any = await apiCall(`/api/hisaabs/operator/${operatorId}`);
   if (Array.isArray(res)) return res;
   if (res && Array.isArray(res.data)) return res.data;
   return [];

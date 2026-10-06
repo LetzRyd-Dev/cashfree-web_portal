@@ -28,16 +28,17 @@ export const USER_DATA: User = {
   aadhar: "2345-6789-0123",
   dlNumber: "KA05-2024-1234567",
   dlExpiry: "2029-05-20",
-  emergencyContact: "Priya Kumar (Spouse / Wife) - 9876543299",
-  emergencyName: "Priya Kumar",
-  emergencyRelation: "Spouse / Wife",
-  emergencyPhone: "9876543299",
+  emergencyContact: "",
+  emergencyName: "",
+  emergencyRelation: "",
+  emergencyPhone: "",
   address: "No. 42, 3rd Cross, Indiranagar, Bangalore - 560038",
   bloodGroup: "B+",
   dob: "1992-08-14",
   operatorType: "Individual Driver",
-  assignedManagerName: "Ramesh Naik",
-  assignedManagerPhone: "9876543299",
+  assignedManagerName: "LetzRyd Operations Desk",
+  assignedManagerPhone: "9988770011",
+  app_driver_id: 1,
   depositAmount: 6000,
   depositTotalRequired: 6000,
   depositPaidSoFar: 5000,
@@ -87,16 +88,16 @@ export const ANNOUNCEMENTS_DATA: Announcement[] = [
     title: "Urgent Hub Vehicle Inspection Required",
     message: "Mandatory EV battery telemetry audit at Hitec City Hub before Thursday 5:00 PM.",
     severity: "warning",
-    date: "2026-07-27"
+    date: "2026-10-04"
   }
 ];
 
 export const HISAAB_WEEKS_DATA: HisaabWeek[] = [
   {
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-AQ7692",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-AQ7692",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "in_progress",
     isLocked: false,
     activeDays: 4,
@@ -118,7 +119,7 @@ export const HISAAB_WEEKS_DATA: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 3200.80,
       idealGpsKm: 3820.60,
@@ -138,10 +139,10 @@ export const HISAAB_WEEKS_DATA: HisaabWeek[] = [
     notes: "Current active week statement in progress. Net payout of ₹7,996 payable to driver."
   },
   {
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-AQ7692",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-AQ7692",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "settled_pay",
     isLocked: true,
     activeDays: 6,
@@ -163,7 +164,7 @@ export const HISAAB_WEEKS_DATA: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -204,8 +205,9 @@ export const SURESH_USER_DATA: User = {
   bloodGroup: "O+",
   dob: "1989-04-22",
   operatorType: "Individual Driver",
-  assignedManagerName: "Ramesh Naik",
-  assignedManagerPhone: "9876543299",
+  assignedManagerName: "LetzRyd Operations Desk",
+  assignedManagerPhone: "9988770011",
+  app_driver_id: 2,
   depositAmount: 6000,
   depositTotalRequired: 6000,
   depositPaidSoFar: 5000,
@@ -252,10 +254,10 @@ export const SURESH_RENTAL_PLAN_DATA: RentalPlan = {
 export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
   {
     app_hisaab_id: 4,
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-EV8812",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-EV8812",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "to_collect",
     isLocked: false,
     activeDays: 5,
@@ -277,7 +279,7 @@ export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 1034.80,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 2180.00,
       idealGpsKm: 2400.00,
@@ -298,10 +300,10 @@ export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
   },
   {
     app_hisaab_id: 5,
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-EV8812",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-EV8812",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "to_collect",
     isLocked: true,
     activeDays: 6,
@@ -323,7 +325,7 @@ export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -362,8 +364,9 @@ export const VIKRAM_USER_DATA: User = {
   bloodGroup: "A+",
   dob: "1988-12-05",
   operatorType: "Individual Driver",
-  assignedManagerName: "Ramesh Naik",
-  assignedManagerPhone: "9876543299",
+  assignedManagerName: "LetzRyd Operations Desk",
+  assignedManagerPhone: "9988770011",
+  app_driver_id: 3,
   depositAmount: 6000,
   depositTotalRequired: 6000,
   depositPaidSoFar: 6000,
@@ -409,10 +412,10 @@ export const VIKRAM_RENTAL_PLAN_DATA: RentalPlan = {
 
 export const VIKRAM_HISAAB_WEEKS: HisaabWeek[] = [
   {
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-EV4401",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-EV4401",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "in_progress",
     isLocked: false,
     activeDays: 6,
@@ -434,7 +437,7 @@ export const VIKRAM_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 2390.00,
       idealGpsKm: 2700.00,
@@ -454,10 +457,10 @@ export const VIKRAM_HISAAB_WEEKS: HisaabWeek[] = [
     notes: "Current active week statement in progress. Net payout of ₹6,180 payable to driver."
   },
   {
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-EV4401",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-EV4401",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "settled_pay",
     isLocked: true,
     activeDays: 6,
@@ -479,7 +482,7 @@ export const VIKRAM_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -565,10 +568,10 @@ export const VARAPRASAD_RENTAL_PLAN_DATA: RentalPlan = {
 
 export const VARAPRASAD_HISAAB_WEEKS: HisaabWeek[] = [
   {
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-V0580",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-V0580",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "in_progress",
     isLocked: false,
     activeDays: 5,
@@ -590,7 +593,7 @@ export const VARAPRASAD_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 1960.00,
       idealGpsKm: 2200.00,
@@ -610,10 +613,10 @@ export const VARAPRASAD_HISAAB_WEEKS: HisaabWeek[] = [
     notes: "Current active week statement in progress. Net payout of ₹3,480 payable to driver."
   },
   {
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-V0580",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-V0580",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "settled_pay",
     isLocked: true,
     activeDays: 6,
@@ -635,7 +638,7 @@ export const VARAPRASAD_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -721,10 +724,10 @@ export const MOHAMMED_RENTAL_PLAN_DATA: RentalPlan = {
 
 export const MOHAMMED_HISAAB_WEEKS: HisaabWeek[] = [
   {
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-EV1129",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-EV1129",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "in_progress",
     isLocked: false,
     activeDays: 5,
@@ -746,7 +749,7 @@ export const MOHAMMED_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 2240.00,
       idealGpsKm: 2500.00,
@@ -766,10 +769,10 @@ export const MOHAMMED_HISAAB_WEEKS: HisaabWeek[] = [
     notes: "Current active week statement in progress. Net payout of ₹4,580 payable to driver."
   },
   {
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-EV1129",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-EV1129",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "settled_pay",
     isLocked: true,
     activeDays: 6,
@@ -791,7 +794,7 @@ export const MOHAMMED_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -877,10 +880,10 @@ export const ANIL_RENTAL_PLAN_DATA: RentalPlan = {
 
 export const ANIL_HISAAB_WEEKS: HisaabWeek[] = [
   {
-    weekNumber: 30,
-    hisaabNumber: "HIS-2026-030-EV9900",
-    weekStart: "2026-07-21",
-    weekEnd: "2026-07-27",
+    weekNumber: 40,
+    hisaabNumber: "HIS-2026-040-EV9900",
+    weekStart: "2026-09-28",
+    weekEnd: "2026-10-04",
     status: "to_collect",
     isLocked: false,
     activeDays: 2,
@@ -902,7 +905,7 @@ export const ANIL_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-21",
+    pendingSinceDate: "2026-09-28",
     gps: {
       totalGpsKm: 710.00,
       idealGpsKm: 800.00,
@@ -922,10 +925,10 @@ export const ANIL_HISAAB_WEEKS: HisaabWeek[] = [
     notes: "Current active week statement. Balance due ₹1,820.50 owed to LetzRyd."
   },
   {
-    weekNumber: 29,
-    hisaabNumber: "HIS-2026-029-EV9900",
-    weekStart: "2026-07-14",
-    weekEnd: "2026-07-20",
+    weekNumber: 39,
+    hisaabNumber: "HIS-2026-039-EV9900",
+    weekStart: "2026-09-21",
+    weekEnd: "2026-09-27",
     status: "settled_pay",
     isLocked: true,
     activeDays: 6,
@@ -947,7 +950,7 @@ export const ANIL_HISAAB_WEEKS: HisaabWeek[] = [
     joiningFeePaid: 1000,
     pendingJoiningFee: 0,
     previousOutstanding: 0,
-    pendingSinceDate: "2026-07-14",
+    pendingSinceDate: "2026-09-21",
     gps: {
       totalGpsKm: 2650.00,
       idealGpsKm: 2900.00,
@@ -1103,7 +1106,8 @@ export const DEMO_PROFILES: DemoProfile[] = [
       depositAmount: 25000,
       depositTotalRequired: 25000,
       depositPaidSoFar: 20000,
-      depositPending: 5000
+      depositPending: 5000,
+      app_operator_id: 1
     },
     weeks: RAJESH_HISAAB_WEEKS,
     fleet: OPERATOR_FLEET_DATA
@@ -1184,7 +1188,8 @@ export const DEMO_PROFILES: DemoProfile[] = [
       depositAmount: 50000,
       depositTotalRequired: 50000,
       depositPaidSoFar: 40000,
-      depositPending: 10000
+      depositPending: 10000,
+      app_operator_id: 2
     },
     weeks: RAJESH_HISAAB_WEEKS,
     fleet: SALEEM_FLEET_DATA

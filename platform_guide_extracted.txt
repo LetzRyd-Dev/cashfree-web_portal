@@ -1,0 +1,98 @@
+How the LetzRyd Platform Works
+Google Sheets • Portal • Platform imports • Rental plans • Hisaab • Driver app
+Google Sheets and the portal record fleet activity. Core tables combine these records. Rental rules calculate daily rent; Hisaab calculates weekly balances; the app shows statements and collects payments. The production database runs 18 scheduled pg_cron jobs that update these tables automatically across all operating cities.
+The Complete Working Flow
+Table Groups
+•  Sheet tables (sheet_*) → Google Sheet entries, synchronised automatically by Apps Script.
+•  Portal tables (july_*) → staff forms, users, approvals and change history.
+•  Core tables (core_*) → combined fleet records and prepared platform data.
+•  Rental tables → standard and custom plans, slabs, exceptions and daily rent.
+•  Hisaab tables (hisaab_*) → daily records, weekly vehicle and partner balances, payout and reconciliation outputs.
+•  App tables (app_*) → driver/operator profiles, statements, payment history and support.
+Google Sheets and Portal Table Merges
+The backend uses SQL triggers and refresh procedures for each source. The table shows the inputs and core output for each module. Plus (+) means the sources contribute to the same core output.
+Portal Form Workflow
+Staff save drafts and submit forms to assigned approvers. The approval routes support L1 → L2 → Approved, rejection and changes requested. Allocation/drop-off entries more than 48 hours from the current time are routed for deviation approval. Files and photos are stored in Cloud Storage; logs retain changes and approval remarks.
+How Matching Works
+•  Partner onboarding: cleans the phone number, selects the latest sheet record and adds or updates portal fields in the same partner record.
+•  Allocation: matches allocation date + vehicle + partner or phone. Keeps the sheet and portal record IDs; a matched event is marked MERGED.
+•  Drop-off: matches the return event and retains both source references. Maintenance: pairs outward entries with their inward record, then combines workshop intervals with sheet records.
+•  Walk-ins: stores entries from each source with its source type and record reference. Each visit keeps its source and record ID.
+There is no single priority rule for all core tables. Each procedure decides which fields to retain or replace. Adjustments and penalties attach directly when partner ID or phone matches; when missing, residual matching assigns entries based on vehicle allocation on the event date.
+Code reference — allocation matching and merge
+Code reference — partner onboarding merge
+Platform Imports GPS and Bangalore Challans
+How Imports Update the Database
+•  Uber: requests four report types: trips, order transactions, driver payments and organisation payments. UUIDs and report-window keys prevent duplicate imports. Payment reports support reconciliation; core earnings use trips and transactions.
+•  Ola: imports the rolling week through yesterday. Tuesday reconciliation compares the prior week and writes ola_audit_diff_* records.
+•  GPS: rechecks recent days and retains the larger distance when the same vehicle/date arrives again.
+•  Challans: keeps notice-level fines and sheet balance records, reconciles pending amounts and retains source references. Responsibility uses the violation date in Hisaab.
+Code reference — Uber daily and weekly calculations
+Code reference — Bangalore scraper and sheet reconciliation
+Daily Vehicle Status and Rental Plan Setup
+Which Records Determine Who Had the Vehicle
+•  The batch procedure sp_generate_daily_vehicle_status (which resolves daily custody — determining who held the car each day) uses the daily sheet row first. Without it, it uses allocation/drop-off events, maintenance, an open allocation interval, then RFD.
+•  The schema also contains an anti-leakage rule: if an off-road car records trips on Uber or Ola, the day is made billable to prevent lost rental revenue.
+Active Rental Plans and Operations
+Rental plans entered through the portal are currently a work in progress and are not used for live billing. The active rental rates are maintained in the rental Google Sheets (sheet_rental_slabs and sheet_rental_partners), which update rental_custom_partner_plans (343 partner overrides), rental_rate_slabs (91 slabs), rental_model_baselines (31 models), and core_rental_plans (20 master plans).
+Operator and partner plans use the same configuration tables. customer_type, partner_id, model and vehicle fields decide whom a rule applies to. A backend script (sync_portal_to_rental_tables.py) is prepared to promote approved portal rates once live.
+Code reference — portal records to rental tables
+Daily Rent Calculation
+sp_calculate_daily_rent runs daily at 02:00 AM via pg_cron. It reads daily vehicle status, partner onboarding, the settlement calendar, Uber/Ola activity, and the rental configuration tables to calculate daily rent into daily_rent_log (106,713 live rows).
+Billable Date and Plan Selection
+•  Identify the vehicle, partner, date, city, model and customer type. Find the assigned plan in the custom plan or onboarding record.
+•  An unresolved city or missing partner is not billed. A trip on that date under that partner can make the date billable. RFD/drop-off/yard dates are otherwise non-billable; maintenance follows billable_rent_day.
+•  Select the slab using metric_type: Uber trips, Ola trips or total trips. Apply the date range, customer type, model, partner and Ola conditions.
+Rent Selection Order
+Indemnity is selected separately: exception fee → fee waiver/rule → custom fee → slab fee → model fee → plan fee → fallback ₹30. Non-billable dates receive zero rent and indemnity.
+Daily Output
+daily_rent_log stores one row per date + vehicle + partner: attendance, billability, rent, indemnity, total rent, selected plan/slab/custom card and calculation_rule. This is the rental input used by weekly Hisaab.
+Operational alignment: the active sp_calculate_daily_rent applies multi-platform trip evaluation and standard city rate cards across Bangalore, Hyderabad and Mumbai.
+Code reference — data-driven rental procedure
+Code reference — daily rent calculation procedure
+The Five Hisaab Output Tables
+The five Hisaab outputs have different purposes. Daily records, live vehicle balances and payout balances read their inputs separately. Partner totals and reconciliation records use the live vehicle results.
+Supporting tables: hisaab_settlement_weeks defines week boundaries and cutoff; hisaab_partner_opening_balances supplies opening dues; hisaab_system_config controls automatic carry-forward. Supporting schema definitions are maintained in backend setup.
+Code reference — all five Hisaab output procedures
+Exact Inputs to Weekly Hisaab
+The vehicle and payout procedures directly reference 12 distinct upstream tables, plus the settlement calendar. Raw platform tables feed their core summaries earlier; they are not all joined directly into Hisaab.
+How the Weekly Balance Is Built
+•  Vehicle balance = rent + indemnity − Uber net contribution − Ola net contribution + challans + signed adjustments + accident deduction + GPS penalty + TDS.
+•  Partner balance = total vehicle balances + opening dues + prior-period adjustments − recorded payments. Positive: partner owes LetzRyd. Negative: LetzRyd owes the partner.
+•  Passenger cash is already received by the driver. For example, ₹10,000 earnings minus ₹12,000 cash gives −₹2,000 platform balance, adding ₹2,000 to dues.
+•  Uber/Ola net contribution includes earnings, tolls and incentives, less passenger cash; Uber also subtracts subscription charges. Daily records assign earnings to the partner who had the vehicle. Where daily data is missing, weekly fallback totals go to the main ranked partner.
+•  GPS penalty: Bangalore individuals only. Excess distance = GPS km − trip km − 3 km per trip − 30 km per billable day, floored at zero; charge ₹3/km. Operators, Mumbai and Hyderabad are exempt in this SQL.
+Items not fully connected in the reviewed code: Rapido earnings are absent from weekly O/S and set to zero in reconciliation. core_accidents is not joined directly; the live formula retains the existing accident_deduction field. Late challan/adjustment handling is separate in the payout procedure.
+Code reference — driver matching, formulas and cutoff rules
+Driver App Tables and Cashfree Payments
+The app is a React web app with a FastAPI backend. The sync procedure fn_sync_hisaab_to_app_tables copies core driver users, operator users and live hisaab_vehicle_weekly records into app tables every hour via pg_cron.
+Payment Collection Flow
+•  Driver payment allocation: target statement → pending deposit → other unpaid statements → advance credit. Partial payments retain the unpaid amount.
+•  A repeated success callback is skipped once app_payments is SUCCESS. The payment helper updates app records; no matching write-back to hisaab_partner_weekly was found.
+Statements: the current SQL source is the live weekly table, not hisaab_vehicle_payout_weekly. Payout: the app shows to_pay and stores bank details, but the reviewed payment routes do not initiate a Cashfree beneficiary payout.
+Code reference — core and live Hisaab to app tables
+Code reference — Cashfree orders, verification and balance updates
+Repositories Schedules and Automation
+Automation Running in the Database
+The production database runs 18 scheduled pg_cron jobs that automate the pipeline:
+•  Core tables: refresh_core_partner_onboarding (:10 hourly); refresh_core_dropoffs (every 15 min); refresh_core_adjustments (every 15 min); sp_sync_core_challans (:20 hourly).
+•  Platform imports: sp_sync_core_uber (:05 and :35 hourly); sp_sync_core_ola (every 30 min); sp_sync_core_gps (:25 hourly for 3-day data, 03:00 daily for 7-day data).
+•  Vehicle status: sp_refresh_vehicle_status_rolling (every 15 min for 1-day status, 01:15 daily for 7-day deep sweep).
+•  Rent and Hisaab: sp_calculate_daily_rent (02:00 daily); sp_sync_rent_to_hisaab (02:30 daily); sp_sync_hisaab_vehicle_weekly (:45 hourly); sp_sync_hisaab_vehicle_payout_weekly (:50 hourly); sp_ensure_active_settlement_week (00:01 every Monday).
+•  App and reporting: fn_sync_hisaab_to_app_tables (:00 hourly); sp_refresh_daily_mis_rolling (:55 hourly for 7-day, 03:00 daily for 30-day).
+Hourly Cycle
+•  Hourly cycle (:00 to :55): :00 App sync → :05 Uber sync → :10 Partner onboarding → :15 Vehicle status → :20 Challans → :25 GPS telematics → :30 Ola sync → :35 Uber sync → :45 Weekly Hisaab → :50 Payout snapshot → :55 MIS report.
+•  Nightly batch cycle: 00:01 Mon Settlement week open → 01:15 7-day custody sweep → 02:00 Daily rent calculation → 02:30 Rent sync → 03:00 GPS 7-day & 30-day MIS rollup.
+Hosting: letzryd-core-prod holds PostgreSQL; letzryd-dev-test hosts Cloud Run services; letzryd-webapp handles Firebase login and notifications.
+Appendix Table Catalogue
+Scope: tables defined in code, plus tables read or updated by the main procedures. Definitions show the purpose and source repository for each table. Archive scripts and test tables are excluded.
+Google Sheet Input Tables
+Portal Forms and Supporting Tables
+Core Fleet and Platform Tables
+Rental Configuration and Daily Rent
+Hisaab Tables and Dependencies
+Uber Import and Incentive Tables
+Ola Import and Incentive Tables
+Rapido and Bangalore Challan Tables
+App Profiles Statements and Supporting Tables
+Catalogue total: 113 table names across the LetzRyd commercial fleet data platform.

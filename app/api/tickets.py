@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Union
 import uuid
 
 from app.database import get_db
@@ -13,25 +13,26 @@ router = APIRouter(prefix="/tickets", tags=["Support Tickets"])
 
 @router.get("")
 def list_tickets(
-    creator_id: Optional[int] = None,
+    creator_id: Optional[Union[int, str]] = None,
     creator_type: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     query = db.query(AppSupportTickets)
     if creator_id is not None:
+        c_str = str(creator_id)
         if creator_type == 'operator':
-            op = resolve_operator(str(creator_id), db)
-            target_id = op.app_operator_id if op else creator_id
+            op = resolve_operator(c_str, db)
+            target_id = op.app_operator_id if op else (int(c_str) if c_str.isdigit() else creator_id)
         elif creator_type == 'driver':
-            driver = resolve_driver(str(creator_id), db)
-            target_id = driver.app_driver_id if driver else creator_id
+            driver = resolve_driver(c_str, db)
+            target_id = driver.app_driver_id if driver else (int(c_str) if c_str.isdigit() else creator_id)
         else:
-            driver = resolve_driver(str(creator_id), db)
+            driver = resolve_driver(c_str, db)
             if driver:
                 target_id = driver.app_driver_id
             else:
-                op = resolve_operator(str(creator_id), db)
-                target_id = op.app_operator_id if op else creator_id
+                op = resolve_operator(c_str, db)
+                target_id = op.app_operator_id if op else (int(c_str) if c_str.isdigit() else creator_id)
         query = query.filter(AppSupportTickets.creator_id == target_id)
     if creator_type is not None:
         query = query.filter(AppSupportTickets.creator_type == creator_type)
@@ -42,12 +43,13 @@ def list_tickets(
 
 @router.post("", response_model=TicketResponse)
 def create_ticket(req: CreateTicketRequest, db: Session = Depends(get_db)):
+    c_str = str(req.creator_id)
     if req.creator_type == 'operator':
-        op = resolve_operator(str(req.creator_id), db)
-        target_id = op.app_operator_id if op else req.creator_id
+        op = resolve_operator(c_str, db)
+        target_id = op.app_operator_id if op else (int(c_str) if c_str.isdigit() else req.creator_id)
     else:
-        driver = resolve_driver(str(req.creator_id), db)
-        target_id = driver.app_driver_id if driver else req.creator_id
+        driver = resolve_driver(c_str, db)
+        target_id = driver.app_driver_id if driver else (int(c_str) if c_str.isdigit() else req.creator_id)
 
     now = datetime.now(timezone.utc)
     ticket_no = f"TKT-2026-{now.strftime('%H%M%S')}-{uuid.uuid4().hex[:4].upper()}"
@@ -67,14 +69,53 @@ def create_ticket(req: CreateTicketRequest, db: Session = Depends(get_db)):
     db.refresh(ticket)
     return _map_ticket(ticket)
 
+@router.get("/{ticket_id}", response_model=TicketResponse)
+def get_ticket(ticket_id: str, db: Session = Depends(get_db)):
+    tid_str = str(ticket_id).strip()
+    ticket = db.query(AppSupportTickets).filter(
+        (AppSupportTickets.ticket_number == tid_str) | 
+        (AppSupportTickets.ticket_number == f"TKT-{tid_str}")
+    ).first()
+
+    if not ticket and tid_str.isdigit():
+        ticket = db.query(AppSupportTickets).filter(
+            AppSupportTickets.app_ticket_id == int(tid_str)
+        ).first()
+
+    if not ticket and tid_str.upper().startswith("TKT-"):
+        suffix = tid_str[4:]
+        if suffix.isdigit():
+            ticket = db.query(AppSupportTickets).filter(
+                AppSupportTickets.app_ticket_id == int(suffix)
+            ).first()
+
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return _map_ticket(ticket)
+
 @router.patch("/{ticket_id}/status", response_model=TicketResponse)
 @router.put("/{ticket_id}/status", response_model=TicketResponse)
 @router.patch("/{ticket_id}", response_model=TicketResponse)
 @router.put("/{ticket_id}", response_model=TicketResponse)
-def update_ticket_status(ticket_id: int, req: UpdateTicketRequest, db: Session = Depends(get_db)):
+def update_ticket_status(ticket_id: str, req: UpdateTicketRequest, db: Session = Depends(get_db)):
+    tid_str = str(ticket_id).strip()
     ticket = db.query(AppSupportTickets).filter(
-        (AppSupportTickets.app_ticket_id == ticket_id)
+        (AppSupportTickets.ticket_number == tid_str) | 
+        (AppSupportTickets.ticket_number == f"TKT-{tid_str}")
     ).first()
+
+    if not ticket and tid_str.isdigit():
+        ticket = db.query(AppSupportTickets).filter(
+            AppSupportTickets.app_ticket_id == int(tid_str)
+        ).first()
+
+    if not ticket and tid_str.upper().startswith("TKT-"):
+        suffix = tid_str[4:]
+        if suffix.isdigit():
+            ticket = db.query(AppSupportTickets).filter(
+                AppSupportTickets.app_ticket_id == int(suffix)
+            ).first()
+
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
 

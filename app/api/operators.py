@@ -1,3 +1,4 @@
+from typing import Union, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -27,19 +28,19 @@ def get_current_operator(phone: str = "9691938866", db: Session = Depends(get_db
     return _map_operator(op, db)
 
 @router.get("/{operator_id}/fleet-summary", response_model=OperatorFleetResponse)
-def get_operator_fleet_summary(operator_id: int, db: Session = Depends(get_db)):
+def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
     
     drivers = db.query(AppDrivers).filter(
-        (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id)
+        AppDrivers.operator_id == op.app_operator_id
     ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
     for d in drivers:
         hisaabs = db.query(AppHisaabs).filter(
-            (AppHisaabs.app_driver_id == d.app_driver_id) | 
+            (AppHisaabs.app_driver_id == d.app_driver_id) & 
             (AppHisaabs.app_operator_id == op.app_operator_id)
         ).order_by(AppHisaabs.week_number.desc()).all()
         cw_os = float(d.cw_os or 0.0)
@@ -51,13 +52,11 @@ def get_operator_fleet_summary(operator_id: int, db: Session = Depends(get_db)):
             ).order_by(AppDriverAllocations.app_allocation_id.desc()).first()
             if alloc and alloc.vehicle_number:
                 veh_num = alloc.vehicle_number
-        if not veh_num:
-            veh_num = "KA05AQ7692"
 
         vehicles.append(FleetVehicleResponse(
             vehicle_number=veh_num,
-            vehicle_make=d.vehicle_make or "Maruti",
-            vehicle_model=d.vehicle_model or "Dzire CNG",
+            vehicle_make=d.vehicle_make,
+            vehicle_model=d.vehicle_model,
             driver_name=d.full_name or "Driver",
             driver_id=d.app_driver_id,
             driver_phone=d.phone or "",
@@ -120,14 +119,14 @@ def get_operator_fleet_summary(operator_id: int, db: Session = Depends(get_db)):
     )
 
 @router.get("/{operator_id}/fleet")
-def get_operator_fleet(operator_id: int, db: Session = Depends(get_db)):
+def get_operator_fleet(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
-    target_op_id = op.app_operator_id if op else operator_id
+    target_op_id = op.app_operator_id if op else (int(operator_id) if str(operator_id).isdigit() else operator_id)
     hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_operator_id == target_op_id).all()
     return {"operator_id": target_op_id, "fleet_count": len(hisaabs), "hisaabs": hisaabs}
 
 @router.get("/{operator_id}", response_model=OperatorProfileResponse)
-def get_operator_by_id(operator_id: int, db: Session = Depends(get_db)):
+def get_operator_by_id(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
@@ -142,7 +141,7 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
 
     if db is not None:
         drivers = db.query(AppDrivers).filter(
-            (AppDrivers.operator_id == op.app_operator_id) | (AppDrivers.operator_id == op.operator_id)
+            AppDrivers.operator_id == op.app_operator_id
         ).all()
         
         if drivers:

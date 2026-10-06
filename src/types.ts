@@ -38,6 +38,8 @@ export interface User {
   operatorName?: string;
   isFleetDriver?: boolean;
   isFleetManaged?: boolean;
+  app_driver_id?: number;
+  app_operator_id?: number;
 }
 
 export interface PlatformStatus {

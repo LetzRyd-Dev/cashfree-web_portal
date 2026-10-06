@@ -73,6 +73,7 @@ import {
   getOperatorByPhone,
   getOperatorFleet,
   getDriverHisaabs,
+  getOperatorHisaabs,
   getNotifications as fetchNotifications,
   getTickets,
   createTicket as apiCreateTicket,
@@ -175,7 +176,7 @@ export default function App() {
   const [operatorVehicleWeekIndex, setOperatorVehicleWeekIndex] = useState(0);
 
   // Data Collections
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
   const [hisaabWeeks, setHisaabWeeks] = useState<HisaabWeek[]>(() => savedSession?.hisaabWeeks || HISAAB_WEEKS_DATA);
   const [operatorFleet, setOperatorFleet] = useState<Fleet>(() => savedSession?.operatorFleet || OPERATOR_FLEET_DATA);
@@ -184,7 +185,7 @@ export default function App() {
   const [driverRentalPlan, setDriverRentalPlan] = useState<RentalPlan>(() => savedSession?.driverRentalPlan || RENTAL_PLAN_DATA);
 
   // Active Vehicle Selection for Operator View
-  const [selectedVehicleNumber, setSelectedVehicleNumber] = useState<string | null>('KA05AQ7692');
+  const [selectedVehicleNumber, setSelectedVehicleNumber] = useState<string | null>(() => operatorFleet.vehicles[0]?.number || null);
 
   // Active Emergency SOS Alarm
   const [sosActivated, setSosActivated] = useState(false);
@@ -413,6 +414,7 @@ export default function App() {
             const opProfile = await getOperatorByPhone(cleanPhone);
             const fleetData = await getOperatorFleet(opProfile.app_operator_id);
             const notifs = await fetchNotifications(opProfile.app_operator_id);
+            const opHisaabs = await getOperatorHisaabs(opProfile.app_operator_id).catch(() => []);
 
             setDriverUser(mapOperatorToUser(opProfile));
 
@@ -437,8 +439,12 @@ export default function App() {
               vehicles: mappedVehicles,
             };
             setOperatorFleet(mappedFleet);
-            if (mappedVehicles.length > 0 && mappedVehicles[0].hisaabWeeks.length > 0) {
+            if (opHisaabs && opHisaabs.length > 0) {
+              setHisaabWeeks(opHisaabs.map(mapHisaabToWeek));
+            } else if (mappedVehicles.length > 0 && mappedVehicles[0].hisaabWeeks.length > 0) {
               setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
+            }
+            if (mappedVehicles.length > 0) {
               setSelectedVehicleNumber(mappedVehicles[0].number);
             }
             if (notifs && notifs.length > 0) setNotifications(notifs.map(mapNotification));
@@ -535,8 +541,12 @@ export default function App() {
         });
       }
 
-      // If user is also/or a driver, add driver
-      if (driverRes) {
+      // If user is also/or a driver, add driver.
+      // IMPORTANT: If phone already matched a real fleet operator (with vehicles),
+      // suppress the duplicate driver entry — fleet owners appear in both tables,
+      // but should only ever log in as Operator.
+      const isFleetOperator = opRes && (opRes.total_vehicles || 0) > 0;
+      if (driverRes && !isFleetOperator) {
         found.push({
           name: driverRes.full_name || 'Driver',
           phone: driverRes.phone || cleanQ,
@@ -572,6 +582,7 @@ export default function App() {
         const opProfile = await getOperatorByPhone(result.phone);
         const fleetData = await getOperatorFleet(opProfile.app_operator_id);
         const notifs = await fetchNotifications(opProfile.app_operator_id);
+        const opHisaabs = await getOperatorHisaabs(opProfile.app_operator_id).catch(() => []);
 
         setDriverUser(mapOperatorToUser(opProfile));
 
@@ -594,8 +605,12 @@ export default function App() {
           depositPending: fleetData?.deposit_pending,
           vehicles: mappedVehicles,
         });
-        if (mappedVehicles.length > 0) {
+        if (opHisaabs && opHisaabs.length > 0) {
+          setHisaabWeeks(opHisaabs.map(mapHisaabToWeek));
+        } else if (mappedVehicles.length > 0) {
           setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
+        }
+        if (mappedVehicles.length > 0) {
           setSelectedVehicleNumber(mappedVehicles[0].number);
         }
         if (notifs?.length > 0) setNotifications(notifs.map(mapNotification));
@@ -690,10 +705,12 @@ export default function App() {
 
     // Try to submit to backend
     try {
-      const driverIdFromCode = parseInt((driverUser.id || '0').replace(/\D/g, '').slice(-4)) || 1;
+      const actualUserId = (loginType === 'operator'
+        ? (driverUser.app_operator_id || driverUser.app_driver_id)
+        : (driverUser.app_driver_id || driverUser.app_operator_id)) || 1;
       const backendTicket = await apiCreateTicket(
         loginType,
-        driverIdFromCode,
+        actualUserId,
         category,
         subject,
         description,
@@ -748,10 +765,6 @@ export default function App() {
   const handleSelectVehicleForHisaab = (number: string) => {
     setSelectedVehicleNumber(number);
     setOperatorVehicleWeekIndex(0);
-    const targetVeh = operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === number.replace(/\s+/g, '') || v.number === number);
-    if (targetVeh && targetVeh.hisaabWeeks && targetVeh.hisaabWeeks.length > 0) {
-      setHisaabWeeks(targetVeh.hisaabWeeks);
-    }
     navigateTo('operatorVehicle');
   };
 
@@ -1339,9 +1352,22 @@ export default function App() {
                     >
                       {/* 1. Driver Greeting Banner (100% Symmetrically Aligned) */}
                       <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs font-sans text-xs text-left space-y-0.5">
-                        <h2 className="font-extrabold text-text text-sm flex items-center gap-1.5">
-                          {t('home.greeting', 'Hi')}, {userName.split(' ')[0]} 👋
-                        </h2>
+                        <div className="flex items-center justify-between">
+                          <h2 className="font-extrabold text-text text-sm flex items-center gap-1.5">
+                            {t('home.greeting', 'Hi')}, {userName.split(' ')[0]} 👋
+                          </h2>
+                          {loginType === 'driver' && (
+                            !driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' || !driverVehicle.number.trim() ? (
+                              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                No Vehicle Assigned
+                              </span>
+                            ) : (
+                              <span className="font-mono text-[10.5px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
+                                {driverVehicle.number}
+                              </span>
+                            )
+                          )}
+                        </div>
                         <p className="text-text-muted text-[11px]">
                           {t('home.summary', "Here's your weekly settlement summary")}
                         </p>
@@ -1561,7 +1587,7 @@ export default function App() {
                               </span>
                             </div>
                             <p className="text-xs text-text-muted leading-tight">
-                              All prior week hisaabs and collections for vehicle <strong>{driverVehicle.number}</strong> are managed by <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>.
+                              All prior week hisaabs and collections for vehicle <strong>{!driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' ? 'Unassigned' : driverVehicle.number}</strong> are managed by <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>.
                             </p>
                             <div className="border-t border-border/60 pt-2 flex items-center justify-between text-xs">
                               <span className="font-bold text-text uppercase tracking-wider text-[10px]">
@@ -1788,38 +1814,20 @@ export default function App() {
                     </motion.div>
                   )}
 
-                  {currentScreen === 'hisaab' && (() => {
-                    const currentVeh = loginType === 'operator'
-                      ? (selectedVehicleObj || operatorFleet.vehicles[0])
-                      : null;
-                    const activeWeeks = (loginType === 'operator' && currentVeh?.hisaabWeeks && currentVeh.hisaabWeeks.length > 0)
-                      ? currentVeh.hisaabWeeks
-                      : hisaabWeeks;
-
-                    return (
-                      <HisaabScreen
-                        weeks={activeWeeks}
-                        weekIndex={driverWeekIndex}
-                        onPrevWeek={() => setDriverWeekIndex(prev => Math.min(prev + 1, activeWeeks.length - 1))}
-                        onNextWeek={() => setDriverWeekIndex(prev => Math.max(prev - 1, 0))}
-                        loginType={loginType}
-                        fleetVehicles={operatorFleet.vehicles}
-                        selectedVehicleNumber={selectedVehicleNumber || operatorFleet.vehicles[0]?.number}
-                        onSelectVehicle={(num) => {
-                          setSelectedVehicleNumber(num);
-                          setDriverWeekIndex(0);
-                          const target = operatorFleet.vehicles.find(v => v.number === num || v.number.replace(/\s+/g, '') === num.replace(/\s+/g, ''));
-                          if (target && target.hisaabWeeks && target.hisaabWeeks.length > 0) {
-                            setHisaabWeeks(target.hisaabWeeks);
-                          }
-                        }}
-                        onPayClick={() => navigateTo('settle')}
-                        t={t}
-                        isFleetManaged={isFleetManaged}
-                        operatorName={driverUser.operatorName}
-                      />
-                    );
-                  })()}
+                  {currentScreen === 'hisaab' && (
+                    <HisaabScreen
+                      weeks={hisaabWeeks}
+                      weekIndex={driverWeekIndex}
+                      onPrevWeek={() => setDriverWeekIndex(prev => Math.min(prev + 1, hisaabWeeks.length - 1))}
+                      onNextWeek={() => setDriverWeekIndex(prev => Math.max(prev - 1, 0))}
+                      loginType={loginType}
+                      fleetVehicles={operatorFleet.vehicles}
+                      onPayClick={() => navigateTo('settle')}
+                      t={t}
+                      isFleetManaged={isFleetManaged}
+                      operatorName={driverUser.operatorName}
+                    />
+                  )}
 
                   {currentScreen === 'settle' && (() => {
                     const currentH = hisaabWeeks[driverWeekIndex];
@@ -1896,6 +1904,7 @@ export default function App() {
                         user={driverUser}
                         tickets={tickets}
                         hotline={SUPPORT_HOTLINE}
+                        loginType={loginType}
                         onNewTicket={() => setIsNewTicketOpen(true)}
                         onSelectTicket={(ticket) => setSelectedTicket(ticket)}
                         onOpenSos={() => setIsSosModalOpen(true)}
