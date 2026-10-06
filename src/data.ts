@@ -1520,7 +1520,7 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "hisaab.rapidoEarnings": "Rapido Earnings",
   "hisaab.summaryTitle": "WEEKLY SUMMARY HIGHLIGHTS",
   "hisaab.totalRides": "Total Rides",
-  "hisaab.grossEarnings": "Total Gross Earnings",
+  "hisaab.grossEarnings": "Gross Trip Earnings",
   "hisaab.totalFeesRent": "Total Rent & Fees",
   "hisaab.totalPenalties": "Total Penalties",
   "hisaab.billTitle": "WEEKLY HISAAB STATEMENT",
@@ -1596,7 +1596,15 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "profile.role": "Role",
   "profile.accountManagerRole": "Account Manager",
   "profile.managerPhone": "Manager Phone",
-  "home.fleetEarnings": "Fleet Gross Earnings"
+  "home.fleetEarnings": "Fleet Gross Earnings",
+  "home.whatYouMade": "What You Made",
+  "home.whatFleetMade": "What Your Fleet Made",
+  "home.netSettlement": "Final Settlement",
+  "home.grossTripEarnings": "Gross Road Earnings",
+  "home.payNow": "Pay Now",
+  "home.payoutToBank": "Payout to Bank",
+  "hisaab.cashKeptByDriver": "Less: Cash Collected by Driver",
+  "hisaab.totalRentAndCharges": "Vehicle Rent & Platform Fees"
 };
 
 export const TRANSLATIONS_HI: Record<string, string> = {
@@ -1856,7 +1864,7 @@ export const TRANSLATIONS_HI: Record<string, string> = {
   "hisaab.rapidoEarnings": "रापिडो कमाई",
   "hisaab.summaryTitle": "साप्ताहिक सारांश मुख्य बिंदु",
   "hisaab.totalRides": "कुल राइड्स",
-  "hisaab.grossEarnings": "कुल सकल कमाई",
+  "hisaab.grossEarnings": "कुल ट्रिप कमाई",
   "hisaab.totalFeesRent": "कुल किराया और शुल्क",
   "hisaab.totalPenalties": "कुल जुर्माना",
   "hisaab.billTitle": "साप्ताहिक हिसाब विवरण",
@@ -1933,7 +1941,15 @@ export const TRANSLATIONS_HI: Record<string, string> = {
   "profile.role": "पद / भूमिका",
   "profile.accountManagerRole": "अकाउंट मैनेजर",
   "profile.managerPhone": "मैनेजर का फोन",
-  "home.fleetEarnings": "कुल फ्लीट कमाई"
+  "home.fleetEarnings": "कुल फ्लीट कमाई",
+  "home.whatYouMade": "आपकी कुल कमाई",
+  "home.whatFleetMade": "कुल फ्लीट कमाई",
+  "home.netSettlement": "अंतिम हिसाब / सेटलमेंट",
+  "home.grossTripEarnings": "सड़क पर कुल ट्रिप कमाई",
+  "home.payNow": "अभी भुगतान करें",
+  "home.payoutToBank": "बैंक में पेआउट",
+  "hisaab.cashKeptByDriver": "घटाएं: ड्राइवर द्वारा नकद संग्रह",
+  "hisaab.totalRentAndCharges": "वाहन किराया व प्लेटफॉर्म शुल्क"
 };
 
 export const TRANSLATIONS_MR: Record<string, string> = {

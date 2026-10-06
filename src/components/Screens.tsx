@@ -873,13 +873,30 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
       {/* 2. MERGED WEEKLY HISAAB STATEMENT CARD */}
       {(() => {
         const totalRides = (w.platforms.uber?.trips || 0) + (w.platforms.ola?.trips || 0) + (w.platforms.rapido?.trips || 0);
-        const uberNet = w.platforms.uber ? (w.platforms.uber.revenue + w.platforms.uber.cashCollection + w.platforms.uber.toll + w.platforms.uber.incentive + w.platforms.uber.subscription) : 0;
-        const olaNet = w.platforms.ola ? (w.platforms.ola.revenue + w.platforms.ola.cashCollection + w.platforms.ola.toll + w.platforms.ola.incentive + w.platforms.ola.subscription) : 0;
-        const rapidoNet = w.platforms.rapido ? (w.platforms.rapido.revenue + w.platforms.rapido.cashCollection + w.platforms.rapido.toll + w.platforms.rapido.incentive + w.platforms.rapido.subscription) : 0;
+        
+        // 1. Gross Earnings across platforms (Fares + Tolls + Incentives)
+        const uberGross = (w.platforms.uber?.revenue || 0) + (w.platforms.uber?.toll || 0) + (w.platforms.uber?.incentive || 0);
+        const olaGross = (w.platforms.ola?.revenue || 0) + (w.platforms.ola?.toll || 0) + (w.platforms.ola?.incentive || 0);
+        const rapidoGross = (w.platforms.rapido?.revenue || 0) + (w.platforms.rapido?.toll || 0) + (w.platforms.rapido?.incentive || 0);
+        const totalGrossFares = (w.grossEarnings && w.grossEarnings > 0) ? w.grossEarnings : (uberGross + olaGross + rapidoGross);
 
-        const totalEarnings = uberNet + olaNet + rapidoNet;
-        const totalDeductions = (w.rent.netWeeklyRent || 0) + (w.dailyMaintenance || 0) + (w.tds || 0) + (w.accident || 0);
-        const totalPenalties = (w.challan || 0) + (w.gps.deadKmPenalty || 0);
+        // 2. Cash Collected from riders in hand (kept by drivers)
+        const uberCash = Math.abs(w.platforms.uber?.cashCollection || 0);
+        const olaCash = Math.abs(w.platforms.ola?.cashCollection || 0);
+        const rapidoCash = Math.abs(w.platforms.rapido?.cashCollection || 0);
+        const totalCashInHand = (w.cashCollected && w.cashCollected > 0) ? w.cashCollected : (uberCash + olaCash + rapidoCash);
+
+        // 3. Platform Subscriptions & Service Fees
+        const platformFees = Math.abs(w.platforms.uber?.subscription || 0) + Math.abs(w.platforms.ola?.subscription || 0) + Math.abs(w.platforms.rapido?.subscription || 0);
+
+        // 4. Rent & Charges (Rent + Maintenance + TDS + Challans + Accidents + GPS Penalty + Platform Fees)
+        const totalRent = (w.rent.netWeeklyRent || 0);
+        const totalMaintenance = (w.dailyMaintenance || 0);
+        const totalTds = (w.tds || 0);
+        const totalAccident = (w.accident || 0);
+        const totalChallan = (w.challan || 0);
+        const totalGpsPenalty = (w.gps.deadKmPenalty || 0);
+        const totalDeductions = totalRent + totalMaintenance + totalTds + totalAccident + totalChallan + totalGpsPenalty + platformFees;
 
         return (
           <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs space-y-3.5 font-sans relative overflow-hidden">
@@ -907,27 +924,41 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
                 <span className="font-mono font-bold text-text">{totalRides} {t('hisaab.ridesUnit', 'Rides')}</span>
               </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-text-muted font-medium">{t('hisaab.totalEarnings', 'Total Earnings')}</span>
-                <span className="font-mono font-bold text-green">+{formatCurrency(totalEarnings)}</span>
+              {/* Step 1: Gross Trip Fares & Incomes */}
+              <div className="flex justify-between items-center pt-1 border-t border-border/50">
+                <span className="text-text font-bold flex items-center gap-1.5">
+                  <span className="text-green font-extrabold">+</span>
+                  {t('hisaab.grossEarnings', 'Gross Trip Earnings')}
+                </span>
+                <span className="font-mono font-bold text-green">+{formatCurrency(totalGrossFares)}</span>
               </div>
 
+              {/* Step 2: Cash in Driver Hand */}
+              {totalCashInHand > 0 && (
+                <div className="flex justify-between items-center pl-2.5 text-[11px] border-l-2 border-amber-400 bg-amber-500/5 py-0.5 rounded-r">
+                  <span className="text-text-muted font-medium">
+                    {t('hisaab.cashKeptByDriver', 'Less: Cash Collected by Driver')}
+                  </span>
+                  <span className="font-mono font-bold text-amber-700">-{formatCurrency(totalCashInHand)}</span>
+                </div>
+              )}
+
+              {/* Step 3: Vehicle Rent & Platform Fees */}
               <div className="flex justify-between items-center">
-                <span className="text-text-muted font-medium">{t('hisaab.totalFeesRent', 'Total Fees & Rent')}</span>
+                <span className="text-text font-bold flex items-center gap-1.5">
+                  <span className="text-red-600 font-extrabold">-</span>
+                  {t('hisaab.totalRentAndCharges', 'Vehicle Rent & Platform Fees')}
+                </span>
                 <span className="font-mono font-bold text-red-600">-{formatCurrency(totalDeductions)}</span>
               </div>
 
-              <div className="flex justify-between items-center">
-                <span className="text-text-muted font-medium">{t('hisaab.totalPenalties', 'Total Penalties')}</span>
-                <span className={`font-mono font-bold ${totalPenalties > 0 ? 'text-red-600' : 'text-green'}`}>
-                  {formatCurrency(totalPenalties)}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-text-muted font-medium">{t('hisaab.prevAdjustments', 'Previous Adjustments')}</span>
-                <span className="font-mono font-bold text-text">{formatCurrency(w.previousAdjustments)}</span>
-              </div>
+              {/* Step 4: Previous Adjustments if any */}
+              {w.previousAdjustments !== 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted font-medium">{t('hisaab.prevAdjustments', 'Previous Adjustments')}</span>
+                  <span className="font-mono font-bold text-text">{formatCurrency(w.previousAdjustments)}</span>
+                </div>
+              )}
             </div>
 
             {(() => {

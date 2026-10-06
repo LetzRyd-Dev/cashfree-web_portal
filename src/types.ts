@@ -144,6 +144,8 @@ export interface HisaabWeek {
   paymentStatus?: 'unpaid' | 'partial' | 'settled';
   app_hisaab_id?: number;
   isFleetManaged?: boolean;
+  grossEarnings?: number;
+  cashCollected?: number;
 }
 
 export interface FleetVehicle {

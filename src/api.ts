@@ -202,6 +202,8 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
     paymentStatus: (h.payment_status as any) || 'unpaid',
     app_hisaab_id: h.app_hisaab_id || undefined,
     isFleetManaged: Boolean(h.is_fleet_managed || (h.app_operator_id && h.app_operator_id > 0)),
+    grossEarnings: Number(h.total_gross_earnings || ((h.uber_revenue || 0) + (h.ola_revenue || 0) + (h.rapido_revenue || 0) + (h.uber_toll || 0) + (h.ola_toll || 0) + (h.rapido_toll || 0) + (h.uber_incentive || 0) + (h.ola_incentive || 0) + (h.rapido_incentive || 0))),
+    cashCollected: Math.abs(Number(h.uber_cash || 0)) + Math.abs(Number(h.ola_cash || 0)) + Math.abs(Number(h.rapido_cash || 0)),
   };
 }
 
