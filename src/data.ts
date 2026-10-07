@@ -130,13 +130,13 @@ export const HISAAB_WEEKS_DATA: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: -7995.80,
+    currentWeekOs: -8595.80,
     pendingDue: 0,
-    totalOs: -7995.80,
+    totalOs: -8595.80,
     toCollect: 0,
-    toPay: 7995.80,
+    toPay: 8595.80,
     letzrydEarning: 4000,
-    notes: "Current active week statement in progress. Net payout of ₹7,996 payable to driver."
+    notes: "Current active week statement in progress. Net payout of ₹8,596 payable to driver."
   },
   {
     weekNumber: 39,
@@ -290,13 +290,13 @@ export const SURESH_HISAAB_WEEKS: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: 1850.00,
-    pendingDue: 1850.00,
-    totalOs: 1850.00,
-    toCollect: 1850.00,
+    currentWeekOs: 175.00,
+    pendingDue: 175.00,
+    totalOs: 175.00,
+    toCollect: 175.00,
     toPay: 0,
     letzrydEarning: 4500,
-    notes: "Current active week statement. Balance due ₹1,850.00 owed to LetzRyd."
+    notes: "Current active week statement. Balance due ₹175.00 owed to LetzRyd."
   },
   {
     app_hisaab_id: 5,
@@ -448,13 +448,13 @@ export const VIKRAM_HISAAB_WEEKS: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: -6180.00,
+    currentWeekOs: -1530.00,
     pendingDue: 0,
-    totalOs: -6180.00,
+    totalOs: -1530.00,
     toCollect: 0,
-    toPay: 6180.00,
+    toPay: 1530.00,
     letzrydEarning: 5700,
-    notes: "Current active week statement in progress. Net payout of ₹6,180 payable to driver."
+    notes: "Current active week statement in progress. Net payout of ₹1,530 payable to driver."
   },
   {
     weekNumber: 39,
@@ -604,13 +604,13 @@ export const VARAPRASAD_HISAAB_WEEKS: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: -3480.00,
+    currentWeekOs: -340.00,
     pendingDue: 0,
-    totalOs: -3480.00,
+    totalOs: -340.00,
     toCollect: 0,
-    toPay: 3480.00,
+    toPay: 340.00,
     letzrydEarning: 4500,
-    notes: "Current active week statement in progress. Net payout of ₹3,480 payable to driver."
+    notes: "Current active week statement in progress. Net payout of ₹340 payable to driver."
   },
   {
     weekNumber: 39,
@@ -760,13 +760,13 @@ export const MOHAMMED_HISAAB_WEEKS: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: -4580.00,
+    currentWeekOs: -1035.00,
     pendingDue: 0,
-    totalOs: -4580.00,
+    totalOs: -1035.00,
     toCollect: 0,
-    toPay: 4580.00,
+    toPay: 1035.00,
     letzrydEarning: 5250,
-    notes: "Current active week statement in progress. Net payout of ₹4,580 payable to driver."
+    notes: "Current active week statement in progress. Net payout of ₹1,035 payable to driver."
   },
   {
     weekNumber: 39,
@@ -916,13 +916,13 @@ export const ANIL_HISAAB_WEEKS: HisaabWeek[] = [
       penaltyRatePerKm: 5
     },
     lastRefreshedTime: "17 Aug 2026, 05:56 PM",
-    currentWeekOs: 1820.50,
-    pendingDue: 1820.50,
-    totalOs: 1820.50,
-    toCollect: 1820.50,
+    currentWeekOs: 1325.00,
+    pendingDue: 1325.00,
+    totalOs: 1325.00,
+    toCollect: 1325.00,
     toPay: 0,
     letzrydEarning: 2200,
-    notes: "Current active week statement. Balance due ₹1,820.50 owed to LetzRyd."
+    notes: "Current active week statement. Balance due ₹1,325.00 owed to LetzRyd."
   },
   {
     weekNumber: 39,
@@ -984,7 +984,7 @@ export const OPERATOR_FLEET_DATA: Fleet = {
       model: "Dzire CNG",
       driverName: "Vivek",
       plan: { name: "Standard", dailyRate: 1000 },
-      currentWeekOs: -7995.80,
+      currentWeekOs: -8595.80,
       status: "active",
       hisaabWeeks: RAJESH_HISAAB_WEEKS
     },
@@ -994,7 +994,7 @@ export const OPERATOR_FLEET_DATA: Fleet = {
       model: "Tigor EV",
       driverName: "Sushant",
       plan: { name: "Standard", dailyRate: 900 },
-      currentWeekOs: 1850.00,
+      currentWeekOs: 175.00,
       status: "active",
       hisaabWeeks: SURESH_HISAAB_WEEKS
     },
@@ -1004,7 +1004,7 @@ export const OPERATOR_FLEET_DATA: Fleet = {
       model: "eVerito",
       driverName: "Aayush",
       plan: { name: "Standard", dailyRate: 950 },
-      currentWeekOs: -6180.00,
+      currentWeekOs: -1530.00,
       status: "active",
       hisaabWeeks: VIKRAM_HISAAB_WEEKS
     },
@@ -1014,7 +1014,7 @@ export const OPERATOR_FLEET_DATA: Fleet = {
       model: "Tour H3 CNG",
       driverName: "Anurag Driver",
       plan: { name: "Standard", dailyRate: 900 },
-      currentWeekOs: -3480.00,
+      currentWeekOs: -340.00,
       status: "active",
       hisaabWeeks: VARAPRASAD_HISAAB_WEEKS
     }
@@ -1034,7 +1034,7 @@ export const SALEEM_FLEET_DATA: Fleet = {
       model: "XPRES-T EV",
       driverName: "Mohammed Ali",
       plan: { name: "Standard", dailyRate: 1050 },
-      currentWeekOs: -4580.00,
+      currentWeekOs: -1035.00,
       status: "active",
       hisaabWeeks: MOHAMMED_HISAAB_WEEKS
     },
@@ -1044,7 +1044,7 @@ export const SALEEM_FLEET_DATA: Fleet = {
       model: "e6 EV",
       driverName: "Anil Verma",
       plan: { name: "Standard", dailyRate: 1100 },
-      currentWeekOs: 1820.50,
+      currentWeekOs: 1325.00,
       status: "active",
       hisaabWeeks: ANIL_HISAAB_WEEKS
     }
@@ -1695,6 +1695,13 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "sos.controlHub": "LetzRyd Central Control Hub (24x7)",
   "sos.hubNotified": "Central Control Hub notified at",
   "sos.matchingCoords": "Dispatchers are matching vehicle coordinates.",
+  "hisaab.netFleetPayout": "NET FLEET PAYOUT",
+  "hisaab.netFleetPayoutSub": "LetzRyd net payout to fleet",
+  "hisaab.netFleetDueSub": "Net amount due to LetzRyd after offsets",
+  "hisaab.grossPayout": "Gross payout",
+  "hisaab.debtOffset": "Debt offset",
+  "settle.weeklyHisaabPayout": "Weekly Hisaab Payout (To Bank):",
+  "operator.netFleetDue": "NET WEEKLY DUE (TO COLLECT − TO PAY)",
 };
 
 export const TRANSLATIONS_HI: Record<string, string> = {
@@ -2142,6 +2149,13 @@ export const TRANSLATIONS_HI: Record<string, string> = {
   "sos.controlHub": "लेट्ज़रॉइड केंद्रीय नियंत्रण हब (24x7)",
   "sos.hubNotified": "केंद्रीय नियंत्रण हब को सूचित किया गया",
   "sos.matchingCoords": "डिस्पैचर वाहन के निर्देशांक मिला रहे हैं।",
+  "hisaab.netFleetPayout": "कुल फ्लीट पेआउट",
+  "hisaab.netFleetPayoutSub": "लेत्ज़रॉइड द्वारा फ्लीट को कुल पेआउट",
+  "hisaab.netFleetDueSub": "समायोजन के बाद लेत्ज़रॉइड को कुल देय राशि",
+  "hisaab.grossPayout": "सकल पेआउट",
+  "hisaab.debtOffset": "बकाया समायोजन",
+  "settle.weeklyHisaabPayout": "साप्ताहिक हिसाब पेआउट (बैंक में):",
+  "operator.netFleetDue": "कुल साप्ताहिक देय (वसूल − भुगतान)",
 };
 
 export const TRANSLATIONS_MR: Record<string, string> = {
@@ -2589,6 +2603,13 @@ export const TRANSLATIONS_MR: Record<string, string> = {
   "sos.controlHub": "लेट्झराइड सेंट्रल कंट्रोल हब (24x7)",
   "sos.hubNotified": "सेंट्रल कंट्रोल हबला सूचित केले",
   "sos.matchingCoords": "डिस्पॅचर्स वाहनाचे स्थान तपासत आहेत.",
+  "hisaab.netFleetPayout": "एकूण फ्लीट पेआउट",
+  "hisaab.netFleetPayoutSub": "लेत्झरॉइडद्वारे फ्लीटला एकूण पेआउट",
+  "hisaab.netFleetDueSub": "समायोजनानंतर लेत्झरॉइडला देय रक्कम",
+  "hisaab.grossPayout": "एकूण पेआउट",
+  "hisaab.debtOffset": "बाकी समायोजन",
+  "settle.weeklyHisaabPayout": "साप्ताहिक हिशोब पेआउट (बँकेत):",
+  "operator.netFleetDue": "एकूण साप्ताहिक देय (घेणे − देणे)",
 };
 
 export const TRANSLATIONS_TE: Record<string, string> = {
@@ -3036,6 +3057,13 @@ export const TRANSLATIONS_TE: Record<string, string> = {
   "sos.controlHub": "లెట్జ్‌రైడ్ సెంట్రల్ కంట్రోల్ హబ్ (24x7)",
   "sos.hubNotified": "సెంట్రల్ కంట్రోల్ హబ్‌కు సమాచారం అందించబడింది",
   "sos.matchingCoords": "డిస్పాచర్లు వాహన లొకేషన్‌ను పరిశీలిస్తున్నారు.",
+  "hisaab.netFleetPayout": "నికర ఫ్లీట్ పేఅవుట్",
+  "hisaab.netFleetPayoutSub": "ఫ్లీట్‌కు లెట్జ్‌రైడ్ నికర పేఅవుట్",
+  "hisaab.netFleetDueSub": "సద్దుబాటు తర్వాత చెల్లించాల్సిన నికర బాకీ",
+  "hisaab.grossPayout": "స్థూల పేఅవుట్",
+  "hisaab.debtOffset": "బాకీ సద్దుబాటు",
+  "settle.weeklyHisaabPayout": "వారపు లెక్కల పేఅవుట్ (బ్యాంకుకు):",
+  "operator.netFleetDue": "వారపు నికర బాకీ (వసూలు − చెల్లింపు)",
 };
 
 export const TRANSLATIONS_KN: Record<string, string> = {
@@ -3483,4 +3511,11 @@ export const TRANSLATIONS_KN: Record<string, string> = {
   "sos.controlHub": "ಲೆಟ್ಜ್ರೈಡ್ ಕೇಂದ್ರೀಯ ನಿಯಂತ್ರಣ ಕೇಂದ್ರ (24x7)",
   "sos.hubNotified": "ಕೇಂದ್ರೀಯ ನಿಯಂತ್ರಣ ಕೇಂದ್ರಕ್ಕೆ ಸೂಚಿಸಲಾಗಿದೆ",
   "sos.matchingCoords": "ರವಾನೆದಾರರು ವಾಹನದ ನಿರ್ದೇಶಾಂಕಗಳನ್ನು ಹೊಂದಿಸುತ್ತಿದ್ದಾರೆ.",
+  "hisaab.netFleetPayout": "ನಿವ್ವಳ ಫ್ಲೀಟ್ ಪಾವತಿ",
+  "hisaab.netFleetPayoutSub": "ಬ್ಯಾಂಕ್ ಖಾತೆಗೆ ಲೆಟ್ಜ್ರೈಡ್ ನಿವ್ವಳ ಪಾವತಿ",
+  "hisaab.netFleetDueSub": "ಲೆಟ್ಜ್ರೈಡ್‌ಗೆ ಪಾವತಿಸಬೇಕಾದ ನಿವ್ವಳ ಮೊತ್ತ",
+  "hisaab.grossPayout": "ಒಟ್ಟು ಪಾವತಿ",
+  "hisaab.debtOffset": "ಸಾಕಷ್ಟು ಸಾಲದ ವಜಾ",
+  "settle.weeklyHisaabPayout": "ಸಾಪ್ತಾಹಿಕ ಹಿಸಾಬ್ ಪಾವತಿ (ಬ್ಯಾಂಕ್‌ಗೆ)",
+  "operator.netFleetDue": "ನಿವ್ವಳ ಸಾಪ್ತಾಹಿಕ ಬಾಕಿ (ಸ್ವೀಕರಿಸಲು − ಪಾವತಿಸಲು)"
 };

@@ -33,23 +33,16 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
     
-    op_filter_ids = [op.app_operator_id]
-    if op.operator_id and op.operator_id not in op_filter_ids:
-        op_filter_ids.append(op.operator_id)
     drivers = db.query(AppDrivers).filter(
-        AppDrivers.operator_id.in_(op_filter_ids)
+        AppDrivers.operator_id == op.app_operator_id
     ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
     seen_vehicles = {}
     driver_items = []
     for d in drivers:
-        driver_ids = [d.app_driver_id]
-        if d.driver_id:
-            driver_ids.append(d.driver_id)
-
         hisaabs = db.query(AppHisaabs).filter(
-            AppHisaabs.app_driver_id.in_(driver_ids)
+            AppHisaabs.app_driver_id == d.app_driver_id
         ).order_by(AppHisaabs.week_number.desc()).all()
 
         veh_num = d.vehicle_reg_number
@@ -134,12 +127,8 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
                 existing_v = vehicles[idx]
                 if len(hisaabs) > existing_v.hisaab_count:
                     vehicles[idx] = veh_obj
-    # Also collect any fleet vehicles that have hisaabs for this operator but were not in seen_vehicles
-    op_ids = [op.app_operator_id]
-    if op.operator_id:
-        op_ids.append(op.operator_id)
     op_hisaabs = db.query(AppHisaabs).filter(
-        AppHisaabs.app_operator_id.in_(op_ids)
+        AppHisaabs.app_operator_id == op.app_operator_id
     ).order_by(AppHisaabs.week_number.desc()).all()
 
     latest_week = week_number if week_number is not None else max([h.week_number for h in op_hisaabs], default=40)
@@ -338,15 +327,12 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
     total_drivers = op.total_drivers or 0
 
     if db is not None:
-        op_filter_ids = [op.app_operator_id]
-        if op.operator_id and op.operator_id not in op_filter_ids:
-            op_filter_ids.append(op.operator_id)
         drivers = db.query(AppDrivers).filter(
-            AppDrivers.operator_id.in_(op_filter_ids)
+            AppDrivers.operator_id == op.app_operator_id
         ).all()
         
         op_hisaabs = db.query(AppHisaabs).filter(
-            AppHisaabs.app_operator_id.in_(op_filter_ids)
+            AppHisaabs.app_operator_id == op.app_operator_id
         ).order_by(AppHisaabs.week_number.desc()).all()
         
         latest_week = max([h.week_number for h in op_hisaabs], default=40)

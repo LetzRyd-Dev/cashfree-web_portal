@@ -91,7 +91,6 @@ def get_vehicle_hisaabs(vehicle_number: str, db: Session = Depends(get_db)):
 def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
     target_op_id = op.app_operator_id if op else (int(operator_id) if str(operator_id).isdigit() else None)
-    core_op_id = op.operator_id if (op and op.operator_id) else target_op_id
     if target_op_id is None:
         return {"operator_id": operator_id, "count": 0, "data": []}
     
@@ -100,7 +99,7 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             week_number,
             MIN(period_start) as period_start,
             MAX(period_end) as period_end,
-            COUNT(DISTINCT app_driver_id) as active_vehicles,
+            COUNT(*) as active_vehicles,
             SUM(GREATEST(COALESCE(completed_trips, 0), (COALESCE(uber_trips, 0) + COALESCE(ola_trips, 0) + COALESCE(rapido_trips, 0)))) as completed_trips,
             SUM(COALESCE(total_gross_earnings, 0.00)) as total_gross_earnings,
             SUM(COALESCE(total_deductions, 0.00)) as total_deductions,
@@ -112,6 +111,10 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             SUM(COALESCE(accident_charge, 0.00)) as accident_charge,
             SUM(COALESCE(other_adjustment, 0.00)) as other_adjustment,
             SUM(COALESCE(previous_outstanding, 0.00)) as previous_outstanding,
+            SUM(COALESCE(gps_total_km, 0.00)) as gps_total_km,
+            SUM(COALESCE(gps_ideal_km, 0.00)) as gps_ideal_km,
+            SUM(COALESCE(gps_dead_km, 0.00)) as gps_dead_km,
+            SUM(COALESCE(gps_dead_penalty, 0.00)) as gps_dead_penalty,
             SUM(COALESCE(to_pay, 0.00)) as to_pay,
             SUM(COALESCE(to_collect, 0.00)) as to_collect,
             SUM(COALESCE(uber_trips, 0)) as uber_trips,
@@ -139,18 +142,24 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             SUM(COALESCE(letzryd_earning, 0.00)) as letzryd_earning,
             SUM(COALESCE(paid_amount, 0.00)) as paid_amount
         FROM app_hisaabs
-        WHERE app_operator_id IN (:op_id, :core_op_id)
+        WHERE app_operator_id = :op_id
         GROUP BY week_number
         ORDER BY week_number DESC
-    """), {"op_id": target_op_id, "core_op_id": core_op_id}).mappings().fetchall()
+    """), {"op_id": target_op_id}).mappings().fetchall()
 
     op_code = op.operator_code if op else str(target_op_id)
     data = []
     for r in rows:
         w_num = r['week_number']
+        h_no = f"HIS-OP-2026-{w_num:03d}-{op_code}"
         to_pay_val = float(r['to_pay'] or 0.0)
         to_collect_val = float(r['to_collect'] or 0.0)
-        stat = "settled" if (w_num < 40 or to_collect_val <= 0) else "in_progress"
+        net_os = round(to_collect_val - to_pay_val, 2)
+        stat = "settled" if (w_num < 40 or (to_collect_val <= 0 and to_pay_val <= 0)) else "in_progress"
+        gps_tot = float(r['gps_total_km'] or 0.0)
+        gps_id = float(r['gps_ideal_km'] or 0.0)
+        gps_dd = float(r['gps_dead_km'] or 0.0)
+        gps_pct = round((gps_dd / gps_tot) * 100.0, 2) if gps_tot > 0 else 0.0
         
         data.append(HisaabBreakdownResponse(
             app_hisaab_id=w_num,
@@ -162,7 +171,7 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             period_end=r['period_end'],
             days_count=7,
             status=stat,
-            is_locked=False,
+            is_locked=(w_num < 40),
             growth_pct=0.0,
             uber_trips=int(r['uber_trips'] or 0),
             uber_revenue=float(r['uber_revenue'] or 0.0),
@@ -193,11 +202,11 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             accident_charge=float(r['accident_charge'] or 0.0),
             other_adjustment=float(r['other_adjustment'] or 0.0),
             previous_outstanding=float(r['previous_outstanding'] or 0.0),
-            gps_total_km=0.0,
-            gps_ideal_km=0.0,
-            gps_dead_km=0.0,
-            gps_dead_pct=0.0,
-            gps_dead_penalty=0.0,
+            gps_total_km=gps_tot,
+            gps_ideal_km=gps_id,
+            gps_dead_km=gps_dd,
+            gps_dead_pct=gps_pct,
+            gps_dead_penalty=float(r['gps_dead_penalty'] or 0.0),
             gps_free_dead_pct=20.0,
             gps_penalty_rate=5.0,
             completed_trips=int(r['completed_trips'] or 0),
@@ -205,9 +214,10 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             total_gross_earnings=float(r['total_gross_earnings'] or 0.0),
             total_deductions=float(r['total_deductions'] or 0.0),
             total_penalties=float(r['total_penalties'] or 0.0),
-            current_period_os=float(to_collect_val - to_pay_val),
+            current_period_os=net_os,
             to_collect=to_collect_val,
             to_pay=to_pay_val,
+            weekly_hisaab_due=max(0.0, net_os),
             letzryd_earning=float(r['letzryd_earning'] or 0.0),
             notes=f"Fleet aggregate across {r['active_vehicles']} vehicles",
             last_refreshed_at=None,

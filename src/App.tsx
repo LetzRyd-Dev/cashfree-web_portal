@@ -1767,11 +1767,11 @@ export default function App() {
                         </div>
                       )}
 
-                      {/* 4. LAST WEEK HISAAB & SECURITY DEPOSIT (CLICKABLE CARD) */}
+                      {/* 4. WEEKLY HISAAB & SECURITY DEPOSIT (CLICKABLE CARD) */}
                       {loginType === 'driver' ? (
                         (() => {
-                          const targetWeek = prevWeek || activeWeek;
-                          const targetWeekIdx = prevWeek ? 1 : 0;
+                          const targetWeek = activeWeek || prevWeek;
+                          const targetWeekIdx = 0;
                           if (isFleetDriver && !targetWeek) {
                             return (
                               <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left space-y-2.5 font-sans">
@@ -1813,7 +1813,7 @@ export default function App() {
                             >
                               <div className="flex justify-between items-center border-b border-border/60 pb-2.5">
                                 <span className="font-sans text-[11px] font-bold text-text uppercase tracking-wider group-hover:text-primary transition-colors">
-                                  {prevWeek ? t('home.lastWeekHisaab', 'LAST WEEK HISAAB') : t('home.currentSettlement', 'CURRENT SETTLEMENT STATUS')}
+                                  {t('home.currentSettlement', 'FINAL SETTLEMENT')}
                                 </span>
                                 <span className="text-[10px] font-semibold text-text-muted font-mono bg-bg px-2 py-0.5 rounded-md border border-border/50">
                                   {t('home.week', 'Week')} #{targetWeek.weekNumber} • {targetWeek.hisaabNumber}
@@ -1824,15 +1824,15 @@ export default function App() {
                                 <div className="flex justify-between items-center gap-2 pt-0.5">
                                   <div>
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">
-                                      {isSettled ? t('home.payoutPaid', 'Payout to Bank') : t('home.payoutPending', 'Payout Processing')}
+                                      {isSettled ? t('home.payoutPaid', 'Payout to Bank') : t('home.payoutPending', 'Payout to Bank')}
                                     </div>
                                     <div className="font-sans text-xl font-bold text-green mt-0.5 whitespace-nowrap font-mono">
                                       +₹{payoutAmt.toLocaleString('en-IN', { minimumFractionDigits: payoutAmt % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                                     </div>
                                   </div>
-                                  <span className={`flex items-center gap-1.5 font-sans text-[10px] font-bold px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap border ${isSettled ? 'text-green bg-green-light border-green-200/50' : 'text-blue-700 bg-blue-50 border-blue-200'}`}>
-                                    {isSettled ? <CheckCircle2 className="w-3.5 h-3.5 text-green" /> : <Clock className="w-3.5 h-3.5 text-blue-600" />}
-                                    {isSettled ? t('home.paidToBank', 'Paid to Bank') : t('home.payoutDue', 'Payout Due')}
+                                  <span className={`flex items-center gap-1.5 font-sans text-[10px] font-bold px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap border ${isSettled ? 'text-green bg-green-light border-green-200/50' : 'text-green bg-green-50 border-green-200'}`}>
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-green" />
+                                    {isSettled ? t('home.paidToBank', 'Paid to Bank') : t('home.payoutReady', 'Payout Ready')}
                                   </span>
                                 </div>
                               ) : isAllPaid ? (
@@ -1849,7 +1849,7 @@ export default function App() {
                               ) : (
                                 <div className="flex flex-wrap items-start justify-between gap-2 pt-0.5">
                                   <div className="min-w-0">
-                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.totalOutstandingDue', 'Total Outstanding Due')}</div>
+                                    <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.dueToLetzryd', 'Due to be paid to LetzRyd')}</div>
                                     <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5 whitespace-nowrap font-mono">
                                       -₹{(() => {
                                         const isSettled = targetWeek.paymentStatus === 'settled' || targetWeek.status === 'settled';
@@ -1858,9 +1858,8 @@ export default function App() {
                                           : (targetWeek.toCollect !== undefined && targetWeek.toCollect !== null && targetWeek.toCollect > 0)
                                           ? targetWeek.toCollect
                                           : Math.max(0, targetWeek.currentWeekOs || 0);
-                                        const due = remHisaab + (driverUser.depositPending || 0);
-                                        return due.toLocaleString('en-IN', {
-                                          minimumFractionDigits: due % 1 !== 0 ? 2 : 0,
+                                        return remHisaab.toLocaleString('en-IN', {
+                                          minimumFractionDigits: remHisaab % 1 !== 0 ? 2 : 0,
                                           maximumFractionDigits: 2,
                                         });
                                       })()}
@@ -2092,6 +2091,9 @@ export default function App() {
                       t={t}
                       isFleetManaged={isFleetManaged}
                       operatorName={driverUser.operatorName}
+                      depositAgreed={loginType === 'operator' ? ((operatorFleet.depositPaidSoFar ?? 0) + (operatorFleet.depositPending ?? 0)) : ((driverUser.depositPaidSoFar || driverUser.depositAmount || 0) + (driverUser.depositPending || 0))}
+                      depositPaid={loginType === 'operator' ? (operatorFleet.depositPaidSoFar ?? 0) : (driverUser.depositPaidSoFar || driverUser.depositAmount || 0)}
+                      depositPending={loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0)}
                     />
                   )}
 
@@ -2113,6 +2115,14 @@ export default function App() {
                     const opNetDue = currentH
                       ? Math.max(0, (currentH.toCollect ?? 0) - (currentH.toPay ?? 0))
                       : Math.max(0, fleetNetOs);
+                    const opNetPayout = currentH
+                      ? Math.max(0, (currentH.toPay ?? 0) - (currentH.toCollect ?? 0))
+                      : Math.max(0, -fleetNetOs);
+                    const driverNetPayout = isWeeklyPayout
+                      ? ((currentH?.toPay && currentH.toPay > 0) ? currentH.toPay : Math.abs(currentH?.currentWeekOs || 0))
+                      : 0;
+                    const weeklyPayoutAmt = isSettled ? 0 : (loginType === 'operator' ? opNetPayout : driverNetPayout);
+
                     const totalOperatorDue = isSettled ? 0 : opNetDue;
                     const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : Math.max(0, remainingHisaabDue - challanAmt);
                     const finalTotalAmount = finalHisaabAmount + pendingDep + challanAmt;
@@ -2121,6 +2131,7 @@ export default function App() {
                       <SettleScreen
                         amount={finalTotalAmount}
                         hisaabAmount={finalHisaabAmount}
+                        weeklyPayout={weeklyPayoutAmt}
                         pendingDeposit={pendingDep}
                         challansAmount={challanAmt}
                         weekRange={currentH?.weekStart && currentH?.weekEnd ? `${currentH.weekStart} to ${currentH.weekEnd}` : 'Current Settlement Period'}

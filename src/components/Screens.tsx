@@ -598,6 +598,9 @@ interface HisaabScreenProps {
   onSelectVehicle?: (number: string) => void;
   isFleetManaged?: boolean;
   operatorName?: string;
+  depositAgreed?: number;
+  depositPaid?: number;
+  depositPending?: number;
 }
 
 export const HisaabScreen: React.FC<HisaabScreenProps> = ({
@@ -613,7 +616,10 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
   selectedVehicleNumber,
   onSelectVehicle,
   isFleetManaged,
-  operatorName
+  operatorName,
+  depositAgreed,
+  depositPaid,
+  depositPending
 }) => {
   const [uberOpen, setUberOpen] = useState(false);
   const [olaOpen, setOlaOpen] = useState(false);
@@ -953,33 +959,71 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
               </div>
 
               {/* Step 4: Previous Adjustments if any */}
-              {w.previousAdjustments !== 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-text-muted font-medium">{t('hisaab.prevAdjustments', 'Previous Adjustments')}</span>
-                  <span className="font-mono font-bold text-text">{formatCurrency(w.previousAdjustments)}</span>
-                </div>
-              )}
+              {w.previousAdjustments !== 0 && (() => {
+                const partnerAdj = -(w.previousAdjustments || 0);
+                return (
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted font-medium">{t('hisaab.prevAdjustments', 'Previous Adjustments')}</span>
+                    <span className={`font-mono font-bold ${partnerAdj >= 0 ? 'text-green' : 'text-red-600'}`}>
+                      {partnerAdj >= 0 ? '+' + formatCurrency(partnerAdj) : formatCurrency(partnerAdj)}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
 
             {(() => {
+              const isOperatorHisaab = loginType === 'operator';
               const isSettled = w.paymentStatus === 'settled' || w.status === 'settled' || w.status === 'settled_pay';
-              const remainingDue = isSettled
-                ? 0
-                : (w.toCollect !== undefined && w.toCollect !== null && w.toCollect > 0)
-                ? w.toCollect
-                : Math.max(0, (w.currentWeekOs > 0 ? w.currentWeekOs : 0));
-              const isPayout = (w.currentWeekOs || 0) < 0 || ((w.toPay || 0) > 0 && (w.toCollect || 0) <= 0);
-              const payoutAmt = (w.toPay && w.toPay > 0) ? w.toPay : Math.abs(w.currentWeekOs || 0);
+
+              // For operators: net = toPay - toCollect (some vehicles owe, some get paid)
+              // For drivers: net = toPay (driver payout) or toCollect (driver owes)
+              const toCollectAmt = Number(w.toCollect || 0);
+              const toPayAmt = Number(w.toPay || 0);
+
+              let isPayout: boolean;
+              let payoutAmt: number;
+              let remainingDue: number;
+
+              if (isOperatorHisaab) {
+                // Operator: net settlement = toPay - toCollect
+                const netAmt = toPayAmt - toCollectAmt;
+                isPayout = netAmt > 0;
+                payoutAmt = isSettled ? 0 : Math.abs(netAmt);
+                remainingDue = isSettled ? 0 : (netAmt < 0 ? Math.abs(netAmt) : 0);
+              } else {
+                // Driver: standard formula (Gross - Cash - Deductions + Adjustments)
+                const partnerAdj = -(w.previousAdjustments || 0);
+                const computedDriverNet = totalGrossFares - totalCashInHand - totalDeductions + partnerAdj;
+                
+                isPayout = computedDriverNet > 0;
+                payoutAmt = isSettled ? 0 : (isPayout ? Math.abs(computedDriverNet) : 0);
+                remainingDue = isSettled ? 0 : (!isPayout ? Math.abs(computedDriverNet) : 0);
+              }
 
               return (
                 <div className="pt-3 border-t border-dashed border-border/80 flex items-center justify-between">
                   <div>
                     <span className="font-sans text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                      {isPayout ? t('hisaab.netPayout', 'NET DRIVER PAYOUT') : t('hisaab.netDue', 'OUTSTANDING DEBT DUE')}
+                      {isPayout
+                        ? (isOperatorHisaab ? t('hisaab.netFleetPayout', 'NET FLEET PAYOUT') : t('hisaab.netPayout', 'NET DRIVER PAYOUT'))
+                        : t('hisaab.netDue', 'OUTSTANDING DEBT DUE')}
                     </span>
                     <p className="font-sans text-[11px] text-text-muted mt-0.5">
-                      {isPayout ? t('home.payoutToDriver', 'LetzRyd payout to driver') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd')} • <strong className="text-text">{w.activeDays} {t('home.daysActive', 'Days Active')}</strong>
+                      {isOperatorHisaab
+                        ? (isPayout
+                            ? t('hisaab.netFleetPayoutSub', 'LetzRyd net payout to fleet')
+                            : t('hisaab.netFleetDueSub', 'Net amount due to LetzRyd after offsets'))
+                        : (isPayout ? t('home.payoutToDriver', 'LetzRyd payout to driver') : t('home.dueToLetzryd', 'Due to be paid to LetzRyd'))
+                      }{!isOperatorHisaab && <> • <strong className="text-text">{w.activeDays} {t('home.daysActive', 'Days Active')}</strong></>}
                     </p>
+                    {isOperatorHisaab && toCollectAmt > 0 && toPayAmt > 0 && (
+                      <p className="font-sans text-[10px] text-text-muted mt-0.5">
+                        {t('hisaab.grossPayout', 'Gross payout')}: <span className="font-bold text-green">+₹{toPayAmt.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                        {' '}−{' '}
+                        {t('hisaab.debtOffset', 'Debt offset')}: <span className="font-bold text-red-500">₹{toCollectAmt.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                      </p>
+                    )}
                   </div>
                   <div className={`font-mono text-sm font-black ${isPayout ? 'text-green' : remainingDue === 0 ? 'text-green' : 'text-red-600'}`}>
                     {isPayout
@@ -1028,7 +1072,8 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
 
         {/* RENT & CHARGES CARD */}
         {(() => {
-          const othersNet = - (w.rent.netWeeklyRent + w.dailyMaintenance + w.tds + (w.challan || 0) + (w.accident || 0)) + w.previousAdjustments;
+          const partnerAdj = -(w.previousAdjustments || 0);
+          const othersNet = - (w.rent.netWeeklyRent + w.dailyMaintenance + w.tds + (w.challan || 0) + (w.accident || 0)) + partnerAdj;
           return (
             <div className="bg-surface border border-border/80 rounded-2xl overflow-hidden shadow-xs transition-all">
               <button
@@ -1079,7 +1124,9 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
                   )}
                   <div className="flex justify-between items-center">
                     <span className="text-text-muted font-medium">{t('hisaab.prevAdjustments', 'Previous Adjustments')}</span>
-                    <span className="text-text font-bold font-mono">{formatCurrency(w.previousAdjustments)}</span>
+                    <span className={`font-bold font-mono ${partnerAdj > 0 ? 'text-green' : partnerAdj < 0 ? 'text-red-600' : 'text-text'}`}>
+                      {partnerAdj > 0 ? '+' + formatCurrency(partnerAdj) : formatCurrency(partnerAdj)}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1147,41 +1194,50 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 text-xs">
-          <div className="bg-bg border border-border/60 rounded-xl p-3 space-y-1.5 text-left">
-            <div className="font-bold text-text text-[11px]">{t('hisaab.depositTitle', 'Security Deposit')}</div>
-            <div className="flex justify-between items-center text-[10px] text-text-muted">
-              <span>{t('hisaab.agreed', 'Agreed:')}</span>
-              <span className="font-bold text-text font-mono">₹6,000</span>
-            </div>
-            <div className="flex justify-between items-center text-[10px] text-text-muted">
-              <span>{t('hisaab.paid', 'Paid:')}</span>
-              <span className="font-bold text-green font-mono">₹{(w.paidDeposit ?? 0).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between items-center text-[10px]">
-              <span className="text-text-muted">{t('hisaab.pending', 'Pending:')}</span>
-              <span className={`font-bold font-mono ${(w.pendingDeposit ?? 0) > 0 ? 'text-amber-700 font-extrabold' : 'text-green'}`}>
-                ₹{(w.pendingDeposit ?? 0).toLocaleString('en-IN')}
-              </span>
-            </div>
-          </div>
+        {(() => {
+          const effPaidDep = depositPaid !== undefined ? depositPaid : (w.paidDeposit ?? 0);
+          const effPendingDep = depositPending !== undefined ? depositPending : (w.pendingDeposit ?? 0);
+          const effAgreedDep = depositAgreed !== undefined && depositAgreed > 0
+            ? depositAgreed
+            : ((effPaidDep + effPendingDep) > 0 ? (effPaidDep + effPendingDep) : 6000);
+          return (
+            <div className="grid grid-cols-2 gap-2.5 text-xs">
+              <div className="bg-bg border border-border/60 rounded-xl p-3 space-y-1.5 text-left">
+                <div className="font-bold text-text text-[11px]">{t('hisaab.depositTitle', 'Security Deposit')}</div>
+                <div className="flex justify-between items-center text-[10px] text-text-muted">
+                  <span>{t('hisaab.agreed', 'Agreed:')}</span>
+                  <span className="font-bold text-text font-mono">₹{effAgreedDep.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-text-muted">
+                  <span>{t('hisaab.paid', 'Paid:')}</span>
+                  <span className="font-bold text-green font-mono">₹{effPaidDep.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-text-muted">{t('hisaab.pending', 'Pending:')}</span>
+                  <span className={`font-bold font-mono ${effPendingDep > 0 ? 'text-amber-700 font-extrabold' : 'text-green'}`}>
+                    ₹{effPendingDep.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
 
-          <div className="bg-bg border border-border/60 rounded-xl p-3 space-y-1.5 text-left">
-            <div className="font-bold text-text text-[11px]">{t('hisaab.joiningFeeTitle', 'Joining Fee')}</div>
-            <div className="flex justify-between items-center text-[10px] text-text-muted">
-              <span>{t('hisaab.agreed', 'Agreed:')}</span>
-              <span className="font-bold text-text font-mono">₹1,000</span>
+              <div className="bg-bg border border-border/60 rounded-xl p-3 space-y-1.5 text-left">
+                <div className="font-bold text-text text-[11px]">{t('hisaab.joiningFeeTitle', 'Joining Fee')}</div>
+                <div className="flex justify-between items-center text-[10px] text-text-muted">
+                  <span>{t('hisaab.agreed', 'Agreed:')}</span>
+                  <span className="font-bold text-text font-mono">₹1,000</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] text-text-muted">
+                  <span>{t('hisaab.paid', 'Paid:')}</span>
+                  <span className="font-bold text-green font-mono">₹{(w.joiningFeePaid || 1000).toLocaleString('en-IN')}</span>
+                </div>
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-text-muted">{t('hisaab.pending', 'Pending:')}</span>
+                  <span className="font-bold text-green font-mono">₹0</span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-between items-center text-[10px] text-text-muted">
-              <span>{t('hisaab.paid', 'Paid:')}</span>
-              <span className="font-bold text-green font-mono">₹{(w.joiningFeePaid || 1000).toLocaleString('en-IN')}</span>
-            </div>
-            <div className="flex justify-between items-center text-[10px]">
-              <span className="text-text-muted">{t('hisaab.pending', 'Pending:')}</span>
-              <span className="font-bold text-green font-mono">₹0</span>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
 
       {/* 6. DISPUTE NOTICE BANNER */}
@@ -1201,6 +1257,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
 interface SettleScreenProps {
   amount: number;
   hisaabAmount?: number;
+  weeklyPayout?: number;
   pendingDeposit?: number;
   challansAmount?: number;
   weekRange: string;
@@ -1221,6 +1278,7 @@ interface SettleScreenProps {
 export const SettleScreen: React.FC<SettleScreenProps> = ({
   amount,
   hisaabAmount,
+  weeklyPayout = 0,
   pendingDeposit = 0,
   challansAmount = 0,
   weekRange,
@@ -1728,9 +1786,20 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         </div>
 
         <div className="space-y-1.5 px-1 font-sans text-xs border-b border-border/60 pb-3">
+          {weeklyPayout > 0 && pastWeekAmount === 0 && (
+            <div className="flex justify-between items-center text-text">
+              <span className="text-text-muted font-medium">{t('settle.weeklyHisaabPayout', 'Weekly Hisaab Payout (To Bank):')}</span>
+              <span className="font-bold text-green font-mono">
+                +₹{weeklyPayout.toLocaleString('en-IN', {
+                  minimumFractionDigits: weeklyPayout % 1 !== 0 ? 2 : 0,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          )}
           <div className="flex justify-between items-center text-text">
             <span className="text-text-muted font-medium">{t('settle.weeklyHisaabDue', 'Weekly Hisaab Due:')}</span>
-            <span className="font-bold text-text">
+            <span className={`font-bold ${pastWeekAmount === 0 ? 'text-green' : 'text-text'}`}>
               ₹{pastWeekAmount.toLocaleString('en-IN', {
                 minimumFractionDigits: pastWeekAmount % 1 !== 0 ? 2 : 0,
                 maximumFractionDigits: 2,
@@ -2718,6 +2787,40 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
           <p className="font-sans text-xs sm:text-sm font-bold text-text mt-1">{totalVehicles}</p>
         </div>
       </div>
+
+      {/* Net Weekly Settlement Banner */}
+      {(() => {
+        const netFleetSettlement = totalToPay - totalToCollect;
+        const isNetPayout = netFleetSettlement > 0;
+        const isNetDue = netFleetSettlement < 0;
+        return (
+          <div className="bg-surface border border-border rounded-xl p-3 shadow-xs text-left font-sans text-xs flex items-center justify-between">
+            <div>
+              <span className="font-sans text-[10px] font-bold text-text-muted uppercase tracking-wider block">
+                {isNetPayout
+                  ? t('hisaab.netFleetPayout', 'NET FLEET PAYOUT (TO PAY − TO COLLECT)')
+                  : isNetDue
+                  ? t('operator.netFleetDue', 'NET WEEKLY DUE (TO COLLECT − TO PAY)')
+                  : t('home.settlementCleared', 'NET WEEKLY SETTLEMENT')}
+              </span>
+              <span className="text-[10px] text-text-muted">
+                {isNetPayout
+                  ? t('hisaab.netFleetPayoutSub', 'LetzRyd net payout to fleet bank account')
+                  : isNetDue
+                  ? t('hisaab.netFleetDueSub', 'Net amount due to LetzRyd after offsets')
+                  : t('home.allSettled', 'All Settled')}
+              </span>
+            </div>
+            <span className={`font-mono text-sm font-black whitespace-nowrap ${isNetPayout ? 'text-green' : isNetDue ? 'text-red-600' : 'text-green'}`}>
+              {isNetPayout
+                ? `+${formatCurrency(netFleetSettlement)}`
+                : isNetDue
+                ? `-${formatCurrency(Math.abs(netFleetSettlement))}`
+                : '₹0'}
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Fleet Security Deposit Card */}
       <div className="bg-surface border border-border rounded-xl p-3 shadow-xs text-left font-sans text-xs">
