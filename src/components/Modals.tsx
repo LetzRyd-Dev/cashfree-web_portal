@@ -101,7 +101,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
               onChange={(e) => setCategory(e.target.value)}
               className="h-10 w-full rounded-lg border border-border bg-surface px-3 font-sans text-xs text-text outline-none focus:border-green"
             >
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.map((c) => <option key={c} value={c}>{t('ticketCategory.' + c, c)}</option>)}
             </select>
           </div>
 
@@ -122,7 +122,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
             <textarea
               required
               rows={3}
-              placeholder={t('support.descPlaceholder', 'Describe what happened, relevant week dates, or vehicle issues...')}
+              placeholder={t('support.descriptionPlaceholder', 'Describe what happened, relevant week dates, or vehicle issues...')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full rounded-lg border border-border bg-surface p-3 font-sans text-xs text-text placeholder:text-text-dim outline-none focus:border-green resize-none leading-relaxed"
@@ -175,20 +175,20 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, on
 
         <div className="flex items-center gap-2 pr-8">
           <span className="font-sans text-xs font-bold text-primary">{ticket.id}</span>
-          <span className="font-sans text-xs font-semibold text-text-muted">• {ticket.category}</span>
+          <span className="font-sans text-xs font-semibold text-text-muted">• {t('ticketCategory.' + ticket.category, ticket.category)}</span>
         </div>
 
         <h3 className="font-sans text-lg font-bold text-text">{ticket.subject}</h3>
 
         <div className="p-3.5 rounded-lg bg-bg border border-border">
-          <p className="font-sans text-xs font-semibold text-text-muted mb-1">Issue Details</p>
+          <p className="font-sans text-xs font-semibold text-text-muted mb-1">{t('ticketDetail.issueDetails', 'Issue Details')}</p>
           <p className="font-sans text-xs text-text leading-relaxed">{ticket.description}</p>
         </div>
 
         {ticket.response && (
           <div className="p-3.5 rounded-lg bg-green-light border border-green/30">
             <p className="font-sans text-xs font-bold text-green flex items-center gap-1.5 mb-1">
-              <CheckCircle className="w-4 h-4" /> LetzRyd Support Resolution
+              <CheckCircle className="w-4 h-4" /> {t('ticketDetail.resolutionTitle', 'LetzRyd Support Resolution')}
             </p>
             <p className="font-sans text-xs text-green leading-relaxed">{ticket.response}</p>
           </div>
@@ -199,7 +199,7 @@ export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, on
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white font-sans text-xs font-semibold cursor-pointer shadow-sm transition-colors"
           >
-            Close
+            {t('ticketDetail.closeBtn', 'Close')}
           </button>
         </div>
       </motion.div>
@@ -349,7 +349,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
               {t('sos.title', 'Emergency SOS Safety Center')}
             </h3>
             <p className="font-sans text-[10px] text-text-muted mt-0.5">
-              LetzRyd Central Control Hub (24x7)
+              {t('sos.controlHub', 'LetzRyd Central Control Hub (24x7)')}
             </p>
           </div>
         </div>
@@ -363,7 +363,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                 {t('sos.activated', 'Emergency SOS Active!')}
               </h4>
               <p className="font-sans text-xs font-semibold text-text leading-relaxed">
-                Central Control Hub notified at <strong>{sosTime || 'Just now'}</strong>. Dispatchers are matching vehicle coordinates.
+                {t('sos.hubNotified', 'Central Control Hub notified at')} <strong>{sosTime || t('common.justNow', 'Just now')}</strong>. {t('sos.matchingCoords', 'Dispatchers are matching vehicle coordinates.')}
               </p>
             </div>
 
@@ -373,14 +373,14 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                 className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-sans text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all active:scale-98"
               >
                 <PhoneCall className="w-4 h-4" />
-                <span>Call Helpline: {hotline}</span>
+                <span>{t('sos.callHelpline', 'Call Helpline')}: {hotline}</span>
               </a>
               <button
                 type="button"
                 onClick={onCancelSos}
                 className="w-full py-2.5 rounded-xl border border-border bg-bg text-text-muted hover:text-text font-sans text-xs font-bold cursor-pointer transition-colors"
               >
-                Cancel SOS Alert
+                {t('sos.cancelAlert', 'Cancel SOS Alert')}
               </button>
             </div>
           </div>
@@ -405,7 +405,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                 className="inline-flex items-center gap-1 font-sans text-[10px] font-bold text-red-700 hover:underline pt-0.5"
               >
                 <PhoneCall className="w-3 h-3" />
-                Direct Hotline: {hotline}
+                {t('sos.directHotline', 'Direct Hotline')}: {hotline}
               </a>
             </div>
 
@@ -418,7 +418,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
               {incidentSubmitted ? (
                 <div className="p-3 bg-green-light border border-green/30 text-green rounded-xl text-xs font-bold flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 shrink-0" />
-                  <span>Report submitted! Dispatcher is reviewing your details.</span>
+                  <span>{t('sos.reportSubmitted', 'Report submitted! Dispatcher is reviewing your details.')}</span>
                 </div>
               ) : (
                 <form onSubmit={handleIncidentSubmit} className="space-y-2.5 text-xs font-sans">
@@ -451,7 +451,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-text-muted font-medium">Is Vehicle Drivable?</span>
+                    <span className="text-text-muted font-medium">{t('sos.isDrivable', 'Is Vehicle Drivable?')}</span>
                     <div className="flex items-center gap-1">
                       <button
                         type="button"
@@ -460,7 +460,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                           isDrivable ? 'bg-green text-white shadow-2xs' : 'bg-bg text-text-muted border border-border'
                         }`}
                       >
-                        Yes
+                        {t('common.yes', 'Yes')}
                       </button>
                       <button
                         type="button"
@@ -469,7 +469,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                           !isDrivable ? 'bg-red-600 text-white shadow-2xs' : 'bg-bg text-text-muted border border-border'
                         }`}
                       >
-                        No
+                        {t('common.no', 'No')}
                       </button>
                     </div>
                   </div>
@@ -478,7 +478,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
                     type="submit"
                     className="w-full h-9 mt-1 rounded-xl bg-primary hover:bg-primary-hover text-white font-sans text-xs font-bold cursor-pointer transition-all shadow-xs"
                   >
-                    Submit Incident Report
+                    {t('sos.submitReport', 'Submit Incident Report')}
                   </button>
                 </form>
               )}

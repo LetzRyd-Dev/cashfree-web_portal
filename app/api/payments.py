@@ -13,7 +13,7 @@ import uuid
 from app.database import get_db
 from app.models.app_models import AppPayments, AppDrivers, AppHisaabs, AppOperators, AppNotifications
 from app.schemas.app_schemas import InitiatePaymentRequest, PaymentResponse, CreateOrderRequest, CreateOrderResponse
-from app.services.helpers import clean_phone_number, resolve_driver
+from app.services.helpers import clean_phone_number, resolve_driver, resolve_operator
 
 import requests
 from app.config import settings
@@ -80,7 +80,11 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
     # ── 2. Update app_drivers & hisaabs (if payer is driver) ──────────────────
     if payment.payer_type == "driver" and payment.payer_id:
-        driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == payment.payer_id).first()
+        driver = db.query(AppDrivers).filter(
+            (AppDrivers.app_driver_id == payment.payer_id) | (AppDrivers.driver_id == payment.payer_id)
+        ).first()
+        if not driver:
+            driver = resolve_driver(str(payment.payer_id), db)
         if driver:
             rem_cash = paid_amount
 
@@ -142,16 +146,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     "payment_status": target_hisaab.payment_status,
                 }
 
-            # Tier 2: Pay pending security deposit
-            if rem_cash > 0:
-                dep_pending = round(float(driver.deposit_pending or 0), 2)
-                total_req = round(float(driver.deposit_total_req or 6000.0), 2)
-                dep_credit = round(min(dep_pending, rem_cash), 2)
-                driver.deposit_paid = round(min(total_req, float(driver.deposit_paid or 0) + dep_credit), 2)
-                driver.deposit_pending = round(max(0.0, total_req - float(driver.deposit_paid)), 2)
-                rem_cash = round(max(0.0, rem_cash - dep_credit), 2)
-
-            # Tier 3: Pay any other unpaid/prior hisaabs for this driver
+            # Tier 2: Pay any other unpaid/prior hisaabs for this driver BEFORE deposit
             if rem_cash > 0:
                 other_unpaid_hisaabs = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == driver.app_driver_id,
@@ -182,7 +177,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     elif oh.paid_amount > 0:
                         oh.payment_status = "partial"
 
-                    # Update driver lw_os if prior week
+                    # Update driver lw_os or cw_os
                     driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - oh_pay), 2)
                     if oh.week_number < active_week_num or oh.is_locked:
                         driver.lw_os = round(max(0.0, float(driver.lw_os or 0) - oh_pay), 2)
@@ -192,8 +187,18 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                             driver.lw_status = "partial"
                     else:
                         driver.cw_to_collect = round(max(0.0, float(driver.cw_to_collect or 0) - oh_pay), 2)
+                        driver.cw_os = round(max(0.0, float(driver.cw_os or 0) - oh_pay), 2)
 
                     rem_cash = round(max(0.0, rem_cash - oh_pay), 2)
+
+            # Tier 3: Pay pending security deposit
+            if rem_cash > 0:
+                dep_pending = round(float(driver.deposit_pending or 0), 2)
+                total_req = round(float(driver.deposit_total_req or 6000.0), 2)
+                dep_credit = round(min(dep_pending, rem_cash), 2)
+                driver.deposit_paid = round(min(total_req, float(driver.deposit_paid or 0) + dep_credit), 2)
+                driver.deposit_pending = round(max(0.0, total_req - float(driver.deposit_paid)), 2)
+                rem_cash = round(max(0.0, rem_cash - dep_credit), 2)
 
             # Tier 4: Any remaining surplus becomes driver advance credit
             if rem_cash > 0:
@@ -223,9 +228,11 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
     # ── 3. Update app_operators & fleet drivers (if payer is operator) ───────
     if payment.payer_type == "operator" and payment.payer_id:
-        op = db.query(AppOperators).filter(AppOperators.app_operator_id == payment.payer_id).first()
+        op = db.query(AppOperators).filter(
+            (AppOperators.app_operator_id == payment.payer_id) | (AppOperators.operator_id == payment.payer_id)
+        ).first()
         if not op:
-            op = db.query(AppOperators).filter(AppOperators.operator_id == payment.payer_id).first()
+            op = resolve_operator(str(payment.payer_id), db)
         if op:
             # Tier 1: Pay down operator fleet driver debts (e.g. Sushant who owes ₹1,850)
             op_filter = (AppDrivers.operator_id == op.app_operator_id)
@@ -278,9 +285,50 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
                 rem_for_debt = round(max(0.0, rem_for_debt - d_paid), 2)
 
+            # If rem_for_debt > 0, also settle any operator vehicle hisaabs not covered by driver records
+            if rem_for_debt > 0:
+                op_ids = [op.app_operator_id]
+                if op.operator_id:
+                    op_ids.append(op.operator_id)
+                op_unpaid_hisaabs = db.query(AppHisaabs).filter(
+                    AppHisaabs.app_operator_id.in_(op_ids),
+                    AppHisaabs.to_collect > 0,
+                    AppHisaabs.payment_status != "settled"
+                ).order_by(AppHisaabs.week_number.asc()).all()
+                for oh in op_unpaid_hisaabs:
+                    if rem_for_debt <= 0:
+                        break
+                    cur_paid = round(float(oh.paid_amount or 0), 2)
+                    oh_orig = round(float(oh.to_collect or 0) + cur_paid, 2)
+                    oh_rem = round(max(0.0, oh_orig - cur_paid), 2)
+                    if oh_rem > 0:
+                        h_pay = round(min(oh_rem, rem_for_debt), 2)
+                        oh.paid_amount = round(cur_paid + h_pay, 2)
+                        oh_new_rem = round(max(0.0, oh_orig - oh.paid_amount), 2)
+                        oh.current_period_os = oh_new_rem
+                        oh.to_collect = oh_new_rem
+                        if oh.paid_amount >= oh_orig and oh_orig > 0:
+                            oh.payment_status = "settled"
+                            oh.status = "settled"
+                            oh.current_period_os = 0.0
+                            oh.to_collect = 0.0
+                        elif oh.paid_amount > 0:
+                            oh.payment_status = "partial"
+                        rem_for_debt = round(max(0.0, rem_for_debt - h_pay), 2)
+
             # Operator total fleet debt remaining
             all_op_drivers = db.query(AppDrivers).filter(op_filter).all()
-            op.cw_to_collect = round(sum(float(d.cw_to_collect or 0) for d in all_op_drivers), 2)
+            driver_debt = sum(float(d.cw_to_collect or 0) for d in all_op_drivers)
+            op_ids = [op.app_operator_id]
+            if op.operator_id:
+                op_ids.append(op.operator_id)
+            active_wk = get_active_week_number(db)
+            latest_op_h = db.query(AppHisaabs).filter(
+                AppHisaabs.app_operator_id.in_(op_ids),
+                AppHisaabs.week_number == active_wk
+            ).all()
+            hisaab_debt = sum(float(h.to_collect or 0) for h in latest_op_h)
+            op.cw_to_collect = round(max(driver_debt, hisaab_debt), 2)
             if op.cw_to_collect <= 0:
                 op.lw_status = "paid"
             else:
@@ -602,7 +650,7 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
     Queries Cashfree API to verify payment status.
     On SUCCESS → updates app_payments + app_hisaabs + app_drivers/operators + fires notification.
     """
-    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
+    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
 
     is_success = False
     payment_mode = "Cashfree Gateway"
@@ -696,15 +744,22 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
             payment.completed_at = datetime.now(timezone.utc)
             payment.payment_mode = payment_mode
             cascade_result = _apply_payment_success(payment, db)
+            db.commit()
         elif payment and payment.status == "SUCCESS":
             cascade_result = {"note": "Already processed previously"}
+        elif payment and not is_success:
+            terminal_statuses = ["FAILED", "CANCELLED", "USER_DROPPED"]
+            if any(p.get("payment_status") in terminal_statuses for p in payments_data):
+                payment.status = "FAILED"
+                db.commit()
     except Exception as e:
+        db.rollback()
         print(f"[WARN] DB update during verify skipped: {e}")
 
     return {
         "order_id": order_id,
         "is_success": is_success,
-        "status": "SUCCESS" if is_success else "PENDING",
+        "status": "SUCCESS" if is_success else ("FAILED" if (payment and payment.status == "FAILED") else "PENDING"),
         "payment_mode": payment_mode,
         "cf_payment_id": cf_payment_id or (payment.cf_payment_id if payment else None),
         "amount": paid_amount,

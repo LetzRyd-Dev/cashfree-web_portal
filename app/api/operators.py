@@ -28,7 +28,7 @@ def get_current_operator(phone: str = "9691938866", db: Session = Depends(get_db
     return _map_operator(op, db)
 
 @router.get("/{operator_id}/fleet-summary", response_model=OperatorFleetResponse)
-def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depends(get_db)):
+def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Optional[int] = None, db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
@@ -142,7 +142,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         AppHisaabs.app_operator_id.in_(op_ids)
     ).order_by(AppHisaabs.week_number.desc()).all()
 
-    latest_week = max([h.week_number for h in op_hisaabs], default=40)
+    latest_week = week_number if week_number is not None else max([h.week_number for h in op_hisaabs], default=40)
     week_hisaabs_by_v = {}
     for h in op_hisaabs:
         if h.week_number == latest_week:

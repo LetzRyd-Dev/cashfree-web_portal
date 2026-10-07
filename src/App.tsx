@@ -383,7 +383,11 @@ export default function App() {
         await window.recaptchaVerifier.render();
 
         const formattedPhone = `+91${cleanPhone}`;
-        const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+        const confirmationPromise = signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('SMS network timeout. Please enter OTP.')), 8000)
+        );
+        const confirmation = await Promise.race([confirmationPromise, timeoutPromise]);
 
         // User went back while Firebase was sending SMS — discard result
         if (otpRequestCancelledRef.current) return;
@@ -790,6 +794,10 @@ export default function App() {
   const navigateTo = (screen: string) => {
     setPrevScreen(currentScreen);
     setCurrentScreen(screen);
+    if (screen === 'settle') {
+      setDriverWeekIndex(0);
+      setOperatorWeekIndex(0);
+    }
   };
 
   const goBack = () => {
@@ -870,7 +878,7 @@ export default function App() {
 
   const handleSelectVehicleForHisaab = async (number: string) => {
     setSelectedVehicleNumber(number);
-    setOperatorVehicleWeekIndex(0);
+    setOperatorVehicleWeekIndex(operatorWeekIndex);
     navigateTo('operatorVehicle');
 
     const cleanNum = number.replace(/\s+/g, '');
@@ -1051,6 +1059,17 @@ export default function App() {
           setDriverVehicle(mapDriverToVehicle(driverProfile));
           setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
           if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+        }
+      } else if (loginType === 'operator') {
+        const opProfile = await getOperatorByPhone(operatorUser.phone).catch(() => null);
+        if (opProfile) {
+          const [fleet, hisaabs] = await Promise.all([
+            getOperatorFleet(opProfile.app_operator_id).catch(() => null),
+            getOperatorHisaabs(opProfile.app_operator_id).catch(() => null),
+          ]);
+          setOperatorUser(mapOperatorToUser(opProfile));
+          if (fleet) setOperatorFleet(fleet);
+          if (hisaabs && hisaabs.length > 0) setOperatorHisaabs(hisaabs.map(mapHisaabToWeek));
         }
       }
     } catch (err) {
@@ -1501,7 +1520,7 @@ export default function App() {
                           {loginType === 'driver' && (
                             !driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' || !driverVehicle.number.trim() ? (
                               <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                                No Vehicle Assigned
+                                {t('vehicle.noVehicleAssigned', 'No Vehicle Assigned')}
                               </span>
                             ) : (
                               <span className="font-mono text-[10.5px] font-bold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
@@ -1524,16 +1543,16 @@ export default function App() {
                                 <ShieldCheck className="w-5 h-5" />
                               </div>
                               <div className="min-w-0">
-                                <h3 className="font-extrabold text-sm text-text">Fleet Managed Vehicle</h3>
+                                <h3 className="font-extrabold text-sm text-text">{t('home.fleetManagedVehicle', 'Fleet Managed Vehicle')}</h3>
                                 <p className="text-[11px] text-text-muted truncate">
-                                  Operator: <strong className="text-text">{driverUser.operatorName || 'Fleet Operator'}</strong>
+                                  {t('common.operator', 'Operator')}: <strong className="text-text">{driverUser.operatorName || 'Fleet Operator'}</strong>
                                 </p>
                               </div>
                             </div>
                             <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
                               <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700">
                                 <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                <span>Payments handled by Fleet Operator</span>
+                                <span>{t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}</span>
                               </div>
                               <p className="text-[10.5px] text-text-muted leading-relaxed">
                                 Vehicle managed by Operator <strong>{driverUser.operatorName || 'Fleet Operator'}</strong>. Weekly settlements and statements are handled directly by your fleet manager.
@@ -1849,7 +1868,7 @@ export default function App() {
                                       {t('common.due', 'Due')}
                                     </span>
                                     {isFleetManaged ? (
-                                      <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-md whitespace-nowrap">
+                                      <span className="font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-md text-center">
                                         {t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}
                                       </span>
                                     ) : (
@@ -1860,7 +1879,7 @@ export default function App() {
                                         }}
                                         className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white shadow-xs cursor-pointer transition-all hover:scale-105 whitespace-nowrap"
                                       >
-                                        Pay
+                                        {t('common.pay', 'Pay')}
                                       </button>
                                     )}
                                   </div>

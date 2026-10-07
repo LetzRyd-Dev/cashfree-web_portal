@@ -297,7 +297,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
     if (!expiryDateStr) {
       return (
         <span className="bg-gray-100 text-gray-600 border border-gray-200 text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
-          Unknown
+          {t('common.unknown', 'Unknown')}
         </span>
       );
     }
@@ -310,21 +310,21 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
       return (
         <span className="bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
           <AlertTriangle className="w-2.5 h-2.5 text-red-600" />
-          Expired
+          {t('common.expired', 'Expired')}
         </span>
       );
     } else if (diffDays <= 30) {
       return (
         <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
           <Clock className="w-2.5 h-2.5 text-amber-600" />
-          Expiring ({diffDays}d)
+          {t('common.expiring', 'Expiring')} ({diffDays}d)
         </span>
       );
     } else {
       return (
         <span className="bg-green-light text-green border border-green-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
           <CheckCircle2 className="w-2.5 h-2.5 text-green" />
-          Valid
+          {t('common.valid', 'Valid')}
         </span>
       );
     }
@@ -339,7 +339,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
           </h2>
           <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
             <AlertTriangle className="w-3 h-3 text-amber-600" />
-            No Vehicle Assigned
+            {t('vehicle.noVehicleAssigned', 'No Vehicle Assigned')}
           </span>
         </div>
 
@@ -348,9 +348,9 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
             <Car className="w-6 h-6 text-amber-600" />
           </div>
           <div>
-            <h3 className="font-sans text-sm font-bold text-text">No Vehicle Assigned</h3>
+            <h3 className="font-sans text-sm font-bold text-text">{t('vehicle.noVehicleAssigned', 'No Vehicle Assigned')}</h3>
             <p className="font-sans text-xs text-text-muted max-w-xs mx-auto mt-1 leading-relaxed">
-              There is currently no commercial vehicle allocated to your driver profile. Please contact your fleet operator or the LetzRyd operations desk for vehicle allocation.
+              {t('vehicle.noVehicleAssignedDesc', 'There is currently no commercial vehicle allocated to your driver profile. Please contact your fleet operator or the LetzRyd operations desk for vehicle allocation.')}
             </p>
           </div>
         </div>
@@ -434,7 +434,7 @@ export const VehicleScreen: React.FC<VehicleScreenProps> = ({ vehicle, t }) => {
               <div className="w-7 h-7 rounded-lg bg-bg border border-border text-primary flex items-center justify-center shrink-0">
                 <Activity className="w-3.5 h-3.5" />
               </div>
-              <span className="font-sans text-xs font-semibold text-text">Fuel & Color</span>
+              <span className="font-sans text-xs font-semibold text-text">{t('vehicle.fuelColor', 'Fuel & Color')}</span>
             </div>
             <span className="font-sans text-xs font-bold text-text">{vehicle.fuelType || 'CNG'} • {vehicle.color || 'White'}</span>
           </div>
@@ -779,7 +779,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
             <div className="min-w-0">
               <span className="font-bold text-amber-800 text-[11px] block leading-tight">
-                Payments handled by Fleet Operator
+                {t('home.fleetManagedMsg', 'Payments handled by Fleet Operator')}
               </span>
               <span className="text-[10px] text-text-muted block leading-none mt-0.5">
                 {operatorName ? `Managed by ${operatorName}` : 'Settlements billed to your fleet operator account'}
@@ -787,7 +787,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
           </div>
           <span className="font-bold text-[10px] text-amber-700 bg-amber-100/60 px-2 py-0.5 rounded-full shrink-0 border border-amber-300/40">
-            Auto-Billed
+            {t('hisaab.autoBilled', 'Auto-Billed')}
           </span>
         </div>
       )}
@@ -808,17 +808,17 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
               {w.paymentStatus === 'settled' || w.status === 'settled_pay' ? (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-green bg-green-light border border-green-200/50 px-2.5 py-1 rounded-full">
                   <CheckCircle2 className="w-3 h-3 text-green" />
-                  Settled
+                  {t('hisaab.settled', 'Settled')}
                 </span>
               ) : w.paymentStatus === 'partial' ? (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-full">
                   <Clock className="w-3 h-3 text-amber-600" />
-                  Partial Paid
+                  {t('hisaab.partialPaid', 'Partial Paid')}
                 </span>
               ) : w.weekNumber < 30 || w.isLocked ? (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-2.5 py-1 rounded-full">
                   <AlertCircle className="w-3 h-3 text-red-600" />
-                  Payment Due
+                  {t('hisaab.paymentDue', 'Payment Due')}
                 </span>
               ) : (
                 <span className="flex items-center gap-1.5 font-sans text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-full">
@@ -996,22 +996,22 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             {(w.paidAmount !== undefined || w.paymentStatus) && (
               <div className="pt-2 border-t border-dashed border-border/60 flex items-center justify-between text-[10px]">
                 <div className="flex items-center gap-1.5 font-medium text-text-muted">
-                  <span>💳 Payment Received:</span>
+                  <span>💳 {t('hisaab.paymentReceived', 'Payment Received')}:</span>
                   <span className="font-mono font-bold text-text">₹{(w.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: (w.paidAmount || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}</span>
                 </div>
                 {w.paymentStatus === 'settled' && (
                   <span className="flex items-center gap-1 font-bold text-green bg-green-light border border-green-200/50 px-2 py-0.5 rounded-full">
-                    <CheckCircle2 className="w-3 h-3" /> Settled
+                    <CheckCircle2 className="w-3 h-3" /> {t('hisaab.settled', 'Settled')}
                   </span>
                 )}
                 {w.paymentStatus === 'partial' && (
                   <span className="flex items-center gap-1 font-bold text-amber-600 bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded-full">
-                    <Clock className="w-3 h-3" /> Partial
+                    <Clock className="w-3 h-3" /> {t('hisaab.partial', 'Partial')}
                   </span>
                 )}
                 {(!w.paymentStatus || w.paymentStatus === 'unpaid') && w.currentWeekOs > 0 && (
                   <span className="flex items-center gap-1 font-bold text-red-600 bg-red-50 border border-red-200/50 px-2 py-0.5 rounded-full">
-                    Unpaid
+                    {t('hisaab.unpaid', 'Unpaid')}
                   </span>
                 )}
               </div>
@@ -1370,7 +1370,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         weekRange,
         app_hisaab_id: hisaabId || null,   // Link to specific hisaab
         payer_type: payerType || 'driver',  // driver or operator
-        operator_id: payerType === 'operator' && driverId ? (parseInt(driverId) || undefined) : undefined,
+        operator_id: payerType === 'operator' && driverId ? (parseInt(String(driverId).replace(/\D/g, '')) || undefined) : undefined,
         return_url: typeof window !== 'undefined' ? `${window.location.origin}/?order_id={order_id}` : undefined,
       };
 
@@ -1520,42 +1520,42 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           <div>
             <span className="text-[10px] font-extrabold tracking-wider uppercase text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              Cashfree Verified
+              {t('payment.cashfreeVerified', 'Cashfree Verified')}
             </span>
             <h2 className="font-sans text-xl font-black text-text mt-2">
-              Payment Successful!
+              {t('payment.paymentSuccessful', 'Payment Successful!')}
             </h2>
             <p className="font-sans text-xs text-text-muted mt-1">
-              Your weekly hisaab dues have been cleared successfully.
+              {t('payment.weeklyDuesCleared', 'Your weekly hisaab dues have been cleared successfully.')}
             </p>
           </div>
 
           {/* Receipt Breakdown Card */}
           <div className="bg-bg/80 border border-border/80 rounded-2xl p-3.5 text-left space-y-2.5 text-xs">
             <div className="flex justify-between items-center pb-2 border-b border-border/60">
-              <span className="text-text-muted font-medium">Amount Paid:</span>
+              <span className="text-text-muted font-medium">{t('payment.amountPaid', 'Amount Paid:')}</span>
               <span className="font-sans text-base font-black text-emerald-600">
                 ₹{activePayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-text-muted">Order ID:</span>
+              <span className="text-text-muted">{t('payment.orderId', 'Order ID:')}</span>
               <span className="font-mono font-bold text-text truncate max-w-[170px]">
                 {currentOrderId}
               </span>
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-text-muted">Payment Mode:</span>
-              <span className="font-bold text-text">Cashfree PG Real Gateway</span>
+              <span className="text-text-muted">{t('payment.paymentMode', 'Payment Mode:')}</span>
+              <span className="font-bold text-text">{t('payment.cashfreeGateway', 'Cashfree PG Real Gateway')}</span>
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-text-muted">Period:</span>
+              <span className="text-text-muted">{t('payment.period', 'Period:')}</span>
               <span className="font-medium text-text">{weekRange}</span>
             </div>
             <div className="flex justify-between items-center text-[11px]">
-              <span className="text-text-muted">Status:</span>
+              <span className="text-text-muted">{t('payment.status', 'Status:')}</span>
               <span className="font-bold text-emerald-600 flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" /> SUCCESS (VERIFIED)
+                <Check className="w-3.5 h-3.5" /> {t('payment.successVerified', 'SUCCESS (VERIFIED)')}
               </span>
             </div>
           </div>
@@ -1571,7 +1571,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               onClick={handleReturnToSettle}
               className="w-full h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-sans text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow transition-all active:scale-[0.99] uppercase tracking-wide"
             >
-              <span>Back to Settle Page</span>
+              <span>{t('payment.backToSettle', 'Back to Settle Page')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -1597,12 +1597,12 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             className="flex items-center gap-1.5 text-xs font-bold text-text-muted hover:text-text cursor-pointer py-1 px-2.5 rounded-lg bg-surface border border-border/60 hover:border-border transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Cancel</span>
+            <span>{t('common.cancel', 'Cancel')}</span>
           </button>
 
           <div className="flex items-center gap-1.5 text-xs font-bold text-text">
             <Lock className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Cashfree Gateway</span>
+            <span>{t('payment.cashfreeGateway', 'Cashfree Gateway')}</span>
           </div>
 
           <span className="font-mono text-xs font-black text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-md">
@@ -2565,7 +2565,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         ) : (!isOperator && !emergencyName && !emergencyPhone) ? (
           <div className="py-3 px-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-2">
             <p className="font-sans text-xs text-amber-700 font-medium">
-              No emergency contact on file.
+              {t('profile.noEmergencyContact', 'No emergency contact on file.')}
             </p>
             <button
               type="button"
@@ -2573,7 +2573,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all cursor-pointer shadow-2xs"
             >
               <Edit2 className="w-3 h-3" />
-              Not Provided — Tap to Add Contact
+              {t('profile.tapToAddContact', 'Not Provided — Tap to Add Contact')}
             </button>
           </div>
         ) : (
@@ -2590,7 +2590,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
                       onClick={() => setIsEditing(true)} 
                       className="text-amber-600 font-medium cursor-pointer hover:underline inline-flex items-center gap-1"
                     >
-                      Not Provided — Tap to Add Contact
+                      {t('profile.tapToAddContact', 'Not Provided — Tap to Add Contact')}
                     </span>
                   ))}
               </span>
@@ -2640,13 +2640,13 @@ export const RentalScreen: React.FC<RentalScreenProps> = ({ plan, t }) => {
           {t('rental.title', 'Driver Rental Agreement')}
         </h2>
         <p className="font-sans text-xs text-text-muted mt-0.5">
-          Configured daily rate metrics and settlement terms
+          {t('rental.termsSubtitle', 'Configured daily rate metrics and settlement terms')}
         </p>
       </div>
 
       <div className="bg-white border border-border rounded-xl p-4 shadow-xs">
         <h3 className="font-sans text-lg font-extrabold text-text">{plan.name.toLowerCase().endsWith('plan') ? plan.name : `${plan.name} Plan`}</h3>
-        <p className="font-sans text-xs text-text-muted mt-0.5">Active since {plan.planStart}</p>
+        <p className="font-sans text-xs text-text-muted mt-0.5">{t('rental.activeSince', 'Active since')} {plan.planStart}</p>
         <div className="mt-3 pt-3 border-t border-border">
           <div className="font-sans text-2xl font-extrabold text-primary">
             ₹{plan.dailyRate.toLocaleString('en-IN')}<span className="text-xs font-medium text-text-muted">/day</span>
