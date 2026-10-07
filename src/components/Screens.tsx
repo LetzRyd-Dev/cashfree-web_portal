@@ -895,7 +895,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
         const totalTds = (w.tds || 0);
         const totalAccident = (w.accident || 0);
         const totalChallan = (w.challan || 0);
-        const totalGpsPenalty = (w.gps.deadKmPenalty || 0);
+        const totalGpsPenalty = (w.gps?.deadKmPenalty || 0);
         const totalDeductions = totalRent + totalMaintenance + totalTds + totalAccident + totalChallan + totalGpsPenalty + platformFees;
 
         return (
@@ -1124,7 +1124,7 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
             <div className="flex justify-between items-center">
               <span className="text-text-muted">{t('hisaab.excessDeadMiles', 'Excess Dead Miles')}</span>
-              <span className="font-bold text-text font-mono">{w.gps.deadMile} KM ({w.gps.deadMilePct}%)</span>
+              <span className="font-bold text-text font-mono">{w.gps?.deadMile || 0} KM ({w.gps?.deadMilePct || 0}%)</span>
             </div>
             <div className="flex justify-between items-center pt-1 border-t border-border/60">
               <span className="text-text-muted">{t('hisaab.deadMilePenalty', 'Dead Mile Penalty Due')}</span>
@@ -2407,7 +2407,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
             <>
               <div className="py-2.5 flex items-center justify-between gap-4">
                 <span className="text-text-muted font-medium">{t('profile.dob', 'Date of Birth')}</span>
-                <span className="font-sans font-bold text-text">{user.dob || '14-Aug-1992'}</span>
+                <span className="font-sans font-bold text-text">{user.dob || 'N/A'}</span>
               </div>
 
               <div className="py-2.5 flex items-center justify-between gap-4">
@@ -2459,12 +2459,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <div className="divide-y divide-border/50 font-sans text-xs">
             <div className="py-2.5 flex items-center justify-between gap-4">
               <span className="text-text-muted font-medium">{t('profile.aadharNumber', 'Aadhaar Number')}</span>
-              <span className="font-mono font-bold text-text">•••• {user.aadhar.slice(-4)}</span>
+              <span className="font-mono font-bold text-text">{user.aadhar ? `•••• ${user.aadhar.slice(-4)}` : '•••• N/A'}</span>
             </div>
 
             <div className="py-2.5 flex items-center justify-between gap-4">
               <span className="text-text-muted font-medium">{t('profile.drivingLicense', 'Driving License')}</span>
-              <span className="font-mono font-bold text-text">•••• {user.dlNumber.slice(-4)}</span>
+              <span className="font-mono font-bold text-text">{user.dlNumber ? `•••• ${user.dlNumber.slice(-4)}` : '•••• N/A'}</span>
             </div>
 
             <div className="py-2.5 flex items-center justify-between gap-4">

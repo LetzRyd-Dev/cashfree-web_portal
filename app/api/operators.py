@@ -151,7 +151,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
             if len(parts) >= 3 and parts[0] in ('HSB', 'HS'):
                 v_num = parts[2].upper()
             elif len(parts) >= 4 and parts[0] == 'HIS':
-                v_num = parts[3].upper()
+                v_num = parts[2].upper() if not parts[2].isdigit() and parts[2] != 'OP' else parts[3].upper()
             elif len(parts) >= 2:
                 v_num = parts[-1].upper()
             
@@ -304,7 +304,24 @@ def get_operator_fleet(operator_id: Union[int, str], db: Session = Depends(get_d
     op = resolve_operator(str(operator_id), db)
     target_op_id = op.app_operator_id if op else (int(operator_id) if str(operator_id).isdigit() else operator_id)
     hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_operator_id == target_op_id).all()
-    return {"operator_id": target_op_id, "fleet_count": len(hisaabs), "hisaabs": hisaabs}
+    mapped = [
+        {
+            "app_hisaab_id": h.app_hisaab_id,
+            "hisaab_number": h.hisaab_number,
+            "week_number": h.week_number,
+            "period_start": str(h.period_start) if h.period_start else "",
+            "period_end": str(h.period_end) if h.period_end else "",
+            "total_gross_earnings": float(h.total_gross_earnings or 0.0),
+            "weekly_hisaab_due": float(h.weekly_hisaab_due or 0.0),
+            "current_period_os": float(h.current_period_os or 0.0),
+            "to_collect": float(h.to_collect or 0.0),
+            "to_pay": float(h.to_pay or 0.0),
+            "paid_amount": float(h.paid_amount or 0.0),
+            "payment_status": h.payment_status or "unpaid"
+        }
+        for h in hisaabs
+    ]
+    return {"operator_id": target_op_id, "fleet_count": len(mapped), "hisaabs": mapped}
 
 @router.get("/{operator_id}", response_model=OperatorProfileResponse)
 def get_operator_by_id(operator_id: Union[int, str], db: Session = Depends(get_db)):

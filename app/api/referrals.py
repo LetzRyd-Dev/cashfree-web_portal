@@ -39,7 +39,23 @@ def list_referrals(
             query = query.filter(AppReferralLeads.referred_by_driver_id == target_id)
     
     referrals = query.order_by(AppReferralLeads.submitted_at.desc()).all()
-    return {"count": len(referrals), "data": referrals}
+    mapped = [
+        {
+            "app_referral_id": r.app_referral_id,
+            "referred_by_driver_id": r.referred_by_driver_id,
+            "referred_by_op_id": r.referred_by_op_id,
+            "referral_code_used": r.referral_code_used,
+            "lead_name": r.lead_name,
+            "lead_phone": r.lead_phone,
+            "lead_city": r.lead_city,
+            "status": r.status or "submitted",
+            "reward_amount": float(r.reward_amount or 0.0),
+            "reward_credited": r.reward_credited or False,
+            "submitted_at": r.submitted_at.isoformat() if r.submitted_at else None
+        }
+        for r in referrals
+    ]
+    return {"count": len(mapped), "data": mapped}
 
 @router.post("", response_model=ReferralResponse)
 def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):

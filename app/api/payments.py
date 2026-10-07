@@ -187,7 +187,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                             driver.lw_status = "partial"
                     else:
                         driver.cw_to_collect = round(max(0.0, float(driver.cw_to_collect or 0) - oh_pay), 2)
-                        driver.cw_os = round(max(0.0, float(driver.cw_os or 0) - oh_pay), 2)
+                        driver.cw_os = round(float(driver.cw_os or 0) - oh_pay, 2)
 
                     rem_cash = round(max(0.0, rem_cash - oh_pay), 2)
 
@@ -781,7 +781,22 @@ def get_payment_history(payer_id: Optional[int] = None, payer_type: Optional[str
         query = query.filter(AppPayments.payer_type == payer_type)
 
     payments = query.order_by(AppPayments.initiated_at.desc()).all()
-    return {"count": len(payments), "data": payments}
+    mapped = [
+        {
+            "app_payment_id": p.app_payment_id,
+            "payer_type": p.payer_type,
+            "payer_id": p.payer_id,
+            "amount": float(p.amount or 0.0),
+            "payment_mode": p.payment_mode,
+            "status": p.status,
+            "cf_order_id": p.cf_order_id,
+            "cf_payment_id": p.cf_payment_id,
+            "initiated_at": p.initiated_at.isoformat() if p.initiated_at else None,
+            "completed_at": p.completed_at.isoformat() if p.completed_at else None
+        }
+        for p in payments
+    ]
+    return {"count": len(mapped), "data": mapped}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

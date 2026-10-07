@@ -148,10 +148,9 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
     data = []
     for r in rows:
         w_num = r['week_number']
-        stat = "settled" if w_num < 40 else "in_progress"
-        h_no = f"HIS-OP-2026-{w_num:03d}-{op_code}"
         to_pay_val = float(r['to_pay'] or 0.0)
         to_collect_val = float(r['to_collect'] or 0.0)
+        stat = "settled" if (w_num < 40 or to_collect_val <= 0) else "in_progress"
         
         data.append(HisaabBreakdownResponse(
             app_hisaab_id=w_num,

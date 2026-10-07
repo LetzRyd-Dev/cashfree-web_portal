@@ -167,9 +167,9 @@ export function mapHisaabToWeek(h: any): HisaabWeek {
       activeDays: h.days_count || 0,
       growthPct: h.growth_pct || 0,
       platforms: {
-        uber: { trips: h.uber_trips, revenue: h.uber_revenue, cashCollection: -Math.abs(h.uber_cash), toll: h.uber_toll, incentive: h.uber_incentive, subscription: -Math.abs(h.uber_subscription), km: h.uber_km },
-        ola: { trips: h.ola_trips, revenue: h.ola_revenue, cashCollection: -Math.abs(h.ola_cash), toll: h.ola_toll, incentive: h.ola_incentive, subscription: -Math.abs(h.ola_subscription), km: h.ola_km },
-        rapido: { trips: h.rapido_trips, revenue: h.rapido_revenue, cashCollection: -Math.abs(h.rapido_cash), toll: h.rapido_toll, incentive: h.rapido_incentive, subscription: -Math.abs(h.rapido_subscription), km: h.rapido_km },
+        uber: { trips: Number(h.uber_trips || 0), revenue: Number(h.uber_revenue || 0), cashCollection: -Math.abs(Number(h.uber_cash || 0)), toll: Number(h.uber_toll || 0), incentive: Number(h.uber_incentive || 0), subscription: -Math.abs(Number(h.uber_subscription || 0)), km: Number(h.uber_km || 0) },
+        ola: { trips: Number(h.ola_trips || 0), revenue: Number(h.ola_revenue || 0), cashCollection: -Math.abs(Number(h.ola_cash || 0)), toll: Number(h.ola_toll || 0), incentive: Number(h.ola_incentive || 0), subscription: -Math.abs(Number(h.ola_subscription || 0)), km: Number(h.ola_km || 0) },
+        rapido: { trips: Number(h.rapido_trips || 0), revenue: Number(h.rapido_revenue || 0), cashCollection: -Math.abs(Number(h.rapido_cash || 0)), toll: Number(h.rapido_toll || 0), incentive: Number(h.rapido_incentive || 0), subscription: -Math.abs(Number(h.rapido_subscription || 0)), km: Number(h.rapido_km || 0) },
       },
       rent: { dailyRate: h.vehicle_daily_rate || 1000, netWeeklyRent: h.vehicle_rent || 0 },
       dailyMaintenance: h.maintenance_charge || 0,
