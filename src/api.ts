@@ -16,6 +16,10 @@ async function apiCall<T>(path: string, options?: RequestInit): Promise<T> {
     },
   });
 
+  if (response.status === 404) {
+    return null as any;
+  }
+
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
     throw new Error(errorData?.detail || `API request failed: ${response.statusText}`);

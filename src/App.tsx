@@ -763,7 +763,10 @@ export default function App() {
               const mapped = mapFleetDataToVehicles(fleetData);
               setOperatorFleet(prev => ({
                 ...prev,
-                vehicles: mapped,
+                vehicles: mapped.map(mv => {
+                  const existing = prev.vehicles.find(ev => ev.number.replace(/\s+/g, '') === mv.number.replace(/\s+/g, ''));
+                  return existing?.hisaabWeeks?.length ? { ...mv, hisaabWeeks: existing.hisaabWeeks } : mv;
+                }),
                 depositTotalRequired: fleetData.deposit_total_req ?? prev.depositTotalRequired,
                 depositPaidSoFar: fleetData.deposit_paid ?? prev.depositPaidSoFar,
                 depositPending: fleetData.deposit_pending ?? prev.depositPending,
@@ -796,7 +799,7 @@ export default function App() {
     setCurrentScreen(screen);
     if (screen === 'settle') {
       setDriverWeekIndex(0);
-      setOperatorWeekIndex(0);
+      setOperatorVehicleWeekIndex(0);
     }
   };
 
@@ -878,7 +881,7 @@ export default function App() {
 
   const handleSelectVehicleForHisaab = async (number: string) => {
     setSelectedVehicleNumber(number);
-    setOperatorVehicleWeekIndex(operatorWeekIndex);
+    setOperatorVehicleWeekIndex(0);
     navigateTo('operatorVehicle');
 
     const cleanNum = number.replace(/\s+/g, '');
@@ -1061,15 +1064,15 @@ export default function App() {
           if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
         }
       } else if (loginType === 'operator') {
-        const opProfile = await getOperatorByPhone(operatorUser.phone).catch(() => null);
+        const opProfile = await getOperatorByPhone(driverUser.phone).catch(() => null);
         if (opProfile) {
           const [fleet, hisaabs] = await Promise.all([
             getOperatorFleet(opProfile.app_operator_id).catch(() => null),
             getOperatorHisaabs(opProfile.app_operator_id).catch(() => null),
           ]);
-          setOperatorUser(mapOperatorToUser(opProfile));
+          setDriverUser(mapOperatorToUser(opProfile));
           if (fleet) setOperatorFleet(fleet);
-          if (hisaabs && hisaabs.length > 0) setOperatorHisaabs(hisaabs.map(mapHisaabToWeek));
+          if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
         }
       }
     } catch (err) {
