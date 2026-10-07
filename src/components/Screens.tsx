@@ -962,10 +962,12 @@ export const HisaabScreen: React.FC<HisaabScreenProps> = ({
             </div>
 
             {(() => {
-              const paid = w.paidAmount || 0;
-              const remainingDue = (w.toCollect !== undefined && w.toCollect !== null)
-                ? Math.max(0, w.toCollect - paid)
-                : Math.max(0, (w.currentWeekOs > 0 ? w.currentWeekOs : 0) - paid);
+              const isSettled = w.paymentStatus === 'settled' || w.status === 'settled' || w.status === 'settled_pay';
+              const remainingDue = isSettled
+                ? 0
+                : (w.toCollect !== undefined && w.toCollect !== null && w.toCollect > 0)
+                ? w.toCollect
+                : Math.max(0, (w.currentWeekOs > 0 ? w.currentWeekOs : 0));
               const isPayout = (w.currentWeekOs || 0) < 0 || ((w.toPay || 0) > 0 && (w.toCollect || 0) <= 0);
               const payoutAmt = (w.toPay && w.toPay > 0) ? w.toPay : Math.abs(w.currentWeekOs || 0);
 

@@ -919,7 +919,12 @@ export default function App() {
     let effectivePaid = paidAmount;
     if (!effectivePaid || effectivePaid <= 0) {
       const currentH = hisaabWeeks[0];
-      const hisaabDue = currentH ? Math.max(0, (currentH.currentWeekOs > 0 ? currentH.currentWeekOs : (currentH.toCollect || 0)) - (currentH.paidAmount || 0)) : 0;
+      const isSettled = currentH?.paymentStatus === 'settled' || currentH?.status === 'settled';
+      const hisaabDue = currentH ? (
+        isSettled ? 0 : (currentH.toCollect !== undefined && currentH.toCollect !== null && currentH.toCollect > 0)
+          ? currentH.toCollect
+          : Math.max(0, currentH.currentWeekOs > 0 ? currentH.currentWeekOs : 0)
+      ) : 0;
       const depDue = loginType === 'operator' ? (operatorFleet.depositPending || 0) : (driverUser.depositPending || 0);
       effectivePaid = Math.max(hisaabDue + depDue, 2850);
     }
@@ -1825,7 +1830,13 @@ export default function App() {
                                     <div className="text-[10px] font-medium text-text-muted uppercase tracking-wider">{t('home.totalOutstandingDue', 'Total Outstanding Due')}</div>
                                     <div className="font-sans text-xl font-extrabold text-red-600 mt-0.5 whitespace-nowrap font-mono">
                                       -₹{(() => {
-                                        const due = Math.max(0, (targetWeek.toCollect || targetWeek.currentWeekOs || 0) - (targetWeek.paidAmount || 0)) + (driverUser.depositPending || 0);
+                                        const isSettled = targetWeek.paymentStatus === 'settled' || targetWeek.status === 'settled';
+                                        const remHisaab = isSettled
+                                          ? 0
+                                          : (targetWeek.toCollect !== undefined && targetWeek.toCollect !== null && targetWeek.toCollect > 0)
+                                          ? targetWeek.toCollect
+                                          : Math.max(0, targetWeek.currentWeekOs || 0);
+                                        const due = remHisaab + (driverUser.depositPending || 0);
                                         return due.toLocaleString('en-IN', {
                                           minimumFractionDigits: due % 1 !== 0 ? 2 : 0,
                                           maximumFractionDigits: 2,
@@ -2065,17 +2076,22 @@ export default function App() {
                   {currentScreen === 'settle' && (() => {
                     const currentH = hisaabWeeks[driverWeekIndex] || (hisaabWeeks.length > 0 ? hisaabWeeks[0] : null);
                     const isWeeklyPayout = (currentH?.currentWeekOs || 0) < 0 || ((currentH?.toPay || 0) > 0 && (currentH?.toCollect || 0) <= 0 && (currentH?.currentWeekOs || 0) <= 0);
-                    const rawDue = currentH ? (isWeeklyPayout ? 0 : Math.max(0, (currentH.currentWeekOs > 0 ? currentH.currentWeekOs : (currentH.toCollect || 0)))) : 0;
-                    const paidSoFar = currentH?.paidAmount || 0;
-                    const remainingHisaabDue = Math.max(0, rawDue - paidSoFar);
+                    const isSettled = currentH?.paymentStatus === 'settled' || currentH?.status === 'settled' || currentH?.status === 'settled_pay';
+                    const remainingHisaabDue = isSettled
+                      ? 0
+                      : isWeeklyPayout
+                      ? 0
+                      : (currentH?.toCollect !== undefined && currentH?.toCollect !== null && currentH?.toCollect > 0)
+                      ? currentH.toCollect
+                      : Math.max(0, (currentH?.currentWeekOs || 0) > 0 ? currentH.currentWeekOs : 0);
                     const pendingDep = loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0);
                     const challanAmt = loginType === 'operator' ? 0 : (currentH?.challan || 0);
 
                     const fleetNetOs = operatorFleet.vehicles.reduce((sum, v) => sum + v.currentWeekOs, 0);
                     const opNetDue = currentH
-                      ? ((currentH.toCollect ?? 0) - (currentH.toPay ?? 0))
-                      : fleetNetOs;
-                    const totalOperatorDue = Math.max(0, opNetDue - (currentH?.paidAmount || 0));
+                      ? Math.max(0, (currentH.toCollect ?? 0) - (currentH.toPay ?? 0))
+                      : Math.max(0, fleetNetOs);
+                    const totalOperatorDue = isSettled ? 0 : opNetDue;
                     const finalHisaabAmount = loginType === 'operator' ? totalOperatorDue : Math.max(0, remainingHisaabDue - challanAmt);
                     const finalTotalAmount = finalHisaabAmount + pendingDep + challanAmt;
 

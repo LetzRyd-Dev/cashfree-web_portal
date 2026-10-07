@@ -164,16 +164,13 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
     for v in vehicles:
         clean_v = v.vehicle_number.replace(' ', '').replace('-', '').upper()
         matched_key = None
-        if clean_v in week_hisaabs_by_v:
+        if clean_v in week_hisaabs_by_v and clean_v not in matched_keys:
             matched_key = clean_v
         else:
             for k, items in week_hisaabs_by_v.items():
                 if k in matched_keys:
                     continue
                 if clean_v.endswith(k) or k.endswith(clean_v):
-                    matched_key = k
-                    break
-                if v.driver_id and any(wh.app_driver_id == v.driver_id for _, wh in items):
                     matched_key = k
                     break
 
@@ -246,7 +243,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], db: Session = Depen
         cw_to_pay = sum(float(h.to_pay or 0.0) for h in latest_week_hisaabs)
         cw_to_collect = sum(float(h.to_collect or 0.0) for h in latest_week_hisaabs)
         cw_gross = sum(float(h.total_gross_earnings or 0.0) for h in latest_week_hisaabs)
-        cw_trips = sum(int(h.completed_trips or ((h.uber_trips or 0) + (h.ola_trips or 0) + (h.rapido_trips or 0)) or 0) for h in latest_week_hisaabs)
+        cw_trips = sum(int(max(h.completed_trips or 0, (h.uber_trips or 0) + (h.ola_trips or 0) + (h.rapido_trips or 0))) for h in latest_week_hisaabs)
     else:
         cw_to_pay = sum(abs(v.current_week_os) for v in vehicles if v.current_week_os < 0)
         cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)

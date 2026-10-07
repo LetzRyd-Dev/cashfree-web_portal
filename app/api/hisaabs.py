@@ -101,7 +101,7 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
             MIN(period_start) as period_start,
             MAX(period_end) as period_end,
             COUNT(DISTINCT app_driver_id) as active_vehicles,
-            SUM(COALESCE(completed_trips, 0)) as completed_trips,
+            SUM(GREATEST(COALESCE(completed_trips, 0), (COALESCE(uber_trips, 0) + COALESCE(ola_trips, 0) + COALESCE(rapido_trips, 0)))) as completed_trips,
             SUM(COALESCE(total_gross_earnings, 0.00)) as total_gross_earnings,
             SUM(COALESCE(total_deductions, 0.00)) as total_deductions,
             SUM(COALESCE(total_penalties, 0.00)) as total_penalties,
