@@ -41,4 +41,4 @@ jobs:
             --region asia-south1 \
             --platform managed \
             --allow-unauthenticated \
-            --set-env-vars DB_HOST=34.93.205.164,DB_PORT=5432,DB_NAME=letzryd_dev,DB_USER=letzryd_dev_user,DB_PASS='LetzRydDevPass2026!'
+            --set-env-vars="DB_HOST=34.93.205.164,DB_PORT=5432,DB_NAME=letzryd_dev,DB_USER=letzryd_dev_user,DB_PASS=LetzRydDevPass2026!"
