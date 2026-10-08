@@ -1,0 +1,48 @@
+steps:
+  # Step 1: Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:$COMMIT_SHA'
+      - '-t'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+      - '.'
+
+  # Step 2: Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+
+  # Step 3: Deploy to Cloud Run dev service (dev-cashfree-web-portal)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dev-cashfree-web-portal'
+      - '--image'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:$COMMIT_SHA'
+      - '--region'
+      - 'asia-south1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'DB_HOST=34.93.205.164,DB_PORT=5432,DB_NAME=letzryd_dev,DB_USER=letzryd_dev_user,DB_PASS=LetzRydDevPass2026!'
+      - '--quiet'
+
+images:
+  - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1200s'
