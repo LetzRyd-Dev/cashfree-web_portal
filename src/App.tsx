@@ -229,12 +229,6 @@ export default function App() {
   const [backendError, setBackendError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [adminSearchOpen, setAdminSearchOpen] = useState(false);
-  const [adminSearchQuery, setAdminSearchQuery] = useState('');
-  const [adminSearchResults, setAdminSearchResults] = useState<{ name: string; phone: string; role: 'driver' | 'operator'; id: string; detail?: string }[]>([]);
-  const [adminSearchLoading, setAdminSearchLoading] = useState(false);
-  const [adminSearchError, setAdminSearchError] = useState<string | null>(null);
-  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   // Cancellation ref: set to true when user goes back from OTP screen mid-request
   const otpRequestCancelledRef = useRef(false);
@@ -407,9 +401,9 @@ export default function App() {
         setConfirmationResult(null);
         setOtpSent(true);
         const errMsg = err?.code === 'auth/quota-exceeded'
-          ? 'SMS quota exceeded. (Enter 1234 to proceed)'
+          ? 'SMS quota exceeded. Please try again later.'
           : err?.code === 'auth/too-many-requests'
-          ? 'Too many attempts. Please wait or enter 1234.'
+          ? 'Too many attempts. Please wait.'
           : err?.message || 'Enter OTP code to proceed';
         triggerToast(`SMS Notice: ${errMsg}`, 'info');
       } finally {
@@ -418,7 +412,7 @@ export default function App() {
     } else {
       if (otpRequestCancelledRef.current) return;
       setOtpSent(true);
-      triggerToast('OTP code sent successfully (Demo OTP: 1234)', 'info');
+      triggerToast('OTP code sent to your phone', 'info');
     }
   };
 
@@ -458,26 +452,20 @@ export default function App() {
       }
     }
 
-    const isStaticOtp = cleanOtp === '1234';
     setIsVerifyingOtp(true);
     setBackendError(null);
 
     try {
       // Step 1: Firebase verification (for live carrier SMS OTP)
-      if (confirmationResult && !isStaticOtp) {
+      if (confirmationResult) {
         try {
           await confirmationResult.confirm(cleanOtp);
         } catch (firebaseErr: any) {
           console.error('Firebase OTP Confirmation Failed:', firebaseErr);
           const errorMsg = firebaseErr?.code === 'auth/invalid-verification-code' 
-            ? 'Incorrect SMS OTP code. Please check your phone and try again, or use master OTP 1234.'
+            ? 'Incorrect SMS OTP code. Please check your phone and try again.'
             : (firebaseErr?.message || 'Invalid SMS OTP. Please try again.');
           throw new Error(errorMsg);
-        }
-      } else if (!confirmationResult && !isStaticOtp) {
-        // If no SMS was dispatched (offline / demo mode), only master OTP 1234 is valid
-        if (cleanOtp !== '1234' && cleanOtp !== (matchedProfile?.otp || '1234')) {
-          throw new Error('Invalid OTP code. Please enter the SMS OTP sent to your phone or master OTP: 1234');
         }
       }
 
@@ -593,140 +581,6 @@ export default function App() {
       triggerToast(err.message || 'Invalid OTP code. Please try again.', 'error');
     } finally {
       setIsVerifyingOtp(false);
-      setIsLoadingProfile(false);
-    }
-  };
-
-  // Admin: search for any partner by phone number (no OTP needed for lookup)
-  const handleAdminSearch = async (query: string) => {
-    const cleanQ = query.replace('+91', '').replace(/[\s-]/g, '').trim();
-    setAdminSearchQuery(query);
-    setAdminSearchResults([]);
-    setAdminSearchError(null);
-    if (!cleanQ || cleanQ.length < 5) return;
-    setAdminSearchLoading(true);
-    try {
-      const [driverRes, opRes] = await Promise.all([
-        getDriverByPhone(cleanQ).catch(() => null),
-        getOperatorByPhone(cleanQ).catch(() => null),
-      ]);
-
-      const found: { name: string; phone: string; role: 'driver' | 'operator'; id: string; detail?: string }[] = [];
-
-      // If user is an operator, add operator first
-      if (opRes) {
-        found.push({
-          name: opRes.company_name || 'Fleet Operator',
-          phone: opRes.phone || cleanQ,
-          role: 'operator',
-          id: opRes.app_operator_id,
-          detail: opRes.total_vehicles ? `${opRes.total_vehicles} vehicles in fleet` : undefined,
-        });
-      }
-
-      // If user is also/or a driver, add driver.
-      // IMPORTANT: If phone already matched a real fleet operator (with vehicles),
-      // suppress the duplicate driver entry — fleet owners appear in both tables,
-      // but should only ever log in as Operator.
-      const isFleetOperator = opRes && (opRes.total_vehicles || 0) > 0;
-      if (driverRes && !isFleetOperator) {
-        found.push({
-          name: driverRes.full_name || 'Driver',
-          phone: driverRes.phone || cleanQ,
-          role: 'driver',
-          id: driverRes.app_driver_id,
-          detail: driverRes.vehicle_reg_number ? `Car: ${driverRes.vehicle_reg_number}` : undefined,
-        });
-      }
-
-      if (found.length > 0) {
-        setAdminSearchResults(found);
-      } else {
-        setAdminSearchError('No driver or operator found with this phone number.');
-      }
-    } catch {
-      setAdminSearchError('Error searching. Check backend connection.');
-    } finally {
-      setAdminSearchLoading(false);
-    }
-  };
-
-  // Admin: one-click login as any partner using backend OTP 1234 bypass (no Firebase)
-  const handleAdminLoginAs = async (result: { name: string; phone: string; role: 'driver' | 'operator'; id: string }) => {
-    setAdminLoginLoading(true);
-    try {
-      // Call backend OTP verify directly with master OTP 1234 and the explicit role requested
-      await verifyOTPBackend(result.phone, '1234', result.role);
-      setIsLoadingProfile(true);
-
-      const targetRole = result.role;
-
-      if (targetRole === 'operator') {
-        const opProfile = await getOperatorByPhone(result.phone);
-        const fleetData = await getOperatorFleet(opProfile.app_operator_id);
-        const notifs = await fetchNotifications(opProfile.app_operator_id, 'operator');
-        const opHisaabs = await getOperatorHisaabs(opProfile.app_operator_id).catch(() => []);
-
-        setDriverUser(mapOperatorToUser(opProfile));
-
-        const mappedVehicles: FleetVehicle[] = mapFleetDataToVehicles(fleetData);
-        const mappedDrivers: FleetDriverItem[] = (fleetData?.drivers || []).map((d: any) => ({
-          driverId: d.app_driver_id,
-          driverCode: d.driver_code || `DRV-${d.app_driver_id}`,
-          name: d.full_name || 'Driver',
-          phone: d.phone || '',
-          assignedVehicle: d.assigned_vehicle || 'Unassigned',
-          vehicleModel: d.vehicle_model || 'Maruti Wagonr Tour H3 CNG',
-          rentalPlan: d.rental_plan || 'Fixed',
-          currentWeekOs: d.current_week_os || 0,
-          status: d.status || 'active',
-          hisaabCount: d.hisaab_count || 0
-        }));
-
-        setOperatorFleet({
-          operatorCode: fleetData?.operator_code,
-          operatorName: fleetData?.company_name,
-          depositTotalRequired: fleetData?.deposit_total_req,
-          depositPaidSoFar: fleetData?.deposit_paid,
-          depositPending: fleetData?.deposit_pending,
-          vehicles: mappedVehicles,
-          drivers: mappedDrivers,
-        });
-        if (opHisaabs && opHisaabs.length > 0) {
-          setHisaabWeeks(opHisaabs.map(mapHisaabToWeek));
-        } else if (mappedVehicles.length > 0) {
-          setHisaabWeeks(mappedVehicles[0].hisaabWeeks);
-        }
-        if (mappedVehicles.length > 0) {
-          setSelectedVehicleNumber(mappedVehicles[0].number);
-        }
-        if (notifs?.length > 0) setNotifications(notifs.map(mapNotification));
-        setLoginType('operator');
-      } else {
-        const driverProfile = await getDriverByPhone(result.phone);
-        const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id);
-        const notifs = await fetchNotifications(driverProfile.app_driver_id, 'driver');
-        const tkts = await getTickets(driverProfile.app_driver_id);
-        setDriverUser(mapDriverToUser(driverProfile));
-        setDriverVehicle(mapDriverToVehicle(driverProfile));
-        setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
-        if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
-        setNotifications((notifs || []).map(mapNotification));
-        setTickets((tkts || []).map(mapTicket));
-        setLoginType('driver');
-      }
-
-      setPhoneInput(result.phone);
-      setIsLoggedIn(true);
-      setCurrentScreen('home');
-      setAdminSearchOpen(false);
-      setAdminSearchQuery('');
-      setAdminSearchResults([]);
-      triggerToast(`🔑 Admin: Logged in as ${result.name}`, 'success');
-    } catch (err: any) {
-      triggerToast(err.message || 'Failed to log in as partner', 'error');
-    } finally {
-      setAdminLoginLoading(false);
       setIsLoadingProfile(false);
     }
   };
@@ -1353,89 +1207,6 @@ export default function App() {
                     </button>
                   </form>
                 )}
-
-                {/* Admin: Live Partner Search Panel */}
-                <div className="pt-3 border-t border-border space-y-2 text-left relative">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">
-                      Admin: Login as Any Partner
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => { setAdminSearchOpen(v => !v); setAdminSearchQuery(''); setAdminSearchResults([]); setAdminSearchError(null); }}
-                      className="text-[10px] font-semibold text-primary hover:underline cursor-pointer"
-                    >
-                      {adminSearchOpen ? 'Hide ▲' : 'Open ▼'}
-                    </button>
-                  </div>
-
-                  {adminSearchOpen && (
-                    <div className="space-y-2">
-                      {/* Phone search input */}
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          maxLength={10}
-                          value={adminSearchQuery}
-                          onChange={e => handleAdminSearch(e.target.value)}
-                          placeholder="Type partner phone number..."
-                          className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm font-medium text-text outline-none focus:border-primary/60 transition-all"
-                          autoFocus
-                        />
-                        {adminSearchLoading && (
-                          <div className="absolute right-2.5 top-2.5 w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                        )}
-                      </div>
-
-                      {/* Search results list */}
-                      {adminSearchResults.length > 0 && (
-                        <div className="space-y-2">
-                          {adminSearchResults.map((res) => (
-                            <div key={`${res.role}-${res.id}`} className="flex items-center justify-between p-2.5 rounded-xl bg-primary/5 border border-primary/20">
-                              <div>
-                                <div className="font-bold text-sm text-text">{res.name}</div>
-                                <div className="text-[11px] text-text-muted mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                  <span className={`font-bold px-1.5 py-0.5 rounded text-[9px] uppercase ${res.role === 'operator' ? 'bg-blue-500/10 text-blue-600' : 'bg-green-500/10 text-green-600'}`}>
-                                    {res.role}
-                                  </span>
-                                  <span>{res.phone}</span>
-                                  {res.detail && (
-                                    <span className="text-[10px] text-primary/80 font-medium">({res.detail})</span>
-                                  )}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                disabled={adminLoginLoading}
-                                onClick={() => handleAdminLoginAs(res)}
-                                className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0 ml-2"
-                              >
-                                {adminLoginLoading ? (
-                                  <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Loading...</>
-                                ) : (
-                                  <>Login as {res.role === 'operator' ? 'Operator' : 'Driver'} →</>
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* No result error */}
-                      {adminSearchError && !adminSearchLoading && (
-                        <div className="text-[11px] text-red-500 font-medium px-1">{adminSearchError}</div>
-                      )}
-
-                      {/* Hint */}
-                      {adminSearchResults.length === 0 && !adminSearchError && !adminSearchLoading && adminSearchQuery.length >= 5 && (
-                        <div className="text-[11px] text-text-muted px-1">Searching live database...</div>
-                      )}
-                      {adminSearchQuery.length === 0 && (
-                        <div className="text-[11px] text-text-muted px-1">Enter a 10-digit phone to find any driver or operator from the live DB.</div>
-                      )}
-                    </div>
-                  )}
-                </div>
 
               </div>
             </motion.div>

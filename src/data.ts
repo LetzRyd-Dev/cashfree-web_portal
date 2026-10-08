@@ -10,7 +10,7 @@ export interface DemoProfile {
   phone: string;
   role: 'driver' | 'operator';
   tag: string;
-  otp: string;
+  otp?: string;
   user: User;
   weeks: HisaabWeek[];
   vehicle?: Vehicle;
@@ -1057,7 +1057,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9901484683",
     role: "driver",
     tag: "Paid Last Week (₹0.00)",
-    otp: "1234",
     user: {
       ...USER_DATA,
       name: "Vivek",
@@ -1074,7 +1073,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9140631755",
     role: "driver",
     tag: "Unpaid Last Week (-₹1,034.80)",
-    otp: "1234",
     user: {
       ...SURESH_USER_DATA,
       name: "Sushant",
@@ -1091,7 +1089,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9691938866",
     role: "operator",
     tag: "Fleet Operator (4 Cars)",
-    otp: "1234",
     user: {
       ...USER_DATA,
       id: "OPR-HYD-001",
@@ -1117,7 +1114,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9930420065",
     role: "driver",
     tag: "Paid Last Week (₹0.00)",
-    otp: "1234",
     user: {
       ...VIKRAM_USER_DATA,
       name: "Aayush",
@@ -1134,7 +1130,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9866941379",
     role: "driver",
     tag: "Paid Last Week (₹0.00)",
-    otp: "1234",
     user: {
       ...VARAPRASAD_USER_DATA,
       name: "Anurag Driver",
@@ -1151,7 +1146,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9848012346",
     role: "driver",
     tag: "Paid Last Week (₹0.00)",
-    otp: "1234",
     user: MOHAMMED_USER_DATA,
     vehicle: MOHAMMED_VEHICLE_DATA,
     rentalPlan: MOHAMMED_RENTAL_PLAN_DATA,
@@ -1162,7 +1156,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9848012347",
     role: "driver",
     tag: "Unpaid (₹1,820.50)",
-    otp: "1234",
     user: ANIL_USER_DATA,
     vehicle: ANIL_VEHICLE_DATA,
     rentalPlan: ANIL_RENTAL_PLAN_DATA,
@@ -1173,7 +1166,6 @@ export const DEMO_PROFILES: DemoProfile[] = [
     phone: "9848012345",
     role: "operator",
     tag: "Fleet Operator (2 Cars)",
-    otp: "1234",
     user: {
       ...USER_DATA,
       id: "OPR-HYD-002",
