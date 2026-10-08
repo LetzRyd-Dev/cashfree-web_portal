@@ -1060,32 +1060,32 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1 flex flex-col bg-primary overflow-hidden"
+              className="flex-1 flex flex-col bg-primary overflow-y-auto"
             >
-              {/* Top branding area — fills upper navy portion with balanced spacing */}
-              <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 gap-4 text-center bg-gradient-to-b from-[#0A1650] to-[#081242]">
+              {/* Top branding area — compact & scrollable on mobile keyboard focus */}
+              <div className="flex-1 min-h-[140px] flex flex-col items-center justify-center px-5 py-4 sm:py-6 gap-2.5 sm:gap-4 text-center bg-gradient-to-b from-[#0A1650] to-[#081242] shrink-0">
                 <img
                   src="https://letzryd.com/replica-assets/letzryd-long-png-logo-Aq2o3DNOw1i2kBMB-7ab04eaa76.png"
                   alt="LetzRyd logo"
-                  className="h-16 max-w-[210px] w-auto object-contain filter brightness-0 invert drop-shadow-sm transition-transform duration-200 hover:scale-105"
+                  className="h-10 sm:h-14 max-w-[180px] sm:max-w-[210px] w-auto object-contain filter brightness-0 invert drop-shadow-sm transition-transform duration-200 hover:scale-105"
                   referrerPolicy="no-referrer"
                 />
                 <div className="space-y-0.5">
-                  <h1 className="font-sans text-lg font-extrabold text-white tracking-tight leading-snug">
+                  <h1 className="font-sans text-base sm:text-lg font-extrabold text-white tracking-tight leading-snug">
                     {t('app.title', 'LetzRyd Portal')}
                   </h1>
-                  <p className="font-sans text-xs font-medium text-white/80">
+                  <p className="font-sans text-[11px] sm:text-xs font-medium text-white/80">
                     {t('app.subtitle', 'Drive in the Future of Urban Mobility.')}
                   </p>
                 </div>
 
                 {/* 5-Language selector pills */}
-                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+                <div className="flex flex-wrap items-center justify-center gap-1 pt-0.5">
                   {(['en', 'hi', 'mr', 'te', 'kn'] as Language[]).map((lang) => (
                     <button
                       key={lang}
                       onClick={() => handleLanguageChange(lang)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+                      className={`px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold transition-all cursor-pointer shadow-xs ${
                         language === lang
                           ? 'bg-white text-primary font-bold shadow-md'
                           : 'bg-white/15 text-white/85 hover:bg-white/25 backdrop-blur-xs'
@@ -1097,8 +1097,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* White form card — anchored seamlessly to bottom */}
-              <div className="bg-bg rounded-t-[28px] px-6 pt-6 pb-8 space-y-4 shadow-2xl shrink-0 border-t border-white/20">
+              {/* White form card — anchored seamlessly & scrollable on focus */}
+              <div className="bg-bg rounded-t-[28px] px-5 py-5 sm:px-6 sm:pt-6 sm:pb-8 space-y-3.5 shadow-2xl shrink-0 border-t border-white/20">
                 <div id="recaptcha-container"></div>
 
                 {!otpSent ? (
