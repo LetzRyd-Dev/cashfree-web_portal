@@ -377,11 +377,7 @@ export default function App() {
         await window.recaptchaVerifier.render();
 
         const formattedPhone = `+91${cleanPhone}`;
-        const confirmationPromise = signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('SMS network timeout. Please enter OTP.')), 8000)
-        );
-        const confirmation = await Promise.race([confirmationPromise, timeoutPromise]);
+        const confirmation = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
 
         // User went back while Firebase was sending SMS — discard result
         if (otpRequestCancelledRef.current) return;
