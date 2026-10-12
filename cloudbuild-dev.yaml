@@ -4,14 +4,14 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cloud-run-source-deploy/dev-cashfree-web-portal:latest'
       - '.'
 
   # Step 2: Push image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cloud-run-source-deploy/dev-cashfree-web-portal:latest'
 
   # Step 3: Deploy to Cloud Run dev service (dev-cashfree-web-portal)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -21,7 +21,7 @@ steps:
       - 'deploy'
       - 'dev-cashfree-web-portal'
       - '--image'
-      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+      - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cloud-run-source-deploy/dev-cashfree-web-portal:latest'
       - '--region'
       - 'asia-south1'
       - '--platform'
@@ -32,7 +32,7 @@ steps:
       - '--quiet'
 
 images:
-  - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
+  - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cloud-run-source-deploy/dev-cashfree-web-portal:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
