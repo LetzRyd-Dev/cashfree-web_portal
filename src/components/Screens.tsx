@@ -1350,7 +1350,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   const [countdown, setCountdown] = useState<number>(3);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
   const [cashfreeMode, setCashfreeMode] = useState<string>(
-    (import.meta.env.VITE_CASHFREE_MODE || 'sandbox').toLowerCase()
+    (import.meta.env.VITE_CASHFREE_MODE || 'production').toLowerCase()
   );
 
   useEffect(() => {
@@ -1461,6 +1461,13 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     const generatedOrderId = `ORDER_LR_${Date.now()}`;
 
     try {
+      try {
+        const cfg = await getAppConfig();
+        if (cfg?.cashfree_mode) {
+          setCashfreeMode(cfg.cashfree_mode.toLowerCase());
+        }
+      } catch {}
+
       const orderPayload = {
         amount: activePayAmount.toFixed(2),
         driverName: driverName || 'Driver Partner',

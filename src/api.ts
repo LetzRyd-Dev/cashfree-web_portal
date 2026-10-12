@@ -3,9 +3,7 @@ import { User, HisaabWeek, Ticket, Notification, Vehicle, RentalPlan } from './t
 const envBackend = import.meta.env.VITE_BACKEND_URL;
 export const BACKEND_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
   ? (envBackend || 'http://127.0.0.1:8000')
-  : (envBackend && !envBackend.includes('cashfree-web-portal-925756819101')
-      ? envBackend 
-      : 'https://letzryd-portal-925756819101.asia-south1.run.app');
+  : (envBackend || '');
 
 async function apiCall<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${BACKEND_URL}${path}`, {
