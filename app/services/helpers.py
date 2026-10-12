@@ -98,6 +98,42 @@ def resolve_driver(phone_or_id: str, db: Session) -> Optional[AppDrivers]:
         if driver:
             return driver
 
+    # 6. Zero-Delay Auto-Provisioning Fallback from core_partner_onboarding
+    if clean and len(clean) == 10:
+        try:
+            from sqlalchemy import text
+            res = db.execute(text("""
+                SELECT id, driver_name, phone_number, security_deposit, partner_id
+                FROM public.core_partner_onboarding
+                WHERE RIGHT(REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g'), 10) = :phone
+                  AND (onboarding_type IS NULL OR onboarding_type NOT ILIKE '%operator%')
+                  AND (is_deleted IS NULL OR is_deleted = FALSE)
+                ORDER BY id DESC LIMIT 1
+            """), {"phone": clean}).fetchone()
+            if res:
+                p_id, p_name, p_phone, p_dep, p_code = res
+                req_dep = float(p_dep) if p_dep else 5000.0
+                new_driver = AppDrivers(
+                    driver_id=p_id,
+                    operator_id=0,
+                    full_name=p_name or "Driver",
+                    phone=clean,
+                    initials=(p_name[:2].upper() if p_name else "DR"),
+                    driver_code=p_code or f"DRV-{p_id}",
+                    deposit_total_req=req_dep,
+                    deposit_paid=0.0,
+                    deposit_pending=req_dep,
+                    upi_id=f"{clean}@upi",
+                    is_active=True
+                )
+                db.add(new_driver)
+                db.commit()
+                db.refresh(new_driver)
+                return new_driver
+        except Exception as e:
+            print(f"[WARN] Auto-provisioning from core_partner_onboarding skipped: {e}")
+            db.rollback()
+
     return None
 
 def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
@@ -153,5 +189,42 @@ def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
         op = db.query(AppOperators).filter(AppOperators.phone == clean).first()
         if op:
             return op
+
+    # 6. Zero-Delay Auto-Provisioning Fallback from core_partner_onboarding for Operators
+    if clean and len(clean) == 10:
+        try:
+            from sqlalchemy import text
+            res = db.execute(text("""
+                SELECT id, driver_name, phone_number, security_deposit, partner_id
+                FROM public.core_partner_onboarding
+                WHERE RIGHT(REGEXP_REPLACE(COALESCE(phone_number, ''), '[^0-9]', '', 'g'), 10) = :phone
+                  AND (onboarding_type ILIKE '%operator%' OR partner_id ILIKE '%OP%' OR partner_id ILIKE '%IP%')
+                  AND (is_deleted IS NULL OR is_deleted = FALSE)
+                ORDER BY id DESC LIMIT 1
+            """), {"phone": clean}).fetchone()
+            if res:
+                p_id, p_name, p_phone, p_dep, p_code = res
+                req_dep = float(p_dep) if p_dep else 10000.0
+                comp_name = p_name or "Fleet Operator"
+                new_op = AppOperators(
+                    operator_id=p_id,
+                    operator_code=p_code or f"OPR-{p_id}",
+                    phone=clean,
+                    company_name=comp_name,
+                    contact_person_name=p_name or comp_name,
+                    initials=(comp_name[:2].upper() if comp_name else "OP"),
+                    deposit_total_req=req_dep,
+                    deposit_paid=0.0,
+                    deposit_pending=req_dep,
+                    upi_id=f"{clean}@upi",
+                    is_active=True
+                )
+                db.add(new_op)
+                db.commit()
+                db.refresh(new_op)
+                return new_op
+        except Exception as e:
+            print(f"[WARN] Operator auto-provisioning from core_partner_onboarding skipped: {e}")
+            db.rollback()
 
     return None

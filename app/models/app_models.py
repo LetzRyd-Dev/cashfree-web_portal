@@ -282,6 +282,7 @@ class AppPayments(Base):
     payee_type = Column(String(10), nullable=False, default="letzryd")
     payee_id = Column(Integer, nullable=True)
     app_hisaab_id = Column(Integer, nullable=True)
+    target_component = Column(String(20), nullable=True, default="auto")
     amount = Column(Numeric(12,2), nullable=False, default=0.0)
     payment_mode = Column(String(20), nullable=False, default="cashfree_upi")
     status = Column(String(20), nullable=False, default="INITIATED")

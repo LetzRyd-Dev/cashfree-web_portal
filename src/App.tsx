@@ -240,9 +240,10 @@ export default function App() {
   });
   const [prevScreen, setPrevScreen] = useState<string>('home');
 
-  // Ledger Week Indices
+  // Ledger Week Indices & Payment Component Selection
   const [driverWeekIndex, setDriverWeekIndex] = useState(0);
   const [operatorVehicleWeekIndex, setOperatorVehicleWeekIndex] = useState(0);
+  const [settleTargetComponent, setSettleTargetComponent] = useState<'auto' | 'hisaab' | 'deposit'>('auto');
 
   // Data Collections
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -384,7 +385,7 @@ export default function App() {
 
         setConfirmationResult(confirmation);
         setOtpSent(true);
-        triggerToast(`Live SMS OTP sent to ${formattedPhone}!`, 'success');
+        triggerToast(`Live SMS OTP sent to ${formattedPhone}! If not received, please check your SMS inbox or spam folder.`, 'success');
       } catch (err: any) {
         console.error('Firebase live SMS dispatch error:', err);
         if (window.recaptchaVerifier) {
@@ -408,7 +409,7 @@ export default function App() {
     } else {
       if (otpRequestCancelledRef.current) return;
       setOtpSent(true);
-      triggerToast('OTP code sent to your phone', 'info');
+      triggerToast('OTP code sent to your phone. If not received, please check your SMS spam folder.', 'info');
     }
   };
 
@@ -775,7 +776,7 @@ export default function App() {
       .catch(() => triggerToast(`Referral Code: ${code}`, 'info'));
   };
 
-  const handleConfirmPayment = async (paidAmount?: number) => {
+  const handleConfirmPayment = async (paidAmount?: number, targetComponent?: string) => {
     // Determine effective paid amount (default to the current full due if not supplied)
     let effectivePaid = paidAmount;
     if (!effectivePaid || effectivePaid <= 0) {
@@ -790,77 +791,126 @@ export default function App() {
       effectivePaid = Math.max(hisaabDue + depDue, 2850);
     }
 
+    const targetComp = (targetComponent || 'auto').toLowerCase();
+
     // 1. Immediately apply the payment to local state so UI updates instantly across Settle, Hisaab, and Home screens
     if (effectivePaid > 0) {
       if (loginType === 'driver') {
         let remainingCash = effectivePaid;
 
-        // Clone and apply to hisaabWeeks
-        const updatedWeeks = hisaabWeeks.map((hw) => {
-          if (remainingCash <= 0) return hw;
-          const isPayout = (hw.currentWeekOs || 0) < 0 || ((hw.toPay || 0) > 0 && (hw.toCollect || 0) <= 0);
-          const rawDue = isPayout ? 0 : Math.max(0, hw.currentWeekOs > 0 ? hw.currentWeekOs : (hw.toCollect || 0));
-          const prevPaid = hw.paidAmount || 0;
-          const remDue = Math.max(0, rawDue - prevPaid);
-
-          if (remDue > 0) {
-            const payToThisWeek = Math.min(remDue, remainingCash);
-            const newPaid = prevPaid + payToThisWeek;
-            remainingCash -= payToThisWeek;
-            const isSettled = newPaid >= rawDue;
-            return {
-              ...hw,
-              paidAmount: newPaid,
-              paymentStatus: (isSettled ? 'settled' : 'partial') as 'settled' | 'partial',
-              status: (isSettled ? 'settled' : 'unpaid') as 'settled' | 'unpaid',
-              currentWeekOs: Math.max(0, rawDue - newPaid),
-              toCollect: Math.max(0, rawDue - newPaid),
-            };
+        // TARGETED DEPOSIT FLOW: Deduct from deposit first
+        if (targetComp === 'deposit') {
+          let newDepPending = driverUser.depositPending || 0;
+          let newDepPaid = driverUser.depositPaidSoFar || 0;
+          const depTotalReq = driverUser.depositTotalRequired || driverUser.depositAmount || 5000;
+          if (newDepPending > 0) {
+            const depCredit = Math.min(remainingCash, newDepPending);
+            newDepPending = Math.max(0, newDepPending - depCredit);
+            newDepPaid = Math.min(depTotalReq, newDepPaid + depCredit);
+            remainingCash -= depCredit;
           }
-          return hw;
-        });
 
-        // Pay pending security deposit if cash remains
-        let newDepPending = driverUser.depositPending || 0;
-        let newDepPaid = driverUser.depositPaidSoFar || 0;
-        if (remainingCash > 0 && newDepPending > 0) {
-          const depCredit = Math.min(remainingCash, newDepPending);
-          newDepPending = Math.max(0, newDepPending - depCredit);
-          newDepPaid += depCredit;
-          remainingCash -= depCredit;
+          const updatedDriverUser: User = {
+            ...driverUser,
+            depositPending: newDepPending,
+            depositPaidSoFar: newDepPaid,
+          };
+          setDriverUser(updatedDriverUser);
+
+          try {
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+              isLoggedIn: true,
+              loginType,
+              phoneInput,
+              driverUser: updatedDriverUser,
+              driverVehicle,
+              driverRentalPlan,
+              operatorFleet,
+              hisaabWeeks,
+              currentScreen: 'settle',
+            }));
+          } catch (e) {}
+        } else {
+          // TARGETED HISAAB or AUTO WATERFALL
+          const updatedWeeks = hisaabWeeks.map((hw) => {
+            if (remainingCash <= 0) return hw;
+            const isPayout = (hw.currentWeekOs || 0) < 0 || ((hw.toPay || 0) > 0 && (hw.toCollect || 0) <= 0);
+            const rawDue = isPayout ? 0 : Math.max(0, hw.currentWeekOs > 0 ? hw.currentWeekOs : (hw.toCollect || 0));
+            const prevPaid = hw.paidAmount || 0;
+            const remDue = Math.max(0, rawDue - prevPaid);
+
+            if (remDue > 0) {
+              const payToThisWeek = Math.min(remDue, remainingCash);
+              const newPaid = prevPaid + payToThisWeek;
+              remainingCash -= payToThisWeek;
+              const isSettled = newPaid >= rawDue;
+              return {
+                ...hw,
+                paidAmount: newPaid,
+                paymentStatus: (isSettled ? 'settled' : 'partial') as 'settled' | 'partial',
+                status: (isSettled ? 'settled' : 'unpaid') as 'settled' | 'unpaid',
+                currentWeekOs: Math.max(0, rawDue - newPaid),
+                toCollect: Math.max(0, rawDue - newPaid),
+              };
+            }
+            return hw;
+          });
+
+          // Pay pending security deposit if cash remains and not targeted specifically to hisaab
+          let newDepPending = driverUser.depositPending || 0;
+          let newDepPaid = driverUser.depositPaidSoFar || 0;
+          const depTotalReq = driverUser.depositTotalRequired || driverUser.depositAmount || 5000;
+          if (remainingCash > 0 && newDepPending > 0 && targetComp !== 'hisaab') {
+            const depCredit = Math.min(remainingCash, newDepPending);
+            newDepPending = Math.max(0, newDepPending - depCredit);
+            newDepPaid = Math.min(depTotalReq, newDepPaid + depCredit);
+            remainingCash -= depCredit;
+          }
+
+          const newCumulativeOwed = Math.max(0, (driverUser.cumulativeOwed || 0) - effectivePaid);
+
+          const updatedDriverUser: User = {
+            ...driverUser,
+            cumulativeOwed: newCumulativeOwed,
+            depositPending: newDepPending,
+            depositPaidSoFar: newDepPaid,
+          };
+
+          setHisaabWeeks(updatedWeeks);
+          setDriverUser(updatedDriverUser);
+
+          // Persist to localStorage immediately
+          try {
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+              isLoggedIn: true,
+              loginType,
+              phoneInput,
+              driverUser: updatedDriverUser,
+              driverVehicle,
+              driverRentalPlan,
+              operatorFleet,
+              hisaabWeeks: updatedWeeks,
+              currentScreen: 'settle',
+            }));
+          } catch (e) {}
         }
-
-        const newCumulativeOwed = Math.max(0, (driverUser.cumulativeOwed || 0) - effectivePaid);
-
-        const updatedDriverUser: User = {
-          ...driverUser,
-          cumulativeOwed: newCumulativeOwed,
-          depositPending: newDepPending,
-          depositPaidSoFar: newDepPaid,
-        };
-
-        setHisaabWeeks(updatedWeeks);
-        setDriverUser(updatedDriverUser);
-
-        // Persist to localStorage immediately
-        try {
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
-            isLoggedIn: true,
-            loginType,
-            phoneInput,
-            driverUser: updatedDriverUser,
-            driverVehicle,
-            driverRentalPlan,
-            operatorFleet,
-            hisaabWeeks: updatedWeeks,
-            currentScreen: 'settle',
-          }));
-        } catch (e) {}
       } else {
         // Operator payment cascade
         let remainingCash = effectivePaid;
+        let newDepPending = operatorFleet.depositPending || 0;
+        let newDepPaid = operatorFleet.depositPaidSoFar || 0;
+
+        if (targetComp === 'deposit') {
+          if (newDepPending > 0) {
+            const depCredit = Math.min(remainingCash, newDepPending);
+            newDepPending = Math.max(0, newDepPending - depCredit);
+            newDepPaid += depCredit;
+            remainingCash -= depCredit;
+          }
+        }
+
         const updatedVehicles = operatorFleet.vehicles.map(v => {
-          if (remainingCash <= 0 || v.currentWeekOs <= 0) return v;
+          if (remainingCash <= 0 || v.currentWeekOs <= 0 || targetComp === 'deposit') return v;
           const payToV = Math.min(v.currentWeekOs, remainingCash);
           remainingCash -= payToV;
           return {
@@ -869,9 +919,7 @@ export default function App() {
           };
         });
 
-        let newDepPending = operatorFleet.depositPending || 0;
-        let newDepPaid = operatorFleet.depositPaidSoFar || 0;
-        if (remainingCash > 0 && newDepPending > 0) {
+        if (remainingCash > 0 && newDepPending > 0 && targetComp !== 'deposit') {
           const depCredit = Math.min(remainingCash, newDepPending);
           newDepPending = Math.max(0, newDepPending - depCredit);
           newDepPaid += depCredit;
@@ -951,6 +999,7 @@ export default function App() {
       const doVerify = async () => {
         let isVerified = false;
         let verifiedAmt = 0;
+        let verifiedTarget: string | undefined = undefined;
         for (const url of verifyUrls) {
           try {
             const res = await fetch(url);
@@ -958,6 +1007,7 @@ export default function App() {
               const data = await res.json();
               if (data?.is_success || data?.status === 'SUCCESS') {
                 verifiedAmt = Number(data?.amount || data?.paid_amount || data?.data?.[0]?.payment_amount || 0);
+                verifiedTarget = data?.target_component || (data?.payment_type === 'deposit' ? 'deposit' : undefined);
                 isVerified = true;
                 break;
               }
@@ -967,7 +1017,7 @@ export default function App() {
           }
         }
         if (isVerified && verifiedAmt > 0) {
-          await handleConfirmPayment(verifiedAmt);
+          await handleConfirmPayment(verifiedAmt, verifiedTarget);
         }
         setIsLoggedIn(true);
         setCurrentScreen('settle');
@@ -1151,9 +1201,14 @@ export default function App() {
                 ) : (
                   <form key="otp-form" onSubmit={handleVerifyOtp} className="space-y-3">
                     <div className="flex flex-col gap-1.5">
-                      <label className="font-sans text-xs font-semibold text-text-muted">
-                        {t('login.enterOtp', 'Enter OTP Code')}
-                      </label>
+                      <div className="flex justify-between items-center flex-wrap gap-1">
+                        <label className="font-sans text-xs font-semibold text-text-muted">
+                          {t('login.enterOtp', 'Enter OTP Code')}
+                        </label>
+                        <span className="text-[10px] text-amber-700 font-medium">
+                          {t('login.checkSpam', 'If not received, please check SMS spam folder')}
+                        </span>
+                      </div>
                       <input
                         type="text"
                         maxLength={6}
@@ -1428,7 +1483,41 @@ export default function App() {
                             );
                           })()}
                         </div>
-                        ) : null
+                      ) : (
+                          <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs text-left space-y-3 font-sans">
+                            <div className="flex items-center gap-3 border-b border-border/60 pb-3">
+                              <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                <Car className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-extrabold text-sm text-text">
+                                  {driverVehicle && driverVehicle.number && driverVehicle.number !== 'Unassigned'
+                                    ? `Vehicle ${driverVehicle.number}`
+                                    : t('home.vehiclePending', 'Vehicle Allocation In Progress')}
+                                </h3>
+                                <p className="text-[11px] text-text-muted truncate">
+                                  {driverVehicle && driverVehicle.number && driverVehicle.number !== 'Unassigned'
+                                    ? `${driverVehicle.make || ''} ${driverVehicle.model || ''}`
+                                    : t('home.onboardedWelcome', 'Onboarding completed • Operations team assigning vehicle')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="p-3 bg-primary/5 border border-primary/15 rounded-xl space-y-1.5">
+                              <div className="flex items-center justify-between text-xs font-bold text-primary">
+                                <span className="flex items-center gap-1.5">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  {t('home.accountActive', 'Account Active')}
+                                </span>
+                                <span className="text-[10.5px] font-mono bg-primary/10 px-2 py-0.5 rounded-md">
+                                  {driverUser.id || 'DRV'}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-text-muted leading-relaxed">
+                                {t('home.allocationMsg', 'Your profile and background verification are active. Please complete your security deposit payment below to fast-track vehicle handover.')}
+                              </p>
+                            </div>
+                          </div>
+                        )
                       ) : (
                         <div
                           onClick={() => navigateTo('hisaab')}
@@ -1566,7 +1655,111 @@ export default function App() {
                               </div>
                             );
                           }
-                          if (!targetWeek) return null;
+                          if (!targetWeek) {
+                            const depTotal = driverUser.depositTotalRequired || driverUser.depositAmount || 5000;
+                            const depPaid = driverUser.depositPaidSoFar || 0;
+                            const depPending = driverUser.depositPending !== undefined ? driverUser.depositPending : Math.max(0, depTotal - depPaid);
+                            const isFullPaid = depPending <= 0;
+
+                            return (
+                              <div className="bg-surface border border-border/80 rounded-2xl p-4 shadow-xs text-left space-y-3 font-sans">
+                                <div className="flex justify-between items-center border-b border-border/60 pb-2.5">
+                                  <span className="font-sans text-[11px] font-bold text-text uppercase tracking-wider flex items-center gap-1.5">
+                                    <ShieldCheck className="w-4 h-4 text-primary" />
+                                    {t('home.deposit', 'SECURITY DEPOSIT')}
+                                  </span>
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                    isFullPaid
+                                      ? 'bg-green-50 text-green-700 border-green-200'
+                                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                                  }`}>
+                                    {isFullPaid ? t('home.fullPaid', 'Fully Paid') : t('home.paymentPending', 'Pending')}
+                                  </span>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-baseline">
+                                    <span className="text-[11px] text-text-muted">{t('home.paidSoFar', 'Paid so far')}:</span>
+                                    <span className="text-sm font-extrabold text-green font-mono">
+                                      ₹{depPaid.toLocaleString('en-IN')}
+                                      <span className="text-text-muted font-normal text-xs"> / ₹{depTotal.toLocaleString('en-IN')}</span>
+                                    </span>
+                                  </div>
+
+                                  {/* Progress Bar */}
+                                  <div className="w-full h-2 rounded-full bg-bg border border-border/60 overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary transition-all duration-500 rounded-full"
+                                      style={{ width: `${Math.min(100, Math.max(0, (depPaid / depTotal) * 100))}%` }}
+                                    />
+                                  </div>
+
+                                  <div className="flex justify-between items-center text-[11px]">
+                                    <span className="text-text-muted">{t('home.remainingToPay', 'Remaining to pay')}:</span>
+                                    <span className="font-bold text-amber-700 font-mono text-xs">
+                                      ₹{depPending.toLocaleString('en-IN')}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {!isFullPaid ? (
+                                  <div className="pt-1 space-y-2">
+                                    {/* Installment selection quick chips */}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-[10px] text-text-muted font-medium mr-1">Quick Pay:</span>
+                                      <button
+                                        onClick={() => {
+                                          setSettleTargetComponent('deposit');
+                                          navigateTo('settle');
+                                        }}
+                                        className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[10.5px] font-bold transition-colors cursor-pointer"
+                                      >
+                                        Full ₹{depPending.toLocaleString('en-IN')}
+                                      </button>
+                                      {depPending > 2000 && (
+                                        <button
+                                          onClick={() => {
+                                            setSettleTargetComponent('deposit');
+                                            navigateTo('settle');
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-bg hover:bg-surface border border-border/80 text-text text-[10.5px] font-bold transition-colors cursor-pointer"
+                                        >
+                                          ₹2,000
+                                        </button>
+                                      )}
+                                      {depPending > 1000 && (
+                                        <button
+                                          onClick={() => {
+                                            setSettleTargetComponent('deposit');
+                                            navigateTo('settle');
+                                          }}
+                                          className="px-2.5 py-1 rounded-lg bg-bg hover:bg-surface border border-border/80 text-text text-[10.5px] font-bold transition-colors cursor-pointer"
+                                        >
+                                          ₹1,000
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    <button
+                                      onClick={() => {
+                                        setSettleTargetComponent('deposit');
+                                        navigateTo('settle');
+                                      }}
+                                      className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-hover font-sans text-xs font-bold text-white shadow-xs cursor-pointer transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <Wallet className="w-4 h-4" />
+                                      {t('home.payDepositNow', 'Pay Security Deposit')}
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="p-2.5 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-2 text-[11px] text-green-700 font-medium">
+                                    <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                                    <span>{t('home.depositCompleteMsg', 'Deposit complete! You are prioritized for vehicle handover.')}</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
 
                           const isWeeklyPayout = (targetWeek.currentWeekOs || 0) < 0 || ((targetWeek.toPay || 0) > 0 && (targetWeek.toCollect || 0) <= 0);
                           const payoutAmt = (targetWeek.toPay && targetWeek.toPay > 0) ? targetWeek.toPay : Math.abs(targetWeek.currentWeekOs || 0);
@@ -1662,11 +1855,23 @@ export default function App() {
                                 </span>
                                 <div className="flex items-center gap-2 text-[10px] font-sans">
                                   <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                    {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                    {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar ?? driverUser.depositAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                                   </span>
                                   <span className={`px-2.5 py-0.5 rounded-full font-bold border ${(driverUser.depositPending || 0) > 0 ? 'bg-amber-50 text-amber-700 border-amber-200/70' : 'bg-green-50 text-green-700 border-green-200/70'}`}>
                                     {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPending || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                                   </span>
+                                  {(driverUser.depositPending || 0) > 0 && !isFleetManaged && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSettleTargetComponent('deposit');
+                                        navigateTo('settle');
+                                      }}
+                                      className="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 font-bold border border-amber-500/30 text-[10px] transition-colors cursor-pointer"
+                                    >
+                                      Pay Deposit
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1908,9 +2113,10 @@ export default function App() {
                         driverId={driverUser.id}
                         hisaabId={currentH?.app_hisaab_id}
                         payerType={loginType}
+                        targetComponent={settleTargetComponent}
                         onCopyUpi={handleCopyUpiId}
                         onConfirmPayment={handleConfirmPayment}
-                        onBack={() => navigateTo(loginType === 'operator' ? 'operator' : 'hisaab')}
+                        onBack={() => navigateTo(loginType === 'operator' ? 'operator' : hisaabWeeks.length > 0 ? 'hisaab' : 'home')}
                         t={t}
                         isFleetManaged={isFleetManaged}
                         operatorName={driverUser.operatorName}
@@ -1930,6 +2136,10 @@ export default function App() {
                     <OperatorScreen
                       fleet={operatorFleet}
                       onSelectVehicle={handleSelectVehicleForHisaab}
+                      onPayFleetDeposit={() => {
+                        setSettleTargetComponent('deposit');
+                        navigateTo('settle');
+                      }}
                       t={t}
                     />
                   )}

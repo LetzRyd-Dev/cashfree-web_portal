@@ -63,12 +63,17 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
     """
     updated = {"hisaab": None, "driver": None, "operator": None, "notification": None}
     paid_amount = round(float(payment.amount or 0), 2)
+    target_comp = (
+        getattr(payment, "target_component", None)
+        or (payment.raw_response or {}).get("target_component")
+        or "auto"
+    ).lower().strip()
 
     # ── 1. Update app_hisaabs ────────────────────────────────────────────────
     hisaab = None
     if payment.app_hisaab_id:
         hisaab = db.query(AppHisaabs).filter(AppHisaabs.app_hisaab_id == payment.app_hisaab_id).first()
-    elif payment.payer_type == "driver" and payment.payer_id:
+    elif payment.payer_type == "driver" and payment.payer_id and target_comp != "deposit":
         # Fallback: look up the driver's most recent uncollected hisaab
         hisaab = db.query(AppHisaabs).filter(
             AppHisaabs.app_driver_id == payment.payer_id,
@@ -87,12 +92,20 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
             driver = resolve_driver(str(payment.payer_id), db)
         if driver:
             rem_cash = paid_amount
-
             active_week_num = get_active_week_number(db)
+
+            # ── TARGETED DEPOSIT FLOW ─────────────────────────────────────────
+            if target_comp == "deposit":
+                dep_pending = round(float(driver.deposit_pending or 0), 2)
+                total_req = round(float(driver.deposit_total_req or 5000.0), 2)
+                dep_credit = round(min(dep_pending, rem_cash), 2)
+                driver.deposit_paid = round(min(total_req, float(driver.deposit_paid or 0) + dep_credit), 2)
+                driver.deposit_pending = round(max(0.0, total_req - float(driver.deposit_paid)), 2)
+                rem_cash = round(max(0.0, rem_cash - dep_credit), 2)
 
             # Tier 1: Pay target hisaab (or active week debt)
             target_hisaab = hisaab
-            if not target_hisaab:
+            if not target_hisaab and target_comp != "deposit":
                 target_hisaab = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == driver.app_driver_id,
                     AppHisaabs.to_collect > 0,
@@ -191,10 +204,10 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
                     rem_cash = round(max(0.0, rem_cash - oh_pay), 2)
 
-            # Tier 3: Pay pending security deposit
-            if rem_cash > 0:
+            # Tier 3: Pay pending security deposit (if not already handled in targeted deposit flow)
+            if rem_cash > 0 and target_comp != "deposit":
                 dep_pending = round(float(driver.deposit_pending or 0), 2)
-                total_req = round(float(driver.deposit_total_req or 6000.0), 2)
+                total_req = round(float(driver.deposit_total_req or 5000.0), 2)
                 dep_credit = round(min(dep_pending, rem_cash), 2)
                 driver.deposit_paid = round(min(total_req, float(driver.deposit_paid or 0) + dep_credit), 2)
                 driver.deposit_pending = round(max(0.0, total_req - float(driver.deposit_paid)), 2)
@@ -203,16 +216,16 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
             # Tier 4: Any remaining surplus becomes driver advance credit
             if rem_cash > 0:
                 driver.cw_to_collect = 0.0
-                driver.cw_os = round(-rem_cash, 2)
-                driver.cw_to_pay = round(rem_cash, 2)
+                driver.cw_os = round(float(driver.cw_os or 0) - rem_cash, 2)
+                driver.cw_to_pay = round(float(driver.cw_to_pay or 0) + rem_cash, 2)
                 # Also reflect in active week hisaab as payout credit
                 cw_h = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == driver.app_driver_id,
                     AppHisaabs.week_number == active_week_num
                 ).first()
                 if cw_h:
-                    cw_h.current_period_os = round(-rem_cash, 2)
-                    cw_h.to_pay = round(rem_cash, 2)
+                    cw_h.current_period_os = round(float(cw_h.current_period_os or 0) - rem_cash, 2)
+                    cw_h.to_pay = round(float(cw_h.to_pay or 0) + rem_cash, 2)
                     cw_h.to_collect = 0.0
 
             updated["driver"] = {
@@ -234,6 +247,17 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
         if not op:
             op = resolve_operator(str(payment.payer_id), db)
         if op:
+            rem_for_debt = paid_amount
+
+            # ── TARGETED OPERATOR DEPOSIT FLOW ────────────────────────────────
+            if target_comp == "deposit":
+                dep_pending = round(float(op.deposit_pending or 0), 2)
+                total_dep_req = round(float(op.deposit_total_req or 25000.0), 2)
+                dep_payment = round(min(dep_pending, rem_for_debt), 2)
+                op.deposit_paid = round(min(total_dep_req, float(op.deposit_paid or 0) + dep_payment), 2)
+                op.deposit_pending = round(max(0.0, total_dep_req - float(op.deposit_paid)), 2)
+                rem_for_debt = round(max(0.0, rem_for_debt - dep_payment), 2)
+
             # Tier 1: Pay down operator fleet driver debts (e.g. Sushant who owes ₹1,850)
             op_filter = (AppDrivers.operator_id == op.app_operator_id)
             if op.operator_id:
@@ -336,15 +360,18 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             excess_after_debt = round(max(0.0, rem_for_debt), 2)
 
-            # Tier 2: Pay down operator pending security deposit
-            dep_pending = round(float(op.deposit_pending or 0), 2)
-            dep_payment = round(min(dep_pending, excess_after_debt), 2)
-            total_dep_req = round(float(op.deposit_total_req or 25000.0), 2)
-            op.deposit_paid = round(min(total_dep_req, float(op.deposit_paid or 0) + dep_payment), 2)
-            op.deposit_pending = round(max(0.0, total_dep_req - float(op.deposit_paid)), 2)
+            # Tier 2: Pay down operator pending security deposit (if not already handled in targeted flow)
+            if target_comp != "deposit":
+                dep_pending = round(float(op.deposit_pending or 0), 2)
+                dep_payment = round(min(dep_pending, excess_after_debt), 2)
+                total_dep_req = round(float(op.deposit_total_req or 25000.0), 2)
+                op.deposit_paid = round(min(total_dep_req, float(op.deposit_paid or 0) + dep_payment), 2)
+                op.deposit_pending = round(max(0.0, total_dep_req - float(op.deposit_paid)), 2)
+                excess_after_deposit = round(max(0.0, excess_after_debt - dep_payment), 2)
+            else:
+                excess_after_deposit = excess_after_debt
 
             # Tier 3: Any leftover surplus beyond debt & deposit increases operator payout credit
-            excess_after_deposit = round(max(0.0, excess_after_debt - dep_payment), 2)
             if excess_after_deposit > 0:
                 op.cw_to_pay = round(float(op.cw_to_pay or 0) + excess_after_deposit, 2)
 
@@ -360,16 +387,22 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
     # ── 4. Fire payment notification ──────────────────────────────────────────
     if payment.payer_id and payment.payer_type in ("driver", "operator"):
-        hisaab_ref = hisaab.hisaab_number if hisaab else "your account"
+        if target_comp == "deposit":
+            notif_title = "Deposit Received ✅"
+            notif_msg = f"Your security deposit payment of ₹{paid_amount:,.0f} has been received. Your balance is now updated."
+        else:
+            notif_title = "Payment Received ✅"
+            hisaab_ref = hisaab.hisaab_number if hisaab else "your account"
+            notif_msg = f"Your payment of ₹{paid_amount:,.0f} for {hisaab_ref} has been received. Your balance is now updated."
+
         notif = AppNotifications(
             target_type=payment.payer_type,
             target_id=payment.payer_id,
             notif_type="payment",
             severity="success",
             icon="Wallet",
-            title="Payment Received ✅",
-            message=f"Your payment of ₹{paid_amount:,.0f} for {hisaab_ref} has been received. "
-                    f"Your balance is now updated.",
+            title=notif_title,
+            message=notif_msg,
             deep_link="/settle",
             is_read=False,
         )
@@ -395,15 +428,17 @@ def initiate_payment(req: InitiatePaymentRequest, db: Session = Depends(get_db))
     # If payer is a driver, verify they are not under an operator
     if req.payer_type == "driver" and req.payer_id:
         driver = db.query(AppDrivers).filter(AppDrivers.app_driver_id == req.payer_id).first()
+        if not driver:
+            driver = resolve_driver(str(req.payer_id), db)
         if driver and driver.operator_id and driver.operator_id > 0:
             op = db.query(AppOperators).filter(
                 (AppOperators.app_operator_id == driver.operator_id) | (AppOperators.operator_id == driver.operator_id)
             ).first()
-            if op:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Driver is managed by fleet operator '{op.company_name or op.contact_person_name}'. Individual payments are disabled; payments must be made by the fleet operator."
-                )
+            op_name = op.company_name if op else f"Fleet Operator (ID: {driver.operator_id})"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Driver is managed by fleet operator '{op_name}'. Individual payments are disabled; payments must be made by the fleet operator."
+            )
 
     if req.app_hisaab_id:
         h = db.query(AppHisaabs).filter(AppHisaabs.app_hisaab_id == req.app_hisaab_id).first()
@@ -412,17 +447,20 @@ def initiate_payment(req: InitiatePaymentRequest, db: Session = Depends(get_db))
 
     cf_order_id = f"ORDER_LR_{int(datetime.now(timezone.utc).timestamp())}_{uuid.uuid4().hex[:8].upper()}"
     now = datetime.now(timezone.utc)
+    target_comp = (req.target_component or "auto").lower().strip()
 
     payment = AppPayments(
-        payment_type="collection",
+        payment_type="deposit" if target_comp == "deposit" else "collection",
         payer_type=req.payer_type,
         payer_id=req.payer_id,
         payee_type="letzryd",
         app_hisaab_id=req.app_hisaab_id,
+        target_component=target_comp,
         amount=amt,
         payment_mode=req.payment_mode,
         status="INITIATED",
         cf_order_id=cf_order_id,
+        raw_response={"target_component": target_comp},
         initiated_at=now
     )
     db.add(payment)
@@ -489,11 +527,11 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
             op = db.query(AppOperators).filter(
                 (AppOperators.app_operator_id == driver.operator_id) | (AppOperators.operator_id == driver.operator_id)
             ).first()
-            if op:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Driver is managed by fleet operator '{op.company_name or op.contact_person_name}'. Individual payments are disabled; payments must be made by the fleet operator."
-                )
+            op_name = op.company_name if op else f"Fleet Operator (ID: {driver.operator_id})"
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Driver is managed by fleet operator '{op_name}'. Individual payments are disabled; payments must be made by the fleet operator."
+            )
 
     # Call Real Cashfree PG Orders API
     cf_headers = {
@@ -555,10 +593,11 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
         session_id = f"session_lr_{uuid.uuid4().hex}"
 
     # Auto-resolve hisaab_id if not explicitly provided and save record
+    target_comp = (req.target_component or "auto").lower().strip()
     hisaab_id_to_use = req.app_hisaab_id
     if db_accessible:
         try:
-            if not hisaab_id_to_use and payer_type == "driver" and payer_id:
+            if not hisaab_id_to_use and payer_type == "driver" and payer_id and target_comp != "deposit":
                 active_week_num = get_active_week_number(db)
                 h_unpaid = db.query(AppHisaabs).filter(
                     AppHisaabs.app_driver_id == payer_id,
@@ -575,13 +614,14 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
                     if h_active:
                         hisaab_id_to_use = h_active.app_hisaab_id
 
-            # Store payment record with hisaab linkage
+            # Store payment record with hisaab linkage and target_component
             payment = AppPayments(
-                payment_type="collection",
+                payment_type="deposit" if target_comp == "deposit" else "collection",
                 payer_type=payer_type,
                 payer_id=payer_id,
                 payee_type="letzryd",
                 app_hisaab_id=hisaab_id_to_use,
+                target_component=target_comp,
                 amount=amt,
                 payment_mode="cashfree_checkout",
                 status="INITIATED",
@@ -592,6 +632,7 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
                     "driverPhone": req.driverPhone,
                     "app_hisaab_id": hisaab_id_to_use,
                     "payer_type": payer_type,
+                    "target_component": target_comp,
                 },
                 initiated_at=now
             )

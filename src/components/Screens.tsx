@@ -1267,8 +1267,9 @@ interface SettleScreenProps {
   driverId?: string;
   hisaabId?: number;        // NEW: links payment to specific hisaab in DB
   payerType?: 'driver' | 'operator';  // NEW: driver vs operator payment
+  targetComponent?: 'auto' | 'hisaab' | 'deposit'; // NEW: target component selection
   onCopyUpi: () => void;
-  onConfirmPayment: (paidAmt?: number) => void;
+  onConfirmPayment: (paidAmt?: number, targetComponent?: string) => void;
   onBack: () => void;
   t: (key: string, fallback: string) => string;
   isFleetManaged?: boolean;
@@ -1288,6 +1289,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   driverId,
   hisaabId,
   payerType = 'driver',
+  targetComponent = 'auto',
   onCopyUpi,
   onConfirmPayment,
   onBack,
@@ -1298,10 +1300,39 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   const pastWeekAmount = hisaabAmount !== undefined ? hisaabAmount : amount;
   const totalDueAmount = pastWeekAmount + pendingDeposit + challansAmount;
 
+  const hasHisaabDue = pastWeekAmount > 0;
+  const hasDepositDue = pendingDeposit > 0;
+
+  // Initial target component selection
+  const initialTarget: 'auto' | 'hisaab' | 'deposit' = 
+    (targetComponent === 'deposit' && hasDepositDue) ? 'deposit' :
+    (targetComponent === 'hisaab' && hasHisaabDue) ? 'hisaab' :
+    (hasHisaabDue && hasDepositDue) ? 'auto' :
+    hasDepositDue ? 'deposit' : 'hisaab';
+
+  const [selectedTarget, setSelectedTarget] = useState<'auto' | 'hisaab' | 'deposit'>(initialTarget);
+
+  const activeComponentDue = selectedTarget === 'auto'
+    ? totalDueAmount
+    : selectedTarget === 'hisaab'
+    ? (pastWeekAmount + challansAmount)
+    : pendingDeposit;
+
   const [paymentOption, setPaymentOption] = useState<'full' | 'part' | 'advance'>('full');
-  const [customAmount, setCustomAmount] = useState<string>(totalDueAmount.toFixed(2));
+  const [customAmount, setCustomAmount] = useState<string>(activeComponentDue.toFixed(2));
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+
+  const handleSelectTarget = (target: 'auto' | 'hisaab' | 'deposit') => {
+    setSelectedTarget(target);
+    setPaymentOption('full');
+    const due = target === 'auto'
+      ? totalDueAmount
+      : target === 'hisaab'
+      ? (pastWeekAmount + challansAmount)
+      : pendingDeposit;
+    setCustomAmount(due.toFixed(2));
+  };
   
   // Payment Flow States: 'form' | 'loading' | 'checkout' | 'gateway' | 'simulator' | 'success'
   const [paymentState, setPaymentState] = useState<'form' | 'loading' | 'checkout' | 'gateway' | 'simulator' | 'success'>('form');
@@ -1395,19 +1426,19 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   const selectPaymentOption = (opt: 'full' | 'part' | 'advance') => {
     setPaymentOption(opt);
     if (opt === 'full') {
-      setCustomAmount(totalDueAmount.toFixed(2));
+      setCustomAmount(activeComponentDue.toFixed(2));
     } else if (opt === 'part') {
-      const half = Math.max(100, Math.floor(totalDueAmount / 2));
+      const half = Math.max(100, Math.floor(activeComponentDue / 2));
       setCustomAmount(half.toFixed(2));
     } else if (opt === 'advance') {
-      const adv = Math.max(3000, Math.ceil((totalDueAmount + 500) / 500) * 500);
+      const adv = Math.max(1000, Math.ceil((activeComponentDue + 500) / 500) * 500);
       setCustomAmount(adv.toFixed(2));
     }
   };
 
   const activePayAmount = parseFloat(customAmount) || 0;
-  const isAdvanceInvalid = paymentOption === 'advance' && activePayAmount <= totalDueAmount;
-  const isPartInvalid = paymentOption === 'part' && (activePayAmount <= 0 || activePayAmount >= totalDueAmount);
+  const isAdvanceInvalid = paymentOption === 'advance' && activePayAmount <= activeComponentDue;
+  const isPartInvalid = paymentOption === 'part' && (activePayAmount <= 0 || activePayAmount >= activeComponentDue);
 
   // Trigger Real Cashfree Order Creation and render checkout inside mobile layout
   const handleCashfreePayment = async () => {
@@ -1426,8 +1457,9 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         driverPhone: driverPhone || '9999999999',
         driverId: driverId || '1',
         weekRange,
-        app_hisaab_id: hisaabId || null,   // Link to specific hisaab
+        app_hisaab_id: selectedTarget === 'deposit' ? null : (hisaabId || null),   // Do not link hisaab for deposit payments
         payer_type: payerType || 'driver',  // driver or operator
+        target_component: selectedTarget,   // auto | deposit | hisaab
         operator_id: payerType === 'operator' && driverId ? (parseInt(String(driverId).replace(/\D/g, '')) || undefined) : undefined,
         return_url: typeof window !== 'undefined' ? `${window.location.origin}/?order_id={order_id}` : undefined,
       };
@@ -1521,7 +1553,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       const data = await res.json();
       if (data?.is_success || data?.status === 'SUCCESS') {
         const verifiedAmount = data?.amount || data?.paid_amount || activePayAmount;
-        onConfirmPayment(verifiedAmount);
+        onConfirmPayment(verifiedAmount, selectedTarget);
         handlePaymentSuccess();
       }
     } catch (e) {
@@ -1773,13 +1805,71 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       </div>
 
       <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs space-y-3.5 text-left font-sans text-xs">
+        {/* Component Selector: All Dues vs Hisaab vs Security Deposit */}
+        {hasHisaabDue && hasDepositDue && !isFleetManaged && (
+          <div className="bg-bg/90 p-1 rounded-xl border border-border/80 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => handleSelectTarget('auto')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                selectedTarget === 'auto'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              All Dues (₹{totalDueAmount.toLocaleString('en-IN')})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectTarget('hisaab')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                selectedTarget === 'hisaab'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Hisaab (₹{pastWeekAmount.toLocaleString('en-IN')})
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSelectTarget('deposit')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all ${
+                selectedTarget === 'deposit'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-text-muted hover:text-text'
+              }`}
+            >
+              Deposit (₹{pendingDeposit.toLocaleString('en-IN')})
+            </button>
+          </div>
+        )}
+
+        {selectedTarget === 'deposit' && (
+          <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0" />
+              <div>
+                <p className="font-bold text-amber-800">Security Deposit Settle</p>
+                <p className="text-[10px] text-text-muted">Payment goes 100% towards standing capital deposit</p>
+              </div>
+            </div>
+            <span className="font-bold text-amber-800 font-mono">
+              ₹{pendingDeposit.toLocaleString('en-IN')} Due
+            </span>
+          </div>
+        )}
+
         <div className="bg-bg/60 p-3 rounded-xl border border-border/60 flex items-center justify-between">
           <span className="font-sans text-xs font-bold text-text-muted uppercase tracking-wider">
-            {t('home.totalOutstandingDue', 'Total Outstanding Due')}
+            {selectedTarget === 'deposit'
+              ? 'Security Deposit Due'
+              : selectedTarget === 'hisaab'
+              ? 'Weekly Hisaab Due'
+              : t('home.totalOutstandingDue', 'Total Outstanding Due')}
           </span>
-          <span className={`font-sans text-xl font-black ${totalDueAmount === 0 ? 'text-green' : 'text-red-600'}`}>
-            ₹{totalDueAmount.toLocaleString('en-IN', {
-              minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0,
+          <span className={`font-sans text-xl font-black ${activeComponentDue === 0 ? 'text-green' : 'text-red-600'}`}>
+            ₹{activeComponentDue.toLocaleString('en-IN', {
+              minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0,
               maximumFractionDigits: 2,
             })}
           </span>
@@ -1797,15 +1887,17 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center text-text">
-            <span className="text-text-muted font-medium">{t('settle.weeklyHisaabDue', 'Weekly Hisaab Due:')}</span>
-            <span className={`font-bold ${pastWeekAmount === 0 ? 'text-green' : 'text-text'}`}>
-              ₹{pastWeekAmount.toLocaleString('en-IN', {
-                minimumFractionDigits: pastWeekAmount % 1 !== 0 ? 2 : 0,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-          </div>
+          {pastWeekAmount > 0 && (
+            <div className="flex justify-between items-center text-text">
+              <span className="text-text-muted font-medium">{t('settle.weeklyHisaabDue', 'Weekly Hisaab Due:')}</span>
+              <span className={`font-bold ${selectedTarget === 'deposit' ? 'text-text-muted line-through' : 'text-text'}`}>
+                ₹{pastWeekAmount.toLocaleString('en-IN', {
+                  minimumFractionDigits: pastWeekAmount % 1 !== 0 ? 2 : 0,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+          )}
           {challansAmount > 0 && (
             <div className="flex justify-between items-center text-text">
               <span className="text-text-muted font-medium">{t('settle.challansAndPenalties', 'Challans & Penalties:')}</span>
@@ -1820,7 +1912,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           {pendingDeposit > 0 && (
             <div className="flex justify-between items-center text-text">
               <span className="text-text-muted font-medium">{t('hisaab.pendingDeposit', 'Pending Deposit')}:</span>
-              <span className="font-bold text-amber-700">
+              <span className={`font-bold ${selectedTarget === 'hisaab' ? 'text-text-muted line-through' : 'text-amber-700'}`}>
                 ₹{pendingDeposit.toLocaleString('en-IN', {
                   minimumFractionDigits: pendingDeposit % 1 !== 0 ? 2 : 0,
                   maximumFractionDigits: 2,
@@ -1901,7 +1993,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           {paymentOption === 'advance' && isAdvanceInvalid && !isFleetManaged && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).
+              ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{activeComponentDue.toLocaleString('en-IN', { minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).
             </p>
           )}
 
@@ -1909,7 +2001,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
               {activePayAmount <= 0
                 ? '⚠️ Part payment amount must be greater than ₹0.'
-                : `⚠️ ${t('settle.partError', 'Part payment must be less than total due')} (₹${totalDueAmount.toLocaleString('en-IN', { minimumFractionDigits: totalDueAmount % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). ${t('settle.useFullPay', 'Use Full Pay for full settlement.')}`}
+                : `⚠️ ${t('settle.partError', 'Part payment must be less than total due')} (₹${activeComponentDue.toLocaleString('en-IN', { minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). ${t('settle.useFullPay', 'Use Full Pay for full settlement.')}`}
             </p>
           )}
 
@@ -2732,10 +2824,11 @@ export const RentalScreen: React.FC<RentalScreenProps> = ({ plan, t }) => {
 interface OperatorScreenProps {
   fleet: Fleet;
   onSelectVehicle: (number: string) => void;
+  onPayFleetDeposit?: () => void;
   t: (key: string, fallback: string) => string;
 }
 
-export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, t }) => {
+export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, onPayFleetDeposit, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const totalVehicles = fleet.vehicles.length;
@@ -2823,7 +2916,7 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
       })()}
 
       {/* Fleet Security Deposit Card */}
-      <div className="bg-surface border border-border rounded-xl p-3 shadow-xs text-left font-sans text-xs">
+      <div className="bg-surface border border-border rounded-xl p-3 shadow-xs text-left font-sans text-xs space-y-2">
         <div className="flex items-center justify-between">
           <span className="font-sans text-xs font-bold text-text uppercase tracking-wider">
             {t('operator.fleetDeposit', 'FLEET SECURITY DEPOSIT')}
@@ -2843,6 +2936,16 @@ export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectV
             </span>
           </div>
         </div>
+        {(fleet.depositPending ?? 0) > 0 && onPayFleetDeposit && (
+          <div className="pt-1 flex justify-end">
+            <button
+              onClick={onPayFleetDeposit}
+              className="px-3.5 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold text-[11px] shadow-xs cursor-pointer transition-all"
+            >
+              Pay Fleet Deposit
+            </button>
+          </div>
+        )}
       </div>
 
       {/* SEARCH BAR */}

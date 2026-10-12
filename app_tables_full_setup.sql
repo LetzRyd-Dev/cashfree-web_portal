@@ -70,8 +70,8 @@ CREATE TABLE IF NOT EXISTS public.app_drivers (
     puc_expiry                       DATE                      NULL,
     doc_last_updated                 DATE                      NULL,
     deposit_total_req                NUMERIC(10,2)             NULL DEFAULT 5000.00,
-    deposit_paid                     NUMERIC(10,2)             NULL DEFAULT 5000.00,
-    deposit_pending                  NUMERIC(10,2)             NULL DEFAULT 0.00,
+    deposit_paid                     NUMERIC(10,2)             NULL DEFAULT 0.00,
+    deposit_pending                  NUMERIC(10,2)             NULL DEFAULT 5000.00,
     deposit_next_due                 DATE                      NULL,
     joining_fee_agreed               NUMERIC(10,2)             NULL DEFAULT 1000.00,
     joining_fee_paid                 NUMERIC(10,2)             NULL DEFAULT 1000.00,
@@ -825,8 +825,8 @@ BEGIN
             ELSE p.dl_expiry_date
         END,
         COALESCE(p.security_deposit, 5000.00),
-        COALESCE(p.security_deposit, 5000.00),
         0.00,
+        COALESCE(p.security_deposit, 5000.00),
         COALESCE(NULLIF(TRIM(p.upi_id), ''), clean_phone || '@upi'),
         RIGHT(REGEXP_REPLACE(COALESCE(p.account_number, '0000'), '[^0-9]', '', 'g'), 4),
         CASE WHEN p.is_deleted = TRUE THEN FALSE ELSE TRUE END,
@@ -919,8 +919,8 @@ BEGIN
         UPPER(SUBSTRING(TRIM(COALESCE(p.driver_name, 'OP')), 1, 2)),
         COALESCE(NULLIF(TRIM(p.permanent_address), ''), NULLIF(TRIM(p.present_address), '')),
         COALESCE(p.security_deposit, 10000.00),
-        COALESCE(p.security_deposit, 10000.00),
         0.00,
+        COALESCE(p.security_deposit, 10000.00),
         COALESCE(NULLIF(TRIM(p.upi_id), ''), clean_phone || '@upi'),
         RIGHT(REGEXP_REPLACE(COALESCE(p.account_number, '0000'), '[^0-9]', '', 'g'), 4),
         CASE WHEN p.is_deleted = TRUE THEN FALSE ELSE TRUE END,
@@ -1313,7 +1313,7 @@ BEGIN
         IF NEW.onboarding_type ILIKE '%operator%' OR NEW.partner_id ILIKE '%OP%' OR NEW.partner_id ILIKE '%IP%' THEN
             INSERT INTO public.app_operators (
                 operator_id, operator_code, phone, company_name, contact_person_name, initials,
-                address, deposit_total_req, deposit_paid, upi_id, is_active, last_synced_at
+                address, deposit_total_req, deposit_paid, deposit_pending, upi_id, is_active, last_synced_at
             ) VALUES (
                 NEW.id,
                 COALESCE(NULLIF(TRIM(NEW.partner_id), ''), 'OPR-' || NEW.id::text),
@@ -1323,6 +1323,7 @@ BEGIN
                 UPPER(SUBSTRING(TRIM(COALESCE(NEW.driver_name, 'OP')), 1, 2)),
                 COALESCE(NULLIF(TRIM(NEW.permanent_address), ''), NULLIF(TRIM(NEW.present_address), '')),
                 COALESCE(NEW.security_deposit, 10000.00),
+                0.00,
                 COALESCE(NEW.security_deposit, 10000.00),
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi'),
                 CASE WHEN NEW.is_deleted = TRUE THEN FALSE ELSE TRUE END,
@@ -1333,6 +1334,7 @@ BEGIN
                 contact_person_name = EXCLUDED.contact_person_name,
                 is_active = EXCLUDED.is_active,
                 deposit_total_req = EXCLUDED.deposit_total_req,
+                deposit_pending = EXCLUDED.deposit_total_req - COALESCE(app_operators.deposit_paid, 0.00),
                 last_synced_at = NOW();
         ELSE
             INSERT INTO public.app_drivers (
@@ -1363,34 +1365,40 @@ BEGIN
                     ELSE NEW.dl_expiry_date
                 END,
                 COALESCE(NEW.security_deposit, 5000.00),
-                COALESCE(NEW.security_deposit, 5000.00),
                 0.00,
+                COALESCE(NEW.security_deposit, 5000.00),
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi'),
                 CASE WHEN NEW.is_deleted = TRUE THEN FALSE ELSE TRUE END,
                 NOW()
             )
             ON CONFLICT (phone) DO UPDATE SET
+                driver_id = COALESCE(app_drivers.driver_id, EXCLUDED.driver_id),
                 full_name = EXCLUDED.full_name,
                 aadhar_number = EXCLUDED.aadhar_number,
                 dl_number = EXCLUDED.dl_number,
                 dl_expiry = EXCLUDED.dl_expiry,
                 is_active = EXCLUDED.is_active,
                 deposit_total_req = EXCLUDED.deposit_total_req,
+                deposit_pending = EXCLUDED.deposit_total_req - COALESCE(app_drivers.deposit_paid, 0.00),
                 last_synced_at = NOW();
         END IF;
 
         IF NULLIF(TRIM(NEW.account_number), '') IS NOT NULL AND NULLIF(TRIM(NEW.ifsc_code), '') IS NOT NULL THEN
             INSERT INTO public.app_driver_bank_accounts (
-                app_driver_id, account_number, ifsc_code, account_holder_name, bank_name, upi_id
+                app_driver_id, app_operator_id, account_number, ifsc_code, account_holder_name, bank_name, upi_id
             )
             SELECT 
                 d.app_driver_id,
+                op.app_operator_id,
                 SUBSTRING(TRIM(NEW.account_number), 1, 100),
                 SUBSTRING(UPPER(TRIM(NEW.ifsc_code)), 1, 100),
                 SUBSTRING(TRIM(COALESCE(NEW.account_name, NEW.driver_name, 'Account Holder')), 1, 150),
                 SUBSTRING(TRIM(COALESCE(NEW.bank_name, 'Bank')), 1, 150),
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi')
-            FROM public.app_drivers d WHERE d.phone = v_clean_phone
+            FROM (SELECT 1) _
+            LEFT JOIN public.app_drivers d ON d.phone = v_clean_phone
+            LEFT JOIN public.app_operators op ON op.phone = v_clean_phone
+            WHERE d.app_driver_id IS NOT NULL OR op.app_operator_id IS NOT NULL
             ON CONFLICT (account_number, ifsc_code) DO NOTHING;
         END IF;
     END IF;
