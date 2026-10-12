@@ -42,6 +42,9 @@ images:
   - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:$COMMIT_SHA'
   - 'asia-south1-docker.pkg.dev/letzryd-dev-test/cashfree-web-portal/dev-app:latest'
 
+substitutions:
+  COMMIT_SHA: 'latest'
+
 options:
   logging: CLOUD_LOGGING_ONLY
 
