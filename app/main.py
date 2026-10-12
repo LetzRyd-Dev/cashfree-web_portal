@@ -65,7 +65,15 @@ def health_check():
         "status": "healthy",
         "app": settings.PROJECT_NAME,
         "version": settings.VERSION,
-        "database": settings.DB_HOST
+        "database": settings.DB_HOST,
+        "cashfree_mode": "production" if settings.CASHFREE_ENV.upper() == "PRODUCTION" else "sandbox"
+    }
+
+@app.get("/api/config")
+def get_app_config():
+    return {
+        "cashfree_mode": "production" if settings.CASHFREE_ENV.upper() == "PRODUCTION" else "sandbox",
+        "cashfree_env": settings.CASHFREE_ENV.upper()
     }
 
 # Mount static frontend production assets if dist/ exists

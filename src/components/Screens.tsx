@@ -64,7 +64,7 @@ import {
 
 import { User as UserType, Vehicle, HisaabWeek, Fleet, Ticket, Notification, RentalPlan, FleetVehicle, FleetDriverItem, Announcement, Language } from '../types';
 import { USER_DATA, VEHICLE_DATA, LETZRYD_UPI_ID, ANNOUNCEMENTS_DATA } from '../data';
-import { BACKEND_URL } from '../api';
+import { BACKEND_URL, getAppConfig } from '../api';
 
 declare const Cashfree: (config: { mode: string }) => {
   checkout: (options: {
@@ -1349,6 +1349,17 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   const [currentOrderId, setCurrentOrderId] = useState<string>('');
   const [countdown, setCountdown] = useState<number>(3);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
+  const [cashfreeMode, setCashfreeMode] = useState<string>(
+    (import.meta.env.VITE_CASHFREE_MODE || 'sandbox').toLowerCase()
+  );
+
+  useEffect(() => {
+    getAppConfig().then(cfg => {
+      if (cfg?.cashfree_mode) {
+        setCashfreeMode(cfg.cashfree_mode.toLowerCase());
+      }
+    }).catch(() => {});
+  }, []);
 
   // Mount Cashfree's official inline checkout to flush session and avoid stale cache
   useEffect(() => {
@@ -1356,7 +1367,6 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       const initCashfreeCheckout = () => {
         if (typeof (window as any).Cashfree === 'function') {
           try {
-            const cashfreeMode = (import.meta.env.VITE_CASHFREE_MODE || 'sandbox').toLowerCase();
             const cashfree = (window as any).Cashfree({ mode: cashfreeMode });
             if (checkoutContainerRef.current) {
               checkoutContainerRef.current.innerHTML = '';
@@ -1713,23 +1723,26 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         </div>
 
         {/* Sandbox Test Credentials Reference Strip */}
-        <div className="bg-surface border border-border/80 rounded-xl p-2 text-[10px] space-y-1">
-          <div className="flex justify-between items-center text-text-muted font-bold uppercase tracking-wider">
-            <span>Sandbox Test Details:</span>
-            <span className="text-emerald-700 font-extrabold">OTP: 111000</span>
+        {cashfreeMode !== 'production' && (
+          <div className="bg-surface border border-border/80 rounded-xl p-2 text-[10px] space-y-1">
+            <div className="flex justify-between items-center text-text-muted font-bold uppercase tracking-wider">
+              <span>Sandbox Test Details:</span>
+              <span className="text-emerald-700 font-extrabold">OTP: 111000</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1 text-[9.5px] text-text-muted">
+              <div>• <strong>Card:</strong> 4706 1312 1121 2123</div>
+              <div>• <strong>UPI:</strong> testsuccess@gocash</div>
+              <div>• <strong>Exp / CVV:</strong> 03/28 • 123</div>
+              <div>• <strong>NetBank:</strong> TEST Bank</div>
+            </div>
           </div>
-          <div className="grid grid-cols-2 gap-1 text-[9.5px] text-text-muted">
-            <div>• <strong>Card:</strong> 4706 1312 1121 2123</div>
-            <div>• <strong>UPI:</strong> testsuccess@gocash</div>
-            <div>• <strong>Exp / CVV:</strong> 03/28 • 123</div>
-            <div>• <strong>NetBank:</strong> TEST Bank</div>
-          </div>
-        </div>
+        )}
 
         {/* Confirmation Action */}
         <div className="flex items-center justify-between gap-2 px-1">
           <span className="text-[10px] text-text-muted flex items-center gap-1">
-            <ShieldCheck className="w-3 h-3 text-emerald-600" /> Cashfree Sandbox Active
+            <ShieldCheck className="w-3 h-3 text-emerald-600" />
+            {cashfreeMode === 'production' ? 'Cashfree 256-bit Encrypted' : 'Cashfree Sandbox Active'}
           </span>
           <button
             onClick={() => handleVerifyOrder()}

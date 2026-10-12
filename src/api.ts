@@ -28,6 +28,14 @@ async function apiCall<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json();
 }
 
+export async function getAppConfig(): Promise<{ cashfree_mode: string; cashfree_env: string }> {
+  try {
+    return await apiCall<{ cashfree_mode: string; cashfree_env: string }>('/api/config');
+  } catch {
+    return { cashfree_mode: 'sandbox', cashfree_env: 'SANDBOX' };
+  }
+}
+
 export function mapDriverToUser(d: any): User {
   return {
     id: d.driver_code || `LR-DRV-${d.app_driver_id}`,
