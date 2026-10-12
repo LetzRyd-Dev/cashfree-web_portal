@@ -119,7 +119,7 @@ BEGIN
             INSERT INTO public.app_drivers (
                 driver_id, full_name, phone, initials, driver_code, aadhar_number, dob, address,
                 joined_date, emergency_name, emergency_relation, emergency_phone, dl_number, dl_expiry,
-                deposit_total_req, deposit_paid, deposit_pending, upi_id, is_active, last_synced_at
+                deposit_total_req, deposit_paid, deposit_pending, operator_id, upi_id, is_active, last_synced_at
             ) VALUES (
                 NEW.id,
                 TRIM(COALESCE(NEW.driver_name, 'Driver')),
@@ -146,12 +146,15 @@ BEGIN
                 v_req_deposit,
                 0.00,
                 v_req_deposit,
+                0,
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi'),
                 CASE WHEN NEW.is_deleted = TRUE THEN FALSE ELSE TRUE END,
                 NOW()
             )
             ON CONFLICT (phone) DO UPDATE SET
                 driver_id = COALESCE(app_drivers.driver_id, EXCLUDED.driver_id),
+                driver_code = COALESCE(NULLIF(TRIM(NEW.partner_id), ''), EXCLUDED.driver_code, app_drivers.driver_code),
+                operator_id = 0,
                 full_name = EXCLUDED.full_name,
                 aadhar_number = EXCLUDED.aadhar_number,
                 dl_number = EXCLUDED.dl_number,

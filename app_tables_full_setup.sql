@@ -1367,12 +1367,15 @@ BEGIN
                 COALESCE(NEW.security_deposit, 5000.00),
                 0.00,
                 COALESCE(NEW.security_deposit, 5000.00),
+                0,
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi'),
                 CASE WHEN NEW.is_deleted = TRUE THEN FALSE ELSE TRUE END,
                 NOW()
             )
             ON CONFLICT (phone) DO UPDATE SET
                 driver_id = COALESCE(app_drivers.driver_id, EXCLUDED.driver_id),
+                driver_code = COALESCE(NULLIF(TRIM(NEW.partner_id), ''), EXCLUDED.driver_code, app_drivers.driver_code),
+                operator_id = 0,
                 full_name = EXCLUDED.full_name,
                 aadhar_number = EXCLUDED.aadhar_number,
                 dl_number = EXCLUDED.dl_number,
