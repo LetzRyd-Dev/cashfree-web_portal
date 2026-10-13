@@ -4664,3 +4664,69 @@ $$ LANGUAGE plpgsql;
 -- =============================================================================
 -- End of Script 02
 -- =============================================================================
+
+
+-- ============================================================================
+-- HELPER FUNCTIONS & TRIGGERS (ENSURING DEV/PROD PARITY)
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.fn_adj_canonical_partner_id(p_city character varying, p_phone character varying)
+ RETURNS character varying
+ LANGUAGE plpgsql
+ IMMUTABLE
+AS $function$
+DECLARE
+    v_clean_phone VARCHAR(10);
+    v_prefix VARCHAR(10);
+    v_clean_city VARCHAR(100);
+BEGIN
+    v_clean_phone := RIGHT(REGEXP_REPLACE(COALESCE(p_phone, ''), '[^0-9]', '', 'g'), 10);
+    IF LENGTH(v_clean_phone) < 10 THEN
+        v_clean_phone := '0000000000';
+    END IF;
+
+    v_clean_city := UPPER(TRIM(COALESCE(p_city, 'BLR')));
+    
+    v_prefix := CASE 
+        WHEN v_clean_city IN ('BANGALORE', 'BENGALURU', 'BLR') THEN 'LETZBLR'
+        WHEN v_clean_city IN ('HYDERABAD', 'HYD') THEN 'LETZHYD'
+        WHEN v_clean_city IN ('MUMBAI', 'MUM') THEN 'LETZMUM'
+        WHEN v_clean_city IN ('PUNE', 'PUN') THEN 'LETZPUN'
+        WHEN v_clean_city IN ('DELHI', 'DEL') THEN 'LETZDEL'
+        WHEN v_clean_city IN ('CHENNAI', 'CHN') THEN 'LETZCHN'
+        ELSE 'LETZ' || UPPER(LEFT(v_clean_city, 3))
+    END;
+
+    RETURN v_prefix || v_clean_phone;
+END;
+$function$;
+
+CREATE OR REPLACE FUNCTION public.fn_sync_dropoff_from_portal()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+
+    NEW.city_name := CASE 
+        WHEN LOWER(TRIM(COALESCE(NEW.city_name, ''))) IN ('bangalore', 'bengaluru', 'blr') THEN 'Bangalore'
+        WHEN LOWER(TRIM(COALESCE(NEW.city_name, ''))) IN ('hyderabad', 'hyd') THEN 'Hyderabad'
+        WHEN LOWER(TRIM(COALESCE(NEW.city_name, ''))) IN ('mumbai', 'mum') THEN 'Mumbai'
+        ELSE LEFT(INITCAP(TRIM(COALESCE(NEW.city_name, 'Bangalore'))), 50)
+    END;
+
+    NEW.vehicle_number := UPPER(REGEXP_REPLACE(COALESCE(NEW.vehicle_number, ''), '[^A-Za-z0-9]', '', 'g'));
+    NEW.pending_dues := COALESCE(NEW.pending_dues, 0.00);
+    NEW.damage_penalty := COALESCE(NEW.damage_penalty, 0.00);
+
+    RETURN NEW;
+END;
+$function$;
+
+DROP TRIGGER IF EXISTS trg_sync_dropoff_from_portal ON public.portal_vehicle_dropoffs;
+CREATE TRIGGER trg_sync_dropoff_from_portal
+BEFORE INSERT OR UPDATE ON public.portal_vehicle_dropoffs
+FOR EACH ROW
+EXECUTE FUNCTION public.fn_sync_dropoff_from_portal();

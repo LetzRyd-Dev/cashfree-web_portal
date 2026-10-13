@@ -1185,6 +1185,28 @@ export const DEMO_PROFILES: DemoProfile[] = [
     },
     weeks: RAJESH_HISAAB_WEEKS,
     fleet: SALEEM_FLEET_DATA
+  },
+  {
+    name: "Cashfree Compliance Reviewer",
+    phone: "9999955555",
+    role: "driver",
+    tag: "Cashfree Reviewer (Test Account)",
+    user: {
+      ...USER_DATA,
+      id: "LR-TEST-9999",
+      name: "Cashfree Compliance Reviewer",
+      phone: "9999955555",
+      initials: "CR",
+      referralCode: "CASHFREE26",
+      depositAmount: 5000,
+      depositTotalRequired: 5000,
+      depositPaidSoFar: 2000,
+      depositPending: 3000,
+      cumulativeOwed: 2850.00
+    },
+    vehicle: VEHICLE_DATA,
+    rentalPlan: RENTAL_PLAN_DATA,
+    weeks: RAJESH_HISAAB_WEEKS
   }
 ];
 
