@@ -1282,7 +1282,7 @@ export default function App() {
                     }}
                     className="text-[10px] text-primary hover:underline font-medium inline-flex items-center gap-1 cursor-pointer transition-colors"
                   >
-                    <span>View Services & Legal Policies</span>
+                    <span>View Services & Policies</span>
                     <ExternalLink className="w-2.5 h-2.5" />
                   </button>
                 </div>
@@ -2372,14 +2372,14 @@ export default function App() {
             t={t}
           />
         )}
-      </div>
 
-      {isLegalModalOpen && (
-        <CompanyServicesLegalModal
-          isOpen={true}
-          onClose={() => setIsLegalModalOpen(false)}
-        />
-      )}
+        {isLegalModalOpen && (
+          <CompanyServicesLegalModal
+            isOpen={true}
+            onClose={() => setIsLegalModalOpen(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }

@@ -2319,7 +2319,7 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
             onClick={onOpenLegal}
             className="w-full py-1.5 px-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-sans text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <span>View Services & Legal Policies</span>
+            <span>View Services & Policies</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         )}

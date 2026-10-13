@@ -512,153 +512,138 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-surface border border-border rounded-2xl w-full max-w-lg shadow-2xl relative text-left font-sans flex flex-col max-h-[90vh] my-auto overflow-hidden"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-surface border border-border rounded-2xl w-full max-w-[345px] shadow-2xl relative text-left font-sans flex flex-col max-h-[85vh] my-auto overflow-hidden"
       >
         {/* Top Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-[#0A1650] to-[#122474] text-white flex items-start justify-between shrink-0">
-          <div className="space-y-0.5 pr-4">
-            <h2 className="text-base font-bold tracking-tight leading-snug">
+        <div className="p-3.5 bg-gradient-to-r from-[#0A1650] to-[#122474] text-white flex items-start justify-between shrink-0">
+          <div className="space-y-0.5 pr-3">
+            <h2 className="text-xs font-bold tracking-tight leading-snug">
               SAMVREEDDHI MOBILITY PRIVATE LIMITED
             </h2>
-            <p className="text-xs text-white/80">
+            <p className="text-[10.5px] text-white/80">
               Operating Brand: LetzRyd
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
             aria-label="Close modal"
           >
-            <X className="w-4 h-4" />
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center border-b border-border bg-bg/80 px-3 py-2 gap-1 overflow-x-auto shrink-0 scrollbar-none">
+        <div className="flex items-center border-b border-border bg-bg/80 px-2.5 py-1.5 gap-1 overflow-x-auto shrink-0 scrollbar-none">
           <button
             onClick={() => setActiveTab('services')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
               activeTab === 'services'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-text-muted hover:text-text hover:bg-surface'
             }`}
           >
-            <Car className="w-3.5 h-3.5" />
-            Services & Pricing
+            <Car className="w-3 h-3" />
+            Services & Policies
           </button>
           <button
             onClick={() => setActiveTab('company')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
               activeTab === 'company'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-text-muted hover:text-text hover:bg-surface'
             }`}
           >
-            <Building2 className="w-3.5 h-3.5" />
+            <Building2 className="w-3 h-3" />
             Company Info
           </button>
           <button
             onClick={() => setActiveTab('refunds')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
               activeTab === 'refunds'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-text-muted hover:text-text hover:bg-surface'
             }`}
           >
-            <RefreshCw className="w-3.5 h-3.5" />
+            <RefreshCw className="w-3 h-3" />
             Refund Policy
           </button>
           <button
             onClick={() => setActiveTab('terms')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
               activeTab === 'terms'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-text-muted hover:text-text hover:bg-surface'
             }`}
           >
-            <FileText className="w-3.5 h-3.5" />
+            <FileText className="w-3 h-3" />
             Terms
           </button>
           <button
             onClick={() => setActiveTab('contact')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
               activeTab === 'contact'
                 ? 'bg-primary text-white shadow-xs'
                 : 'text-text-muted hover:text-text hover:bg-surface'
             }`}
           >
-            <Phone className="w-3.5 h-3.5" />
+            <Phone className="w-3 h-3" />
             Contact Us
           </button>
         </div>
 
         {/* Tab Content Area */}
-        <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs text-text leading-relaxed">
+        <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3 text-xs text-text leading-relaxed">
           {/* TAB 1: SERVICES & PRICING */}
           {activeTab === 'services' && (
-            <div className="space-y-3.5">
-              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 space-y-1">
-                <span className="font-bold text-primary text-xs uppercase tracking-wider block">
-                  Core Business Activity
+            <div className="space-y-3">
+              <div className="bg-surface border border-border rounded-xl p-3 space-y-1">
+                <span className="font-bold text-text text-xs block">
+                  Core Business Operations
                 </span>
-                <p className="text-text-muted">
-                  <strong>SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong> offers commercial electric vehicle (EV) leasing, driver partner onboarding, vehicle allocation, and automated revenue settlement operations across major urban hubs in India.
+                <p className="text-text-muted text-[11.5px]">
+                  <strong>SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong> operates commercial electric vehicle (EV) fleet leasing, driver onboarding, vehicle allocation, and revenue settlement operations across India under the brand name <strong>LetzRyd</strong>.
                 </p>
               </div>
 
-              <h4 className="font-bold text-text text-sm">Products & Services Offered (All Prices in INR):</h4>
-
-              {/* Service 1 */}
-              <div className="border border-border rounded-xl p-3 bg-surface space-y-1.5">
-                <div className="flex justify-between items-start gap-2">
+              <div className="space-y-2">
+                {/* Service 1 */}
+                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
                   <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <Car className="w-4 h-4 text-primary" />
-                    1. Commercial Electric Vehicle (EV) Fleet Rental
+                    <Car className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>Commercial Electric Vehicle (EV) Fleet Rental</span>
                   </div>
-                  <span className="font-mono font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded text-[11px] shrink-0">
-                    ₹700 – ₹1,000 / day
-                  </span>
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    Leasing of commercial 4-wheeler EVs to verified driver partners for ride-hailing services. Includes scheduled periodic vehicle maintenance, commercial comprehensive insurance, and operational road assistance.
+                  </p>
                 </div>
-                <p className="text-text-muted text-[11.5px]">
-                  Provision of 4-wheeler commercial EVs (Tata Tigor EV, Mahindra e-Verito, etc.) to verified driver partners for ride-hailing services (Uber, Ola, Rapido). Weekly billing cycle: ₹4,900 – ₹7,000 / week. Includes comprehensive EV maintenance, commercial fleet insurance, 24/7 roadside assistance, and battery telematics.
-                </p>
-              </div>
 
-              {/* Service 2 */}
-              <div className="border border-border rounded-xl p-3 bg-surface space-y-1.5">
-                <div className="flex justify-between items-start gap-2">
+                {/* Service 2 */}
+                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
                   <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-green" />
-                    2. Driver Partner Security Deposit (Refundable)
+                    <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>Driver Partner Security Deposit (Refundable)</span>
                   </div>
-                  <span className="font-mono font-extrabold text-green bg-green-light px-2 py-0.5 rounded text-[11px] shrink-0">
-                    ₹5,000 – ₹15,000 (Refundable)
-                  </span>
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    Refundable security deposit collected during vehicle onboarding to cover vehicle custody during the lease term. 100% refundable upon vehicle de-allocation and return as per terms.
+                  </p>
                 </div>
-                <p className="text-text-muted text-[11.5px]">
-                  Standing capital security deposit collected at vehicle handover to ensure safe custody of the EV. Drivers may settle in full or via convenient installments (₹1,000, ₹2,000, or custom). <strong>100% Refundable</strong> upon return of vehicle at contract completion.
-                </p>
-              </div>
 
-              {/* Service 3 */}
-              <div className="border border-border rounded-xl p-3 bg-surface space-y-1.5">
-                <div className="flex justify-between items-start gap-2">
+                {/* Service 3 */}
+                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
                   <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <RefreshCw className="w-4 h-4 text-amber-600" />
-                    3. Weekly Hisaab Accounting & Settlement Platform
+                    <RefreshCw className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span>Weekly Hisaab Settlement Platform</span>
                   </div>
-                  <span className="font-mono font-extrabold text-amber-700 bg-amber-50 px-2 py-0.5 rounded text-[11px] shrink-0">
-                    Weekly Net Settlement
-                  </span>
+                  <p className="text-text-muted text-[11px] leading-relaxed">
+                    Automated weekly statement reconciling driver ride revenues against applicable fleet rental, toll charges, and statutory deductions. Net settlements are processed digitally via authorized payment gateway channels.
+                  </p>
                 </div>
-                <p className="text-text-muted text-[11.5px]">
-                  Automated weekly reconciliation platform netting driver gross earnings from ride-hailing platforms against vehicle rent, Fastag tolls, and charging costs. Excess net earnings are credited to drivers, and pending vehicle rentals are collected via Cashfree UPI/NetBanking gateway.
-                </p>
               </div>
             </div>
           )}
