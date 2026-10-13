@@ -497,18 +497,14 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 export interface CompanyServicesLegalModalProps {
   isOpen?: boolean;
   onClose: () => void;
-  initialTab?: 'services' | 'company' | 'refunds' | 'terms' | 'contact';
   t?: (key: string, fallback: string) => string;
 }
 
 export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps> = ({
   isOpen = true,
   onClose,
-  initialTab = 'services',
   t = (_k, fb) => fb
 }) => {
-  const [activeTab, setActiveTab] = useState<'services' | 'company' | 'refunds' | 'terms' | 'contact'>(initialTab);
-
   if (!isOpen) return null;
 
   return (
@@ -526,275 +522,167 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
               SAMVREEDDHI MOBILITY PRIVATE LIMITED
             </h2>
             <p className="text-[10.5px] text-white/80">
-              Operating Brand: LetzRyd
+              Operating Brand: LetzRyd • Services & Policies
             </p>
           </div>
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
-            aria-label="Close modal"
+            aria-label="Close"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center border-b border-border bg-bg/80 px-2.5 py-1.5 gap-1 overflow-x-auto shrink-0 scrollbar-none">
-          <button
-            onClick={() => setActiveTab('services')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-              activeTab === 'services'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-text-muted hover:text-text hover:bg-surface'
-            }`}
-          >
-            <Car className="w-3 h-3" />
-            Services & Policies
-          </button>
-          <button
-            onClick={() => setActiveTab('company')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-              activeTab === 'company'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-text-muted hover:text-text hover:bg-surface'
-            }`}
-          >
-            <Building2 className="w-3 h-3" />
-            Company Info
-          </button>
-          <button
-            onClick={() => setActiveTab('refunds')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-              activeTab === 'refunds'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-text-muted hover:text-text hover:bg-surface'
-            }`}
-          >
-            <RefreshCw className="w-3 h-3" />
-            Refund Policy
-          </button>
-          <button
-            onClick={() => setActiveTab('terms')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-              activeTab === 'terms'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-text-muted hover:text-text hover:bg-surface'
-            }`}
-          >
-            <FileText className="w-3 h-3" />
-            Terms
-          </button>
-          <button
-            onClick={() => setActiveTab('contact')}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1 ${
-              activeTab === 'contact'
-                ? 'bg-primary text-white shadow-xs'
-                : 'text-text-muted hover:text-text hover:bg-surface'
-            }`}
-          >
-            <Phone className="w-3 h-3" />
-            Contact Us
-          </button>
-        </div>
+        {/* Continuous Scrollable Content Area */}
+        <div className="p-3.5 overflow-y-auto space-y-4 text-xs text-text leading-relaxed">
+          {/* SECTION 1: SERVICES */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+              <Car className="w-3.5 h-3.5 text-primary" />
+              <span>Services Offered</span>
+            </h3>
 
-        {/* Tab Content Area */}
-        <div className="p-3.5 sm:p-4 overflow-y-auto space-y-3 text-xs text-text leading-relaxed">
-          {/* TAB 1: SERVICES & PRICING */}
-          {activeTab === 'services' && (
-            <div className="space-y-3">
-              <div className="bg-surface border border-border rounded-xl p-3 space-y-1">
-                <span className="font-bold text-text text-xs block">
-                  Core Business Operations
-                </span>
-                <p className="text-text-muted text-[11.5px]">
-                  <strong>SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong> operates commercial electric vehicle (EV) fleet leasing, driver onboarding, vehicle allocation, and revenue settlement operations across India under the brand name <strong>LetzRyd</strong>.
+            <div className="space-y-2">
+              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
+                <span className="font-bold text-[11px] text-text block">1. Commercial EV Fleet Leasing</span>
+                <p className="text-text-muted text-[10.5px] leading-relaxed">
+                  Provision of commercial electric vehicles to verified driver partners for ride-hailing operations, including scheduled servicing, comprehensive commercial insurance, and 24/7 roadside assistance.
                 </p>
               </div>
 
-              <div className="space-y-2">
-                {/* Service 1 */}
-                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
-                  <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <Car className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>Commercial Electric Vehicle (EV) Fleet Rental</span>
-                  </div>
-                  <p className="text-text-muted text-[11px] leading-relaxed">
-                    Leasing of commercial 4-wheeler EVs to verified driver partners for ride-hailing services. Includes scheduled periodic vehicle maintenance, commercial comprehensive insurance, and operational road assistance.
-                  </p>
-                </div>
-
-                {/* Service 2 */}
-                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
-                  <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>Driver Partner Security Deposit (Refundable)</span>
-                  </div>
-                  <p className="text-text-muted text-[11px] leading-relaxed">
-                    Refundable security deposit collected during vehicle onboarding to cover vehicle custody during the lease term. 100% refundable upon vehicle de-allocation and return as per terms.
-                  </p>
-                </div>
-
-                {/* Service 3 */}
-                <div className="border border-border rounded-xl p-3 bg-surface space-y-1">
-                  <div className="font-bold text-text text-xs flex items-center gap-1.5">
-                    <RefreshCw className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span>Weekly Hisaab Settlement Platform</span>
-                  </div>
-                  <p className="text-text-muted text-[11px] leading-relaxed">
-                    Automated weekly statement reconciling driver ride revenues against applicable fleet rental, toll charges, and statutory deductions. Net settlements are processed digitally via authorized payment gateway channels.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: COMPANY INFO */}
-          {activeTab === 'company' && (
-            <div className="space-y-3">
-              <div className="border border-border rounded-xl p-3.5 bg-surface space-y-2">
-                <h4 className="font-bold text-sm text-text">Corporate Legal Entity Details</h4>
-                <div className="space-y-1.5 text-[11.5px]">
-                  <div className="flex justify-between py-1 border-b border-border/50">
-                    <span className="text-text-muted">Legal Entity Name:</span>
-                    <strong className="text-text">SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/50">
-                    <span className="text-text-muted">Operating Brand:</span>
-                    <strong className="text-text">LetzRyd</strong>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/50">
-                    <span className="text-text-muted">Business Type:</span>
-                    <span className="text-text font-medium">Electric Vehicle Fleet & Urban Mobility Platform</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/50">
-                    <span className="text-text-muted">Country of Incorporation:</span>
-                    <span className="text-text font-medium">India</span>
-                  </div>
-                  <div className="flex justify-between py-1 border-b border-border/50">
-                    <span className="text-text-muted">Operational Hubs:</span>
-                    <span className="text-text font-medium">Hyderabad, Bengaluru, Mumbai, Delhi-NCR</span>
-                  </div>
-                  <div className="flex justify-between py-1">
-                    <span className="text-text-muted">Payment Partner:</span>
-                    <span className="text-text font-medium">Cashfree Payments India Pvt. Ltd.</span>
-                  </div>
-                </div>
+              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
+                <span className="font-bold text-[11px] text-text block">2. Security Deposit Management</span>
+                <p className="text-text-muted text-[10.5px] leading-relaxed">
+                  Refundable vehicle custody deposit collected during driver partner onboarding. Settleable via gateway or installment deductions, 100% refundable upon vehicle return and account closure.
+                </p>
               </div>
 
-              <div className="bg-bg border border-border rounded-xl p-3 text-[11.5px] text-text-muted space-y-1">
-                <strong className="text-text block">Compliance Statement:</strong>
-                <p>
-                  SAMVREEDDHI MOBILITY PRIVATE LIMITED operates in full compliance with applicable Indian commercial vehicle leasing laws, Motor Vehicles Act regulations, and RBI guidelines for digital collection gateways.
+              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
+                <span className="font-bold text-[11px] text-text block">3. Weekly Settlement Platform</span>
+                <p className="text-text-muted text-[10.5px] leading-relaxed">
+                  Automated weekly reconciliation platform netting driver gross ride collections against vehicle rent and tolls. Net balances are settled digitally through Cashfree Payment Gateway.
                 </p>
               </div>
             </div>
-          )}
+          </div>
 
-          {/* TAB 3: REFUND & CANCELLATION POLICY */}
-          {activeTab === 'refunds' && (
-            <div className="space-y-3">
-              <div className="border border-border rounded-xl p-3.5 bg-surface space-y-2">
-                <h4 className="font-bold text-sm text-text flex items-center gap-1.5">
-                  <RefreshCw className="w-4 h-4 text-green" />
-                  Refund & Cancellation Policy
-                </h4>
-                <div className="space-y-2 text-[11.5px] text-text-muted">
-                  <p>
-                    <strong className="text-text">1. Security Deposit Refund:</strong> All security deposits collected by <strong>SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong> from driver partners are 100% refundable upon completion or termination of the vehicle lease agreement.
-                  </p>
-                  <p>
-                    <strong className="text-text">2. Refund Timeline:</strong> Following vehicle return at our authorized operational hub and standard damage/challan inspection, the eligible refund amount will be credited directly to the driver partner’s registered bank account / UPI ID within <strong>5 to 7 business days</strong>.
-                  </p>
-                  <p>
-                    <strong className="text-text">3. Advance Payment Adjustments:</strong> Any excess or advance payment made during weekly hisaab settlements will be adjusted towards the driver’s subsequent weekly rental dues or refunded upon written request.
-                  </p>
-                  <p>
-                    <strong className="text-text">4. Cancellation Policy:</strong> Driver partners wishing to discontinue or return their vehicle may do so by submitting a 7-day prior notice to their assigned Fleet Manager. The vehicle must be returned in good running condition to the designated hub.
-                  </p>
+          {/* SECTION 2: COMPANY INFO */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-primary" />
+              <span>Company Information</span>
+            </h3>
+
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1.5 text-[10.5px]">
+              <div className="flex justify-between py-0.5 border-b border-border/40">
+                <span className="text-text-muted">Legal Entity:</span>
+                <strong className="text-text font-semibold">SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong>
+              </div>
+              <div className="flex justify-between py-0.5 border-b border-border/40">
+                <span className="text-text-muted">Brand Name:</span>
+                <strong className="text-text font-semibold">LetzRyd</strong>
+              </div>
+              <div className="flex justify-between py-0.5 border-b border-border/40">
+                <span className="text-text-muted">Business Activity:</span>
+                <span className="text-text">Commercial EV Fleet Leasing & Operations</span>
+              </div>
+              <div className="flex justify-between py-0.5 border-b border-border/40">
+                <span className="text-text-muted">Jurisdiction:</span>
+                <span className="text-text">India</span>
+              </div>
+              <div className="flex justify-between py-0.5">
+                <span className="text-text-muted">Payment Partner:</span>
+                <span className="text-text">Cashfree Payments India Pvt. Ltd.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: REFUND & CANCELLATION */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+              <RefreshCw className="w-3.5 h-3.5 text-primary" />
+              <span>Refund & Cancellation Policy</span>
+            </h3>
+
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] text-text-muted space-y-1.5 leading-relaxed">
+              <p>
+                <strong className="text-text">Security Deposit Refund:</strong> All security deposits collected by SAMVREEDDHI MOBILITY PRIVATE LIMITED are refundable upon completion of vehicle allocation and agreement tenure.
+              </p>
+              <p>
+                <strong className="text-text">Refund Timeline:</strong> Refunds are credited to the driver partner’s registered bank account / UPI within 5 to 7 business days following vehicle inspection at the hub.
+              </p>
+              <p>
+                <strong className="text-text">Cancellation:</strong> Driver partners may surrender custody with prior intimation to their fleet manager, subject to clearing outstanding hisaab dues.
+              </p>
+            </div>
+          </div>
+
+          {/* SECTION 4: TERMS & CONDITIONS */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-primary" />
+              <span>Terms & Conditions</span>
+            </h3>
+
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] text-text-muted space-y-1.5 leading-relaxed">
+              <p>
+                <strong className="text-text">1. Eligibility:</strong> Drivers must hold a valid commercial driving license, government identification, and complete background verification.
+              </p>
+              <p>
+                <strong className="text-text">2. Asset Ownership:</strong> All commercial vehicles remain the exclusive property of SAMVREEDDHI MOBILITY PRIVATE LIMITED or affiliated asset partners.
+              </p>
+              <p>
+                <strong className="text-text">3. Weekly Cycle:</strong> Settlement cycles run Monday 00:00 to Sunday 23:59. Balances must be settled digitally through the portal.
+              </p>
+            </div>
+          </div>
+
+          {/* SECTION 5: CONTACT US */}
+          <div className="space-y-2">
+            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5 text-primary" />
+              <span>Contact Us</span>
+            </h3>
+
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] space-y-1.5">
+              <div className="flex items-start gap-2">
+                <Mail className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-text-muted block">Support Email:</span>
+                  <a href="mailto:support@letzryd.com" className="text-primary font-semibold hover:underline">
+                    support@letzryd.com
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Phone className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-text-muted block">Support Helpline:</span>
+                  <a href="tel:+919691938866" className="text-text font-semibold hover:text-primary">
+                    +91 96919 38866
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-text-muted block">Operational Headquarters:</span>
+                  <span className="text-text">Hyderabad, Telangana - 500081, India</span>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* TAB 4: TERMS & CONDITIONS */}
-          {activeTab === 'terms' && (
-            <div className="space-y-3">
-              <div className="border border-border rounded-xl p-3.5 bg-surface space-y-2">
-                <h4 className="font-bold text-sm text-text flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-primary" />
-                  Terms & Conditions
-                </h4>
-                <div className="space-y-2 text-[11.5px] text-text-muted">
-                  <p>
-                    <strong className="text-text">1. Driver Eligibility:</strong> The driver partner must possess a valid commercial driver's license (TR/Badge where applicable), government-issued ID (Aadhaar/PAN), and pass background verification.
-                  </p>
-                  <p>
-                    <strong className="text-text">2. Vehicle Custody:</strong> The vehicle remains the sole legal property of SAMVREEDDHI MOBILITY PRIVATE LIMITED or its authorized asset partners. The driver partner is granted operational custody for lawful commercial ride-hailing purposes only.
-                  </p>
-                  <p>
-                    <strong className="text-text">3. Settlement Cycle:</strong> Weekly hisaabs run Monday 00:00 to Sunday 23:59. Settlements are published every Monday. Net dues must be cleared through the LetzRyd portal via Cashfree Payment Gateway by Wednesday midnight.
-                  </p>
-                  <p>
-                    <strong className="text-text">4. Maintenance & Safety:</strong> Regular servicing and manufacturer warranty maintenance are handled by LetzRyd. Drivers must report any roadside accident, warning lights, or breakdown immediately via the portal’s SOS desk.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 5: CONTACT US */}
-          {activeTab === 'contact' && (
-            <div className="space-y-3">
-              <div className="border border-border rounded-xl p-3.5 bg-surface space-y-3">
-                <h4 className="font-bold text-sm text-text">Customer Care & Corporate Contact</h4>
-                <div className="space-y-2.5 text-[11.5px]">
-                  <div className="flex items-start gap-2.5">
-                    <Building2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-text block">Corporate Entity:</span>
-                      <span className="text-text-muted">SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Mail className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-text block">Support & Grievance Email:</span>
-                      <a href="mailto:support@letzryd.com" className="text-primary font-bold hover:underline">
-                        support@letzryd.com
-                      </a>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <Phone className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-text block">Helpline & WhatsApp Support:</span>
-                      <a href="tel:+919691938866" className="text-text font-bold hover:text-primary">
-                        +91 96919 38866 / +91 74837 31338
-                      </a>
-                      <span className="text-[10px] text-text-muted block">Available Monday – Saturday, 9:00 AM – 7:00 PM IST</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2.5">
-                    <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-text block">Operational Headquarters:</span>
-                      <span className="text-text-muted">
-                        Hyderabad, Telangana - 500081, India
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 bg-bg border-t border-border flex items-center justify-between text-[11px] text-text-muted shrink-0">
-          <span>© 2026 SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
+        <div className="p-2.5 bg-bg border-t border-border flex items-center justify-between text-[10.5px] text-text-muted shrink-0">
+          <span>SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-white font-bold cursor-pointer transition-colors shadow-xs"
+            className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold cursor-pointer transition-colors"
           >
             Close
           </button>
