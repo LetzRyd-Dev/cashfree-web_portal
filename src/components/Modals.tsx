@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { 
   X, Sparkles, Copy, Send, ReceiptIndianRupee, FileWarning, Award, CheckCircle, 
@@ -513,14 +513,21 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
     message: ''
   });
   const [contactSubmitted, setContactSubmitted] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
   const scrollToSection = (sectionId: string, sectionKey: 'about' | 'contact' | 'refund' | 'terms' | 'privacy') => {
     setActiveSection(sectionKey);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const container = scrollContainerRef.current;
+    const target = document.getElementById(sectionId);
+    if (container && target) {
+      const targetOffset = target.offsetTop - container.offsetTop;
+      container.scrollTo({ top: Math.max(0, targetOffset - 6), behavior: 'smooth' });
+    }
+    if (cardRef.current) {
+      cardRef.current.scrollTop = 0;
     }
   };
 
@@ -533,10 +540,12 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-2.5 bg-black/60 backdrop-blur-xs overflow-hidden">
       <div
-        className="bg-surface border border-border rounded-2xl w-full max-w-[345px] shadow-2xl relative text-left font-sans flex flex-col max-h-[85vh] my-auto overflow-hidden animate-in fade-in duration-150"
+        ref={cardRef}
+        onScroll={(e) => { e.currentTarget.scrollTop = 0; }}
+        className="bg-surface border border-border rounded-2xl w-full max-w-[345px] shadow-2xl relative text-left font-sans flex flex-col max-h-[85vh] h-[85vh] my-auto overflow-hidden animate-in fade-in duration-150"
       >
         {/* Top Header */}
-        <div className="p-3 bg-gradient-to-r from-[#0A1650] to-[#14267A] text-white flex items-start justify-between shrink-0">
+        <div className="p-3 bg-gradient-to-r from-[#0A1650] to-[#14267A] text-white flex items-start justify-between shrink-0 sticky top-0 z-20">
           <div className="space-y-0.5 pr-2">
             <h2 className="text-[11.5px] font-bold tracking-tight leading-snug">
               SAMVREEDDHI MOBILITY PRIVATE LIMITED
@@ -555,7 +564,7 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
         </div>
 
         {/* Quick Navigation Pills */}
-        <div className="flex items-center gap-1.5 px-3 py-2 bg-bg border-b border-border/80 overflow-x-auto no-scrollbar shrink-0 text-[10px] font-medium">
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-bg border-b border-border/80 overflow-x-auto no-scrollbar shrink-0 text-[10px] font-medium sticky top-0 z-10">
           <button
             onClick={() => scrollToSection('legal-about', 'about')}
             className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
@@ -599,7 +608,10 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
         </div>
 
         {/* Scrollable Content Container */}
-        <div className="p-3 overflow-y-auto space-y-4 text-[10px] text-text leading-relaxed">
+        <div 
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 p-3 overflow-y-auto space-y-4 text-[10px] text-text leading-relaxed"
+        >
           {/* SECTION 1: ABOUT US & SERVICES */}
           <div id="legal-about" className="space-y-2 pt-0.5">
             <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
