@@ -495,14 +495,14 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
 };
 
 export interface CompanyServicesLegalModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   initialTab?: 'services' | 'company' | 'refunds' | 'terms' | 'contact';
   t?: (key: string, fallback: string) => string;
 }
 
 export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps> = ({
-  isOpen,
+  isOpen = true,
   onClose,
   initialTab = 'services',
   t = (_k, fb) => fb
@@ -512,7 +512,7 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -521,20 +521,12 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
       >
         {/* Top Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-[#0A1650] to-[#122474] text-white flex items-start justify-between shrink-0">
-          <div className="space-y-1 pr-6">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-white/10 text-white">
-                <Building2 className="w-4 h-4" />
-              </span>
-              <span className="font-mono text-[10px] tracking-wider uppercase font-bold text-green-300 bg-white/10 px-2 py-0.5 rounded-full">
-                Legal Entity & Business Details
-              </span>
-            </div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight leading-snug">
+          <div className="space-y-0.5 pr-4">
+            <h2 className="text-base font-bold tracking-tight leading-snug">
               SAMVREEDDHI MOBILITY PRIVATE LIMITED
             </h2>
-            <p className="text-[11px] text-white/80 font-medium">
-              Operating Brand: <strong className="text-white">LetzRyd</strong> • Electric Vehicle Fleet & Mobility Operations
+            <p className="text-xs text-white/80">
+              Operating Brand: LetzRyd
             </p>
           </div>
           <button

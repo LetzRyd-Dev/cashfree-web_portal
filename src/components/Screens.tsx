@@ -2303,31 +2303,23 @@ export const SupportScreen: React.FC<SupportScreenProps> = ({
         </div>
       </div>
 
-      {/* Corporate Legal Entity & Merchant Underwriting Compliance Strip */}
-      <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left font-sans text-xs space-y-2.5">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider block">Legal Business Entity</span>
-              <h4 className="font-sans text-xs font-bold text-text">SAMVREEDDHI MOBILITY PRIVATE LIMITED</h4>
-            </div>
+      {/* Corporate Information Strip */}
+      <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left font-sans text-xs space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4" />
           </div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-            Active
-          </span>
+          <div>
+            <h4 className="font-sans text-xs font-bold text-text">SAMVREEDDHI MOBILITY PRIVATE LIMITED</h4>
+            <span className="text-[10px] text-text-muted block">Operating Brand: LetzRyd</span>
+          </div>
         </div>
-        <p className="text-[11px] text-text-muted leading-relaxed">
-          Operating Brand: <strong className="text-text font-semibold">LetzRyd</strong>. Services include Commercial Electric Vehicle (EV) fleet leasing, maintenance, and driver partner operations.
-        </p>
         {onOpenLegal && (
           <button
             onClick={onOpenLegal}
-            className="w-full py-2 px-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary font-sans text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            className="w-full py-1.5 px-3 rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-sans text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
           >
-            <span>View Services, Pricing & Legal Policies</span>
+            <span>View Services & Legal Policies</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </button>
         )}
