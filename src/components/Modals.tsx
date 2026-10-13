@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { 
   X, Sparkles, Copy, Send, ReceiptIndianRupee, FileWarning, Award, CheckCircle, 
   Bell, PhoneCall, Building2, ShieldCheck, Car, FileText, RefreshCw, Mail, MapPin, 
-  Phone, CheckCircle2, ChevronRight, Info, ExternalLink, BadgeCheck
+  Phone, CheckCircle2, ChevronRight, Info, ExternalLink, BadgeCheck, Users
 } from 'lucide-react';
 import { Ticket, Notification } from '../types';
 
@@ -505,172 +505,519 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   onClose,
   t = (_k, fb) => fb
 }) => {
+  const [activeSection, setActiveSection] = useState<'about' | 'contact' | 'refund' | 'terms' | 'privacy'>('about');
+  const [contactForm, setContactForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    message: ''
+  });
+  const [contactSubmitted, setContactSubmitted] = useState(false);
+
   if (!isOpen) return null;
 
+  const scrollToSection = (sectionId: string, sectionKey: 'about' | 'contact' | 'refund' | 'terms' | 'privacy') => {
+    setActiveSection(sectionKey);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.firstName || !contactForm.email || !contactForm.message) return;
+    setContactSubmitted(true);
+  };
+
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm overflow-y-auto animate-in fade-in duration-200">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-surface border border-border rounded-2xl w-full max-w-[345px] shadow-2xl relative text-left font-sans flex flex-col max-h-[85vh] my-auto overflow-hidden"
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-2.5 bg-black/60 backdrop-blur-xs overflow-hidden">
+      <div
+        className="bg-surface border border-border rounded-2xl w-full max-w-[345px] shadow-2xl relative text-left font-sans flex flex-col max-h-[85vh] my-auto overflow-hidden animate-in fade-in duration-150"
       >
         {/* Top Header */}
-        <div className="p-3.5 bg-gradient-to-r from-[#0A1650] to-[#122474] text-white flex items-start justify-between shrink-0">
-          <div className="space-y-0.5 pr-3">
-            <h2 className="text-xs font-bold tracking-tight leading-snug">
+        <div className="p-3 bg-gradient-to-r from-[#0A1650] to-[#14267A] text-white flex items-start justify-between shrink-0">
+          <div className="space-y-0.5 pr-2">
+            <h2 className="text-[11.5px] font-bold tracking-tight leading-snug">
               SAMVREEDDHI MOBILITY PRIVATE LIMITED
             </h2>
-            <p className="text-[10.5px] text-white/80">
+            <p className="text-[10px] text-white/80">
               Operating Brand: LetzRyd • Services & Policies
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="w-6 h-6 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer shrink-0"
             aria-label="Close"
           >
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Continuous Scrollable Content Area */}
-        <div className="p-3.5 overflow-y-auto space-y-4 text-xs text-text leading-relaxed">
-          {/* SECTION 1: SERVICES */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+        {/* Quick Navigation Pills */}
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-bg border-b border-border/80 overflow-x-auto no-scrollbar shrink-0 text-[10px] font-medium">
+          <button
+            onClick={() => scrollToSection('legal-about', 'about')}
+            className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
+              activeSection === 'about' ? 'bg-primary text-white font-semibold' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}
+          >
+            About & Services
+          </button>
+          <button
+            onClick={() => scrollToSection('legal-contact', 'contact')}
+            className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
+              activeSection === 'contact' ? 'bg-primary text-white font-semibold' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}
+          >
+            Headquarters & Contact
+          </button>
+          <button
+            onClick={() => scrollToSection('legal-refund', 'refund')}
+            className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
+              activeSection === 'refund' ? 'bg-primary text-white font-semibold' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}
+          >
+            Refund Policy
+          </button>
+          <button
+            onClick={() => scrollToSection('legal-terms', 'terms')}
+            className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
+              activeSection === 'terms' ? 'bg-primary text-white font-semibold' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}
+          >
+            Terms of Service
+          </button>
+          <button
+            onClick={() => scrollToSection('legal-privacy', 'privacy')}
+            className={`px-2 py-1 rounded-md shrink-0 transition-colors ${
+              activeSection === 'privacy' ? 'bg-primary text-white font-semibold' : 'bg-surface border border-border text-text-muted hover:text-text'
+            }`}
+          >
+            Privacy Policy
+          </button>
+        </div>
+
+        {/* Scrollable Content Container */}
+        <div className="p-3 overflow-y-auto space-y-4 text-[10px] text-text leading-relaxed">
+          {/* SECTION 1: ABOUT US & SERVICES */}
+          <div id="legal-about" className="space-y-2 pt-0.5">
+            <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
               <Car className="w-3.5 h-3.5 text-primary" />
-              <span>Services Offered</span>
+              <span>About LetzRyd & Services</span>
             </h3>
 
-            <div className="space-y-2">
-              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
-                <span className="font-bold text-[11px] text-text block">1. Commercial EV Fleet Leasing</span>
-                <p className="text-text-muted text-[10.5px] leading-relaxed">
-                  Provision of commercial electric vehicles to verified driver partners for ride-hailing operations, including scheduled servicing, comprehensive commercial insurance, and 24/7 roadside assistance.
-                </p>
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-2">
+              <p className="text-text-muted leading-relaxed">
+                LetzRyd provides vehicles and drivers to ride hailing service companies, as well as opportunities for vehicle ownership (including leasing) to drivers and their management companies. Through the vehicle and driver management platform, LetzRyd aims to improve driver incomes by increasing vehicle utilization rates.
+              </p>
+              
+              <div className="border-t border-border/50 pt-2 space-y-1">
+                <span className="font-bold text-[10.5px] text-text block">Leadership & Founding Team</span>
+                <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                  <div className="p-1.5 rounded-lg bg-bg border border-border/60 text-center">
+                    <span className="font-semibold text-text block text-[10px]">Tarun Jain</span>
+                    <span className="text-[9px] text-text-muted">Founder</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-bg border border-border/60 text-center">
+                    <span className="font-semibold text-text block text-[10px]">Kushagra Dokania</span>
+                    <span className="text-[9px] text-text-muted">Founder</span>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-bg border border-border/60 text-center">
+                    <span className="font-semibold text-text block text-[10px]">Sarvagna G</span>
+                    <span className="text-[9px] text-text-muted">Founder</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
-                <span className="font-bold text-[11px] text-text block">2. Security Deposit Management</span>
-                <p className="text-text-muted text-[10.5px] leading-relaxed">
-                  Refundable vehicle custody deposit collected during driver partner onboarding. Settleable via gateway or installment deductions, 100% refundable upon vehicle return and account closure.
-                </p>
-              </div>
-
-              <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1">
-                <span className="font-bold text-[11px] text-text block">3. Weekly Settlement Platform</span>
-                <p className="text-text-muted text-[10.5px] leading-relaxed">
-                  Automated weekly reconciliation platform netting driver gross ride collections against vehicle rent and tolls. Net balances are settled digitally through Cashfree Payment Gateway.
-                </p>
+              <div className="border-t border-border/50 pt-2 space-y-1.5">
+                <span className="font-bold text-[10.5px] text-text block">Core Operational Offerings</span>
+                <div className="space-y-1 text-text-muted">
+                  <div className="p-1.5 rounded-lg bg-bg/50 border border-border/50">
+                    <strong className="text-text block text-[10px]">1. Commercial Fleet Leasing:</strong>
+                    Vehicle allocation to driver partners for platform commercial ride operations.
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-bg/50 border border-border/50">
+                    <strong className="text-text block text-[10px]">2. Vehicle Custody Management:</strong>
+                    Security deposit collection and tracking during commercial partner onboarding.
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-bg/50 border border-border/50">
+                    <strong className="text-text block text-[10px]">3. Settlement & Reconciliation Platform:</strong>
+                    Netting weekly platform trip collections against rental agreements with digital settlements.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* SECTION 2: COMPANY INFO */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
-              <Building2 className="w-3.5 h-3.5 text-primary" />
-              <span>Company Information</span>
+          {/* SECTION 2: HEADQUARTERS & CONTACT */}
+          <div id="legal-contact" className="space-y-2 pt-1">
+            <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-primary" />
+              <span>Headquarters & Contact</span>
             </h3>
 
-            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1.5 text-[10.5px]">
-              <div className="flex justify-between py-0.5 border-b border-border/40">
-                <span className="text-text-muted">Legal Entity:</span>
-                <strong className="text-text font-semibold">SAMVREEDDHI MOBILITY PRIVATE LIMITED</strong>
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-2">
+              <div>
+                <span className="font-bold text-[10.5px] text-text block">SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
+                <p className="text-text-muted mt-0.5 leading-relaxed">
+                  4th floor, 503-A, Sir M. Visvesvaraya Rd, opp. Krishna Kuteer, above Leon Grill, BTM 6th Stage, Arekere, Bengaluru, Karnataka 560076
+                </p>
+                <a
+                  href="https://maps.app.goo.gl/nZGVYU1hpsR2W77w8?g_st=awb"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-primary hover:underline font-semibold mt-1"
+                >
+                  <span>View on Google Maps</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
               </div>
-              <div className="flex justify-between py-0.5 border-b border-border/40">
-                <span className="text-text-muted">Brand Name:</span>
-                <strong className="text-text font-semibold">LetzRyd</strong>
+
+              <div className="border-t border-border/50 pt-2 space-y-1.5">
+                <div className="flex items-center justify-between py-0.5 border-b border-border/40">
+                  <span className="text-text-muted">Contact Email:</span>
+                  <a href="mailto:admin@letzryd.com" className="text-primary font-semibold hover:underline">
+                    admin@letzryd.com
+                  </a>
+                </div>
+                <div className="flex items-center justify-between py-0.5 border-b border-border/40">
+                  <span className="text-text-muted">Contact Phone:</span>
+                  <a href="tel:+919035239090" className="text-text font-semibold hover:text-primary">
+                    +91 9035239090
+                  </a>
+                </div>
+                <div className="flex items-center justify-between py-0.5">
+                  <span className="text-text-muted">Grievance Officer:</span>
+                  <span className="text-text font-semibold">Tarun Jain (admin@letzryd.com)</span>
+                </div>
               </div>
-              <div className="flex justify-between py-0.5 border-b border-border/40">
-                <span className="text-text-muted">Business Activity:</span>
-                <span className="text-text">Commercial EV Fleet Leasing & Operations</span>
-              </div>
-              <div className="flex justify-between py-0.5 border-b border-border/40">
-                <span className="text-text-muted">Jurisdiction:</span>
-                <span className="text-text">India</span>
-              </div>
-              <div className="flex justify-between py-0.5">
-                <span className="text-text-muted">Payment Partner:</span>
-                <span className="text-text">Cashfree Payments India Pvt. Ltd.</span>
+
+              {/* Inquiry Form */}
+              <div className="border-t border-border/50 pt-2.5 space-y-2">
+                <span className="font-bold text-[10.5px] text-text block">Send a Message</span>
+                {contactSubmitted ? (
+                  <div className="p-2.5 rounded-lg bg-green-light/40 border border-green/30 text-green font-medium flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>Thank you. Your message has been received by our support team.</span>
+                  </div>
+                ) : (
+                  <form onSubmit={handleContactSubmit} className="space-y-2">
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <input
+                        type="text"
+                        required
+                        placeholder="First Name*"
+                        value={contactForm.firstName}
+                        onChange={(e) => setContactForm({ ...contactForm, firstName: e.target.value })}
+                        className="h-7 px-2 rounded-lg border border-border bg-bg text-[10px] text-text outline-none focus:border-primary"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Last Name"
+                        value={contactForm.lastName}
+                        onChange={(e) => setContactForm({ ...contactForm, lastName: e.target.value })}
+                        className="h-7 px-2 rounded-lg border border-border bg-bg text-[10px] text-text outline-none focus:border-primary"
+                      />
+                    </div>
+                    <input
+                      type="email"
+                      required
+                      placeholder="Your email*"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                      className="h-7 w-full px-2 rounded-lg border border-border bg-bg text-[10px] text-text outline-none focus:border-primary"
+                    />
+                    <textarea
+                      required
+                      rows={2}
+                      placeholder="Message*"
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
+                      className="w-full p-2 rounded-lg border border-border bg-bg text-[10px] text-text outline-none focus:border-primary resize-none leading-relaxed"
+                    />
+                    <button
+                      type="submit"
+                      className="w-full h-7 rounded-lg bg-primary hover:bg-primary-hover text-white font-semibold text-[10.5px] cursor-pointer transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Send className="w-3 h-3" />
+                      <span>Submit</span>
+                    </button>
+                  </form>
+                )}
               </div>
             </div>
           </div>
 
-          {/* SECTION 3: REFUND & CANCELLATION */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+          {/* SECTION 3: REFUND POLICY */}
+          <div id="legal-refund" className="space-y-2 pt-1">
+            <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
               <RefreshCw className="w-3.5 h-3.5 text-primary" />
-              <span>Refund & Cancellation Policy</span>
+              <span>Refund Policy</span>
             </h3>
 
-            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] text-text-muted space-y-1.5 leading-relaxed">
-              <p>
-                <strong className="text-text">Security Deposit Refund:</strong> All security deposits collected by SAMVREEDDHI MOBILITY PRIVATE LIMITED are refundable upon completion of vehicle allocation and agreement tenure.
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-1.5 leading-relaxed">
+              <span className="font-bold text-[10.5px] text-text block">SECTION 20: REFUND</span>
+              <p className="text-text-muted">
+                "The services we provide don’t have any refund policy and no refund would be given to anyone."
               </p>
-              <p>
-                <strong className="text-text">Refund Timeline:</strong> Refunds are credited to the driver partner’s registered bank account / UPI within 5 to 7 business days following vehicle inspection at the hub.
-              </p>
-              <p>
-                <strong className="text-text">Cancellation:</strong> Driver partners may surrender custody with prior intimation to their fleet manager, subject to clearing outstanding hisaab dues.
+              <p className="text-text-dim text-[9.5px] pt-1 border-t border-border/40">
+                Operational Note: Refundable vehicle custody deposits (where applicable under written driver agreements) are settled upon formal de-allocation and return of vehicle custody, following deduction of verified rental and toll liabilities.
               </p>
             </div>
           </div>
 
-          {/* SECTION 4: TERMS & CONDITIONS */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
+          {/* SECTION 4: TERMS OF SERVICE */}
+          <div id="legal-terms" className="space-y-2 pt-1">
+            <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-primary" />
-              <span>Terms & Conditions</span>
+              <span>Terms of Service</span>
             </h3>
 
-            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] text-text-muted space-y-1.5 leading-relaxed">
-              <p>
-                <strong className="text-text">1. Eligibility:</strong> Drivers must hold a valid commercial driving license, government identification, and complete background verification.
-              </p>
-              <p>
-                <strong className="text-text">2. Asset Ownership:</strong> All commercial vehicles remain the exclusive property of SAMVREEDDHI MOBILITY PRIVATE LIMITED or affiliated asset partners.
-              </p>
-              <p>
-                <strong className="text-text">3. Weekly Cycle:</strong> Settlement cycles run Monday 00:00 to Sunday 23:59. Balances must be settled digitally through the portal.
-              </p>
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-3 text-text-muted leading-relaxed">
+              <div className="space-y-1">
+                <strong className="text-text block text-[10.5px]">OVERVIEW</strong>
+                <p>
+                  This website is operated by SAMVREEDDHI MOBILITY PRIVATE LIMITED. Throughout the site, the terms “we”, “us” and “our” refer to SAMVREEDDHI MOBILITY PRIVATE LIMITED. SAMVREEDDHI MOBILITY PRIVATE LIMITED offers this website, including all information, tools and services available from this site to you, the user, conditioned upon your acceptance of all terms, conditions, policies and notices stated here.
+                </p>
+                <p>
+                  By visiting our site and/ or purchasing something from us, you engage in our “Service” and agree to be bound by the following terms and conditions (“Terms of Service”, “Terms”), including those additional terms and conditions and policies referenced herein and/or available by hyperlink.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 1 – ONLINE STORE TERMS</strong>
+                <p>
+                  By agreeing to these Terms of Service, you represent that you are at least the age of majority in your state or province of residence. You may not use our products for any illegal or unauthorized purpose nor may you, in the use of the Service, violate any laws in your jurisdiction (including but not limited to copyright laws).
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 2 – GENERAL CONDITIONS</strong>
+                <p>
+                  We reserve the right to refuse service to anyone for any reason at any time. You understand that your content (not including credit card information), may be transferred unencrypted. Credit card information is always encrypted during transfer over networks.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 3 – ACCURACY, COMPLETENESS AND TIMELINESS OF INFORMATION</strong>
+                <p>
+                  We are not responsible if information made available on this site is not accurate, complete or current. The material on this site is provided for general information only and should not be relied upon as the sole basis for making decisions.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 4 – MODIFICATIONS TO THE SERVICE AND PRICES</strong>
+                <p>
+                  Prices for our products are subject to change without notice. We reserve the right at any time to modify or discontinue the Service without notice at any time.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 5 – PRODUCTS OR SERVICES</strong>
+                <p>
+                  Certain products or services may be available exclusively online through the website. We reserve the right, but are not obligated, to limit the sales of our products or Services to any person, geographic region or jurisdiction.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 6 – ACCURACY OF BILLING AND ACCOUNT INFORMATION</strong>
+                <p>
+                  We reserve the right to refuse any order you place with us. You agree to provide current, complete and accurate purchase and account information for all purchases made at our store.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 7 – OPTIONAL TOOLS</strong>
+                <p>
+                  We may provide you with access to third-party tools over which we neither monitor nor have any control nor input. You acknowledge and agree that we provide access to such tools ”as is” and “as available” without any warranties.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 8 – THIRD-PARTY LINKS</strong>
+                <p>
+                  Certain content, products and services available via our Service may include materials from third-parties. Third-party links on this site may direct you to third-party websites that are not affiliated with us.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 9 – USER COMMENTS, FEEDBACK AND OTHER SUBMISSIONS</strong>
+                <p>
+                  If you send creative ideas, suggestions, proposals, or other materials, you agree that we may, at any time, without restriction, edit, copy, publish, distribute, translate and otherwise use in any medium any comments that you forward to us.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 10 – PERSONAL INFORMATION</strong>
+                <p>
+                  Your submission of personal information through the store is governed by our Privacy Policy.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 11 – ERRORS, INACCURACIES AND OMISSIONS</strong>
+                <p>
+                  Occasionally there may be information on our site or in the Service that contains typographical errors, inaccuracies or omissions. We reserve the right to correct any errors and update information.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 12 – PROHIBITED USES</strong>
+                <p>
+                  You are prohibited from using the site or its content for any unlawful purpose, to solicit others to perform unlawful acts, to violate any regulations, to infringe upon intellectual property rights, or to upload malicious code.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 13 – DISCLAIMER OF WARRANTIES; LIMITATION OF LIABILITY</strong>
+                <p>
+                  We do not guarantee, represent or warrant that your use of our service will be uninterrupted, timely, secure or error-free. In no case shall SAMVREEDDHI MOBILITY PRIVATE LIMITED, our directors, officers, employees, or affiliates be liable for any injury, loss, claim, or direct or indirect damages.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 14 – INDEMNIFICATION</strong>
+                <p>
+                  You agree to indemnify, defend and hold SAMVREEDDHI MOBILITY PRIVATE LIMITED harmless from any claim or demand made by any third-party due to or arising out of your breach of these Terms of Service.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 15 – SEVERABILITY</strong>
+                <p>
+                  In the event that any provision of these Terms of Service is determined to be unlawful, void or unenforceable, such provision shall nonetheless be enforceable to the fullest extent permitted by applicable law.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 16 – TERMINATION</strong>
+                <p>
+                  The obligations and liabilities of the parties incurred prior to the termination date shall survive the termination of this agreement for all purposes.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 17 – ENTIRE AGREEMENT</strong>
+                <p>
+                  These Terms of Service and any policies or operating rules posted by us on this site constitute the entire agreement and understanding between you and us.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 18 – GOVERNING LAW</strong>
+                <p>
+                  These Terms of Service and any separate agreements whereby we provide you Services shall be governed by and construed in accordance with the laws of India and jurisdiction of Bangalore, Karnataka.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 19 – CHANGES TO TERMS OF SERVICE</strong>
+                <p>
+                  You can review the most current version of the Terms of Service at any time on this page. We reserve the right to update, change or replace any part of these Terms by posting updates to our website.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 20 – REFUND</strong>
+                <p>
+                  The services we provide don’t have any refund policy and no refund would be given to anyone.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">SECTION 21 – CONTACT INFORMATION</strong>
+                <p>
+                  Questions about the Terms of Service should be sent to us at{' '}
+                  <a href="mailto:admin@letzryd.com" className="text-primary font-semibold hover:underline">
+                    admin@letzryd.com
+                  </a>{' '}
+                  or via telephone at{' '}
+                  <a href="tel:+919035239090" className="text-text font-semibold hover:text-primary">
+                    +91 9035239090
+                  </a>.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 5: CONTACT US */}
-          <div className="space-y-2">
-            <h3 className="font-bold text-xs text-text border-b border-border/60 pb-1 flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5 text-primary" />
-              <span>Contact Us</span>
+          {/* SECTION 5: PRIVACY POLICY */}
+          <div id="legal-privacy" className="space-y-2 pt-1">
+            <h3 className="font-bold text-[11px] text-text border-b border-border/70 pb-1 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-primary" />
+              <span>Privacy Policy</span>
             </h3>
 
-            <div className="border border-border/80 rounded-xl p-2.5 bg-surface text-[10.5px] space-y-1.5">
-              <div className="flex items-start gap-2">
-                <Mail className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-text-muted block">Support Email:</span>
-                  <a href="mailto:support@letzryd.com" className="text-primary font-semibold hover:underline">
-                    support@letzryd.com
-                  </a>
-                </div>
+            <div className="border border-border/80 rounded-xl p-2.5 bg-surface space-y-3 text-text-muted leading-relaxed">
+              <div className="flex items-center justify-between pb-1 border-b border-border/40">
+                <span className="font-bold text-text text-[10.5px]">Statutory Privacy Notice</span>
+                <span className="text-[9px] text-text-dim">Last Updated: 05/02/2026</span>
               </div>
 
-              <div className="flex items-start gap-2">
-                <Phone className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-text-muted block">Support Helpline:</span>
-                  <a href="tel:+919691938866" className="text-text font-semibold hover:text-primary">
-                    +91 96919 38866
-                  </a>
-                </div>
+              <p className="text-[9.5px] italic text-text-dim">
+                THIS DOCUMENT IS AN ELECTRONIC RECORD IN TERMS OF INFORMATION TECHNOLOGY ACT, 2000 AND RULES THERE UNDER AS APPLICABLE AND THE AMENDED PROVISIONS PERTAINING TO ELECTRONIC RECORDS IN VARIOUS STATUTES. THIS ELECTRONIC RECORD IS GENERATED BY A COMPUTER SYSTEM AND DOES NOT REQUIRE ANY PHYSICAL OR DIGITAL SIGNATURES.
+              </p>
+
+              <p className="text-[9.5px] italic text-text-dim">
+                THIS DOCUMENT IS PUBLISHED IN ACCORDANCE WITH THE PROVISIONS OF RULE 3 (1) OF THE INFORMATION TECHNOLOGY (INTERMEDIARIES GUIDELINES) RULES, 2011 THAT REQUIRE PUBLISHING THE RULES AND REGULATIONS, TERMS OF SERVICES, PRIVACY POLICY AND USER AGREEMENT FOR ACCESS OR TERMS OF USAGE OF WWW.LETZRYD.COM (HEREINAFTER REFERRED TO AS THE “SITE”).
+              </p>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Privacy Notice & Disclosures</strong>
+                <p>
+                  Though we make every effort to preserve user privacy, we may need to disclose personal information when required by law wherein we have a good-faith belief that such action is necessary to comply with an appropriate law enforcement investigation, judicial proceeding, court order or legal process served on our Site. We may also disclose personal information to third parties for delivering services to users.
+                </p>
               </div>
 
-              <div className="flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                <div>
-                  <span className="text-text-muted block">Operational Headquarters:</span>
-                  <span className="text-text">Hyderabad, Telangana - 500081, India</span>
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">General Description & Information Collected</strong>
+                <p>
+                  The Site may collect a user’s name, postal address, telephone number, mobile number, e-mail address, Permanent Account Number (PAN), Aadhaar card, and driving licence. Data will be retained for a reasonable period as required under Applicable Law. Explicit consent from users will be obtained before collecting sensitive personal data.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Vehicle Use Data & Location Tracking</strong>
+                <p>
+                  Vehicles contain hardware that gathers and transmits information about vehicle use as a security measure against accident or theft. To prevent theft and locate you in case of emergency or lockout, we track the vehicle location. Location information is confined to Samvreeddhi Mobility Private Limited services and never impermissibly made public. Location data may be shared with insurance companies or law enforcement during investigations.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Driver & Vehicle Information</strong>
+                <p>
+                  As a customer or partner of Samvreeddhi Mobility Private Limited, you authorize us to access your driver’s record and vehicle history report from applicable authorities and registries. You have the right to request discontinuance of use of your personal information by closing your account.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Non-Personal & Aggregate Information</strong>
+                <p>
+                  We collect non-personal data that does not permit direct association with an individual, including IP addresses, URLs, and browser types to understand usage patterns and administer the platform.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Security Practices</strong>
+                <p>
+                  Information collected is protected by appropriate technical and organizational security measures to prevent unauthorized access or accidental loss, conforming to Applicable Laws.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <strong className="text-text block text-[10px]">Opt-in Clause & Communications</strong>
+                <p>
+                  You will be required to enter a valid phone number. By registering your phone number, you consent to be contacted via phone calls and/or SMS/WhatsApp notifications regarding account transactions and updates.
+                </p>
+              </div>
+
+              <div className="p-2 rounded-lg bg-bg border border-border/70 space-y-1">
+                <strong className="text-text block text-[10px]">Grievance Officer</strong>
+                <p className="text-[9.5px]">
+                  For questions or complaints regarding this Privacy Policy, contact:
+                </p>
+                <div className="text-[9.5px] font-semibold text-text">
+                  Name: Tarun Jain • Email: <a href="mailto:admin@letzryd.com" className="text-primary hover:underline">admin@letzryd.com</a>
                 </div>
               </div>
             </div>
@@ -678,16 +1025,17 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-2.5 bg-bg border-t border-border flex items-center justify-between text-[10.5px] text-text-muted shrink-0">
-          <span>SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
+        <div className="p-2.5 bg-bg border-t border-border flex items-center justify-between text-[10px] text-text-muted shrink-0">
+          <span className="truncate pr-2 font-medium">SAMVREEDDHI MOBILITY PRIVATE LIMITED</span>
           <button
             onClick={onClose}
-            className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-semibold cursor-pointer transition-colors"
+            className="px-3 py-1 rounded-lg bg-primary hover:bg-primary-hover text-white text-[11px] font-semibold cursor-pointer transition-colors shrink-0"
           >
             Close
           </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
+
