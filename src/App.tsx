@@ -363,15 +363,6 @@ export default function App() {
       }
     }
 
-    // Reviewer Test Number (9999955555) bypasses Firebase SMS dispatch and uses OTP 000000
-    if (cleanPhone === '9999955555') {
-      if (otpRequestCancelledRef.current) return;
-      setConfirmationResult(null);
-      setOtpSent(true);
-      triggerToast('Test OTP sent. Enter your test code to proceed.', 'info');
-      return;
-    }
-
     if (isFirebaseConfigured && auth) {
       setIsSendingOtp(true);
       try {
@@ -466,14 +457,8 @@ export default function App() {
     setBackendError(null);
 
     try {
-      // Step 1: Firebase verification (for live carrier SMS OTP)
-      // Allow reviewer test phone 9999955555 with OTP 000000 to bypass carrier SMS confirmation
-      const isReviewerBypass = cleanPhone === '9999955555';
-      if (isReviewerBypass) {
-        if (cleanOtp !== '000000' && cleanOtp !== '123456') {
-          throw new Error('Incorrect test OTP code. Please use 000000.');
-        }
-      } else if (confirmationResult) {
+      // Step 1: Firebase verification (standard verification for both live carrier SMS and Firebase test numbers)
+      if (confirmationResult) {
         try {
           await confirmationResult.confirm(cleanOtp);
         } catch (firebaseErr: any) {
@@ -489,7 +474,7 @@ export default function App() {
       setIsLoadingProfile(true);
       let backendSuccess = false;
       try {
-        const authResult = isReviewerBypass ? { user_type: 'driver' } : await verifyOTPBackend(cleanPhone, cleanOtp, inferredRole);
+        const authResult = await verifyOTPBackend(cleanPhone, cleanOtp, inferredRole);
         
         // Step 3: Load profile from backend
         if (authResult.user_type === 'operator') {
