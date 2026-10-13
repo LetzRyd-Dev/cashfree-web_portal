@@ -643,7 +643,7 @@ if __name__ == "__main__":
             import_type="fetch",
             week_start=from_date.date(),
             week_end=to_date.date(),
-            target_table="july_ola_raw",
+            target_table="portal_ola_raw",
         )
     except Exception as db_err:
         print(f"[WARN] Could not write to ola_import_log: {db_err}")

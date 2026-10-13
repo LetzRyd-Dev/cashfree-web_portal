@@ -67,7 +67,7 @@ db_pool = init_db_pool()
 
 # ── Ensure Required Tables ─────────────────────────────────────────────────────
 _ENSURE_TABLES_SQL = """
-CREATE TABLE IF NOT EXISTS july_ola_raw (
+CREATE TABLE IF NOT EXISTS portal_ola_raw (
     id                             SERIAL PRIMARY KEY,
     stmt_date                      DATE,
     week_start                     DATE,
@@ -101,9 +101,9 @@ CREATE TABLE IF NOT EXISTS july_ola_raw (
     created_at                     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at                     TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_aor_vehicle_crn ON july_ola_raw (vehicle_number, crn);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_aor_vehicle_crn ON portal_ola_raw (vehicle_number, crn);
 
-CREATE TABLE IF NOT EXISTS july_ola_weekly_summary (
+CREATE TABLE IF NOT EXISTS portal_ola_weekly_summary (
     id                  SERIAL PRIMARY KEY,
     vehicle_number      VARCHAR(50)   NOT NULL,
     week_start          DATE          NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS july_ola_weekly_summary (
     UNIQUE (vehicle_number, week_start, week_end)
 );
 
-CREATE TABLE IF NOT EXISTS july_driver_users (
+CREATE TABLE IF NOT EXISTS portal_driver_users (
     id                     SERIAL PRIMARY KEY,
     driver_id              VARCHAR(50)   UNIQUE NOT NULL,
     phone                  VARCHAR(20)   UNIQUE NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS july_driver_users (
     updated_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS july_operator_users (
+CREATE TABLE IF NOT EXISTS portal_operator_users (
     id                     SERIAL PRIMARY KEY,
     operator_code          VARCHAR(50)   UNIQUE NOT NULL,
     phone                  VARCHAR(20)   UNIQUE NOT NULL,
@@ -176,7 +176,7 @@ def get_ola_summary(
     week_start: Optional[str] = None,
     week_end: Optional[str] = None
 ):
-    """Aggregate Ola earnings per vehicle from july_ola_weekly_summary."""
+    """Aggregate Ola earnings per vehicle from portal_ola_weekly_summary."""
     conn = db_pool.getconn()
     try:
         cur = conn.cursor()
@@ -205,7 +205,7 @@ def get_ola_summary(
                 SUM(incentive)       AS total_received_incentive,
                 SUM(subscription)    AS total_subscription,
                 SUM(km)              AS total_kms
-            FROM july_ola_weekly_summary
+            FROM portal_ola_weekly_summary
             {where}
             GROUP BY vehicle_number
             ORDER BY total_net_revenue DESC NULLS LAST;
@@ -213,7 +213,7 @@ def get_ola_summary(
         cols = [d[0] for d in cur.description]
         rows = [dict(zip(cols, r)) for r in cur.fetchall()]
         
-        # Fallback to july_ola_raw if summary table is empty
+        # Fallback to portal_ola_raw if summary table is empty
         if not rows:
             cur.execute("""
                 SELECT vehicle_number,
@@ -224,7 +224,7 @@ def get_ola_summary(
                        0                            AS total_received_incentive,
                        0                            AS total_subscription,
                        SUM(actual_kms_raw)           AS total_kms
-                FROM july_ola_raw
+                FROM portal_ola_raw
                 GROUP BY vehicle_number;
             """)
             cols = [d[0] for d in cur.description]
@@ -239,21 +239,21 @@ def get_ola_summary(
 
 @app.get("/api/ola/sync-status")
 def get_ola_sync_status(limit: int = 10):
-    """Return latest sync timestamp from july_ola_raw."""
+    """Return latest sync timestamp from portal_ola_raw."""
     conn = db_pool.getconn()
     try:
         cur = conn.cursor()
         cur.execute("""
             SELECT MAX(updated_at) AS finished_at,
                    COUNT(*) AS total_records
-            FROM july_ola_raw;
+            FROM portal_ola_raw;
         """)
         row = cur.fetchone()
         last_sync = row[0].isoformat() if row and row[0] else None
         return [{
             "id": 1,
             "import_type": "fetch_and_parse",
-            "target_table": "july_ola_raw",
+            "target_table": "portal_ola_raw",
             "file_name": "partners.olacabs.com",
             "status": "Completed" if last_sync else "Pending",
             "started_at": last_sync,
@@ -272,11 +272,11 @@ def get_driver_profile(phone: str):
     conn = db_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM july_driver_users WHERE phone = %s;", (phone,))
+        cur.execute("SELECT * FROM portal_driver_users WHERE phone = %s;", (phone,))
         row = cur.fetchone()
         if not row:
-            # Fallback to june/july_onboarding
-            cur.execute("SELECT driver_name, phone_number, city, driver_plan, security_deposit FROM july_onboarding WHERE phone_number = %s LIMIT 1;", (phone,))
+            # Fallback to june/portal_onboarding
+            cur.execute("SELECT driver_name, phone_number, city, driver_plan, security_deposit FROM portal_onboarding WHERE phone_number = %s LIMIT 1;", (phone,))
             onb_row = cur.fetchone()
             if onb_row:
                 return {
@@ -304,7 +304,7 @@ def get_operator_profile(phone: str):
     conn = db_pool.getconn()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM july_operator_users WHERE phone = %s;", (phone,))
+        cur.execute("SELECT * FROM portal_operator_users WHERE phone = %s;", (phone,))
         row = cur.fetchone()
         if not row:
             return {"found": False, "message": "Operator user not found"}
@@ -332,10 +332,10 @@ def get_calculated_hisaab(vehicle_number: Optional[str] = None):
             SELECT s.vehicle_number, s.week_start, s.week_end,
                    s.trips, s.revenue, s.cash_collection, s.toll, s.incentive, s.subscription, s.km,
                    COALESCE(c.total_challan, 0) AS total_challan
-            FROM july_ola_weekly_summary s
+            FROM portal_ola_weekly_summary s
             LEFT JOIN (
                 SELECT vehicle_number, SUM(challan_amount) AS total_challan
-                FROM copy_traffic_challans
+                FROM portal_traffic_challans
                 GROUP BY vehicle_number
             ) c ON c.vehicle_number = s.vehicle_number
             {where}

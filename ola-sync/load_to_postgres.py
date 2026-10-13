@@ -5,11 +5,11 @@ Stage 3 of the Ola sync pipeline.
 
 Responsibilities
 ----------------
-- CREATE TABLE IF NOT EXISTS for july_ola_raw and july_ola_incentive
+- CREATE TABLE IF NOT EXISTS for portal_ola_raw and portal_ola_incentive
   (idempotent — same table names every run, every month, forever).
 - Bulk upsert raw_df and incentive_df using psycopg2.extras.execute_values
   with ON CONFLICT DO UPDATE so re-running corrects rows instead of duplicating.
-- Best-effort city_name backfill from july_vehicle_onboarding.
+- Best-effort city_name backfill from portal_vehicle_onboarding.
 - Write final counts (inserted / updated / skipped) back to ola_import_log.
 
 Usage
@@ -69,7 +69,7 @@ def _get_db_conn():
 
 # ── Table DDL ─────────────────────────────────────────────────────────
 _ENSURE_TABLES_SQL = """
-CREATE TABLE IF NOT EXISTS july_ola_raw (
+CREATE TABLE IF NOT EXISTS portal_ola_raw (
     id                             SERIAL PRIMARY KEY,
     stmt_date                      DATE,
     week_start                     DATE,
@@ -103,12 +103,12 @@ CREATE TABLE IF NOT EXISTS july_ola_raw (
     created_at                     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at                     TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS idx_aor_vehicle_crn ON july_ola_raw (vehicle_number, crn);
-CREATE INDEX IF NOT EXISTS idx_aor_vehicle ON july_ola_raw (vehicle_number);
-CREATE INDEX IF NOT EXISTS idx_aor_date    ON july_ola_raw (stmt_date DESC);
-CREATE INDEX IF NOT EXISTS idx_aor_week    ON july_ola_raw (week_start, week_end);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_aor_vehicle_crn ON portal_ola_raw (vehicle_number, crn);
+CREATE INDEX IF NOT EXISTS idx_aor_vehicle ON portal_ola_raw (vehicle_number);
+CREATE INDEX IF NOT EXISTS idx_aor_date    ON portal_ola_raw (stmt_date DESC);
+CREATE INDEX IF NOT EXISTS idx_aor_week    ON portal_ola_raw (week_start, week_end);
 
-CREATE TABLE IF NOT EXISTS july_ola_incentive (
+CREATE TABLE IF NOT EXISTS portal_ola_incentive (
     id                  SERIAL PRIMARY KEY,
     week_start          DATE,
     week_end            DATE,
@@ -125,12 +125,12 @@ CREATE TABLE IF NOT EXISTS july_ola_incentive (
     updated_at          TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE (vehicle_number, week_start, week_end)
 );
-ALTER TABLE july_ola_incentive ALTER COLUMN slab TYPE VARCHAR(255);
-ALTER TABLE july_ola_incentive ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
-CREATE INDEX IF NOT EXISTS idx_aoi_vehicle ON july_ola_incentive (vehicle_number);
-CREATE INDEX IF NOT EXISTS idx_aoi_week    ON july_ola_incentive (week_start, week_end);
+ALTER TABLE portal_ola_incentive ALTER COLUMN slab TYPE VARCHAR(255);
+ALTER TABLE portal_ola_incentive ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+CREATE INDEX IF NOT EXISTS idx_aoi_vehicle ON portal_ola_incentive (vehicle_number);
+CREATE INDEX IF NOT EXISTS idx_aoi_week    ON portal_ola_incentive (week_start, week_end);
 
-CREATE TABLE IF NOT EXISTS july_ola_weekly_summary (
+CREATE TABLE IF NOT EXISTS portal_ola_weekly_summary (
     id                  SERIAL PRIMARY KEY,
     vehicle_number      VARCHAR(50)   NOT NULL,
     week_start          DATE          NOT NULL,
@@ -146,10 +146,10 @@ CREATE TABLE IF NOT EXISTS july_ola_weekly_summary (
     updated_at          TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE (vehicle_number, week_start, week_end)
 );
-CREATE INDEX IF NOT EXISTS idx_jows_vehicle ON july_ola_weekly_summary (vehicle_number);
-CREATE INDEX IF NOT EXISTS idx_jows_week    ON july_ola_weekly_summary (week_start, week_end);
+CREATE INDEX IF NOT EXISTS idx_jows_vehicle ON portal_ola_weekly_summary (vehicle_number);
+CREATE INDEX IF NOT EXISTS idx_jows_week    ON portal_ola_weekly_summary (week_start, week_end);
 
-CREATE TABLE IF NOT EXISTS july_driver_users (
+CREATE TABLE IF NOT EXISTS portal_driver_users (
     id                     SERIAL PRIMARY KEY,
     driver_id              VARCHAR(50)   UNIQUE NOT NULL,
     phone                  VARCHAR(20)   UNIQUE NOT NULL,
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS july_driver_users (
     updated_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS july_operator_users (
+CREATE TABLE IF NOT EXISTS portal_operator_users (
     id                     SERIAL PRIMARY KEY,
     operator_code          VARCHAR(50)   UNIQUE NOT NULL,
     phone                  VARCHAR(20)   UNIQUE NOT NULL,
@@ -182,7 +182,7 @@ CREATE TABLE IF NOT EXISTS july_operator_users (
 
 # ── Upsert SQL ────────────────────────────────────────────────────────────────
 _RAW_UPSERT_SQL = """
-INSERT INTO july_ola_raw
+INSERT INTO portal_ola_raw
     (stmt_date, week_start, week_end, vehicle_number,
      driver_name, driver_number, crn, completion_status,
      customer_bill_raw, paid_by_ola_money_raw, operator_bill_raw,
@@ -197,35 +197,35 @@ DO UPDATE SET
     stmt_date                    = EXCLUDED.stmt_date,
     week_start                   = EXCLUDED.week_start,
     week_end                     = EXCLUDED.week_end,
-    driver_name                  = COALESCE(EXCLUDED.driver_name,                  july_ola_raw.driver_name),
-    driver_number                = COALESCE(EXCLUDED.driver_number,                july_ola_raw.driver_number),
-    completion_status            = COALESCE(EXCLUDED.completion_status,            july_ola_raw.completion_status),
-    customer_bill_raw            = COALESCE(EXCLUDED.customer_bill_raw,            july_ola_raw.customer_bill_raw),
-    paid_by_ola_money_raw        = COALESCE(EXCLUDED.paid_by_ola_money_raw,        july_ola_raw.paid_by_ola_money_raw),
-    operator_bill_raw            = COALESCE(EXCLUDED.operator_bill_raw,            july_ola_raw.operator_bill_raw),
-    peak_pricing_raw             = COALESCE(EXCLUDED.peak_pricing_raw,             july_ola_raw.peak_pricing_raw),
-    ride_earnings_raw            = COALESCE(EXCLUDED.ride_earnings_raw,            july_ola_raw.ride_earnings_raw),
-    tds_raw                      = COALESCE(EXCLUDED.tds_raw,                      july_ola_raw.tds_raw),
-    toll_parking_raw             = COALESCE(EXCLUDED.toll_parking_raw,             july_ola_raw.toll_parking_raw),
-    cash_collected_by_driver_raw = COALESCE(EXCLUDED.cash_collected_by_driver_raw, july_ola_raw.cash_collected_by_driver_raw),
-    ola_to_pay                   = COALESCE(EXCLUDED.ola_to_pay,                   july_ola_raw.ola_to_pay),
-    category                     = COALESCE(EXCLUDED.category,                     july_ola_raw.category),
-    pickup_time                  = COALESCE(EXCLUDED.pickup_time,                  july_ola_raw.pickup_time),
-    actual_kms_raw               = COALESCE(EXCLUDED.actual_kms_raw,               july_ola_raw.actual_kms_raw),
-    trip_time_raw                = COALESCE(EXCLUDED.trip_time_raw,                july_ola_raw.trip_time_raw),
-    fare_raw                     = COALESCE(EXCLUDED.fare_raw,                     july_ola_raw.fare_raw),
-    share_osns                   = COALESCE(EXCLUDED.share_osns,                   july_ola_raw.share_osns),
-    number_of_share_osns         = COALESCE(EXCLUDED.number_of_share_osns,         july_ola_raw.number_of_share_osns),
-    bookings_completed_raw       = COALESCE(EXCLUDED.bookings_completed_raw,       july_ola_raw.bookings_completed_raw),
-    ride_type                    = COALESCE(EXCLUDED.ride_type,                    july_ola_raw.ride_type),
-    pickup_location              = COALESCE(EXCLUDED.pickup_location,              july_ola_raw.pickup_location),
-    drop_location                = COALESCE(EXCLUDED.drop_location,                july_ola_raw.drop_location),
+    driver_name                  = COALESCE(EXCLUDED.driver_name,                  portal_ola_raw.driver_name),
+    driver_number                = COALESCE(EXCLUDED.driver_number,                portal_ola_raw.driver_number),
+    completion_status            = COALESCE(EXCLUDED.completion_status,            portal_ola_raw.completion_status),
+    customer_bill_raw            = COALESCE(EXCLUDED.customer_bill_raw,            portal_ola_raw.customer_bill_raw),
+    paid_by_ola_money_raw        = COALESCE(EXCLUDED.paid_by_ola_money_raw,        portal_ola_raw.paid_by_ola_money_raw),
+    operator_bill_raw            = COALESCE(EXCLUDED.operator_bill_raw,            portal_ola_raw.operator_bill_raw),
+    peak_pricing_raw             = COALESCE(EXCLUDED.peak_pricing_raw,             portal_ola_raw.peak_pricing_raw),
+    ride_earnings_raw            = COALESCE(EXCLUDED.ride_earnings_raw,            portal_ola_raw.ride_earnings_raw),
+    tds_raw                      = COALESCE(EXCLUDED.tds_raw,                      portal_ola_raw.tds_raw),
+    toll_parking_raw             = COALESCE(EXCLUDED.toll_parking_raw,             portal_ola_raw.toll_parking_raw),
+    cash_collected_by_driver_raw = COALESCE(EXCLUDED.cash_collected_by_driver_raw, portal_ola_raw.cash_collected_by_driver_raw),
+    ola_to_pay                   = COALESCE(EXCLUDED.ola_to_pay,                   portal_ola_raw.ola_to_pay),
+    category                     = COALESCE(EXCLUDED.category,                     portal_ola_raw.category),
+    pickup_time                  = COALESCE(EXCLUDED.pickup_time,                  portal_ola_raw.pickup_time),
+    actual_kms_raw               = COALESCE(EXCLUDED.actual_kms_raw,               portal_ola_raw.actual_kms_raw),
+    trip_time_raw                = COALESCE(EXCLUDED.trip_time_raw,                portal_ola_raw.trip_time_raw),
+    fare_raw                     = COALESCE(EXCLUDED.fare_raw,                     portal_ola_raw.fare_raw),
+    share_osns                   = COALESCE(EXCLUDED.share_osns,                   portal_ola_raw.share_osns),
+    number_of_share_osns         = COALESCE(EXCLUDED.number_of_share_osns,         portal_ola_raw.number_of_share_osns),
+    bookings_completed_raw       = COALESCE(EXCLUDED.bookings_completed_raw,       portal_ola_raw.bookings_completed_raw),
+    ride_type                    = COALESCE(EXCLUDED.ride_type,                    portal_ola_raw.ride_type),
+    pickup_location              = COALESCE(EXCLUDED.pickup_location,              portal_ola_raw.pickup_location),
+    drop_location                = COALESCE(EXCLUDED.drop_location,                portal_ola_raw.drop_location),
     raw_json                     = EXCLUDED.raw_json,
     updated_at                   = NOW();
 """
 
 _INCENTIVE_UPSERT_SQL = """
-INSERT INTO july_ola_incentive
+INSERT INTO portal_ola_incentive
     (week_start, week_end, vehicle_number,
      trips, received_incentive, expected_incentive, difference,
      slab, slab_amount, after_tds, raw_json)
@@ -236,15 +236,15 @@ DO UPDATE SET
     received_incentive  = EXCLUDED.received_incentive,
     expected_incentive  = EXCLUDED.expected_incentive,
     difference          = EXCLUDED.difference,
-    slab                = COALESCE(EXCLUDED.slab,        july_ola_incentive.slab),
-    slab_amount         = COALESCE(EXCLUDED.slab_amount, july_ola_incentive.slab_amount),
-    after_tds           = COALESCE(EXCLUDED.after_tds,   july_ola_incentive.after_tds),
+    slab                = COALESCE(EXCLUDED.slab,        portal_ola_incentive.slab),
+    slab_amount         = COALESCE(EXCLUDED.slab_amount, portal_ola_incentive.slab_amount),
+    after_tds           = COALESCE(EXCLUDED.after_tds,   portal_ola_incentive.after_tds),
     raw_json            = EXCLUDED.raw_json,
     updated_at          = NOW();
 """
 
 _SUMMARY_UPSERT_SQL = """
-INSERT INTO july_ola_weekly_summary
+INSERT INTO portal_ola_weekly_summary
     (vehicle_number, week_start, week_end, trips, revenue, cash_collection, toll, incentive, subscription, km)
 VALUES %s
 ON CONFLICT (vehicle_number, week_start, week_end)
@@ -294,7 +294,7 @@ def load_to_postgres(
 
             # ── Load raw rows ─────────────────────────────────────────────────
             if not raw_df.empty:
-                raw_before = _count_table(cur, "july_ola_raw")
+                raw_before = _count_table(cur, "portal_ola_raw")
 
                 raw_values = []
                 for idx, row in raw_df.iterrows():
@@ -333,14 +333,14 @@ def load_to_postgres(
                     ))
 
                 psycopg2.extras.execute_values(cur, _RAW_UPSERT_SQL, raw_values, page_size=200)
-                raw_after = _count_table(cur, "july_ola_raw")
+                raw_after = _count_table(cur, "portal_ola_raw")
                 stats["inserted_raw"] = raw_after - raw_before
                 stats["updated_raw"]  = len(raw_values) - stats["inserted_raw"]
                 logger(f"[LOAD] Raw: {stats['inserted_raw']} inserted, {stats['updated_raw']} updated")
 
             # ── Load incentive rows ────────────────────────────────────────────
             if not incentive_df.empty:
-                inc_before = _count_table(cur, "july_ola_incentive")
+                inc_before = _count_table(cur, "portal_ola_incentive")
 
                 inc_values = []
                 for _, row in incentive_df.iterrows():
@@ -360,14 +360,14 @@ def load_to_postgres(
                     ))
 
                 psycopg2.extras.execute_values(cur, _INCENTIVE_UPSERT_SQL, inc_values, page_size=200)
-                inc_after = _count_table(cur, "july_ola_incentive")
+                inc_after = _count_table(cur, "portal_ola_incentive")
                 stats["inserted_incentive"] = inc_after - inc_before
                 stats["updated_incentive"]  = len(inc_values) - stats["inserted_incentive"]
                 logger(f"[LOAD] Incentive: {stats['inserted_incentive']} inserted, {stats['updated_incentive']} updated")
 
             # ── Load weekly summary rows ───────────────────────────────────────
             if summary_df is not None and not summary_df.empty:
-                sum_before = _count_table(cur, "july_ola_weekly_summary")
+                sum_before = _count_table(cur, "portal_ola_weekly_summary")
 
                 sum_values = []
                 for _, row in summary_df.iterrows():
@@ -386,7 +386,7 @@ def load_to_postgres(
                     ))
 
                 psycopg2.extras.execute_values(cur, _SUMMARY_UPSERT_SQL, sum_values, page_size=200)
-                sum_after = _count_table(cur, "july_ola_weekly_summary")
+                sum_after = _count_table(cur, "portal_ola_weekly_summary")
                 stats["inserted_summary"] = sum_after - sum_before
                 stats["updated_summary"]  = len(sum_values) - stats["inserted_summary"]
                 logger(f"[LOAD] Weekly Summary: {stats['inserted_summary']} inserted, {stats['updated_summary']} updated")

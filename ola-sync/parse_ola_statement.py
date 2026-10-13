@@ -12,7 +12,7 @@ Responsibilities
 - Coerce types: dates → date, money columns → Decimal, strip symbols/commas.
 - Normalize vehicle_number: uppercase, strip whitespace.
 - Keep the full original row as `raw_json` per record.
-- Return two DataFrames: one for july_ola_raw, one for july_ola_incentive.
+- Return two DataFrames: one for portal_ola_raw, one for portal_ola_incentive.
 
 Usage
 -----
@@ -132,9 +132,9 @@ def parse_statement(
     Returns
     -------
     (raw_df, incentive_df, summary_df)
-    raw_df      : DataFrame ready for july_ola_raw
-    incentive_df: DataFrame ready for july_ola_incentive
-    summary_df  : DataFrame ready for july_ola_weekly_summary
+    raw_df      : DataFrame ready for portal_ola_raw
+    incentive_df: DataFrame ready for portal_ola_incentive
+    summary_df  : DataFrame ready for portal_ola_weekly_summary
     """
     print(f"[PARSE] Loading file: {file_path}")
     ext = Path(file_path).suffix.lower()
@@ -182,7 +182,7 @@ def parse_statement(
     # Extract subscription fee data from RawTransactions / Deductions sheet
     sub_map = _extract_subscription_data(file_path)
 
-    # Build weekly summary aggregation DataFrame for july_ola_weekly_summary
+    # Build weekly summary aggregation DataFrame for portal_ola_weekly_summary
     summary_df = _build_weekly_summary_df(raw_df, incentive_df, sub_map, week_start, week_end)
 
     print(f"[PARSE] Raw rows parsed:       {len(raw_df)}")
@@ -229,7 +229,7 @@ def _build_weekly_summary_df(
     week_start: Optional[date] = None,
     week_end: Optional[date] = None,
 ) -> pd.DataFrame:
-    """Aggregate per vehicle for july_ola_weekly_summary."""
+    """Aggregate per vehicle for portal_ola_weekly_summary."""
     if raw_df.empty:
         return pd.DataFrame()
 
@@ -294,7 +294,7 @@ def _normalize_headers(src: pd.DataFrame, target_map: dict) -> pd.DataFrame:
 
 
 def _build_raw_df(src: pd.DataFrame, week_start, week_end) -> pd.DataFrame:
-    """Map, coerce, and validate rows for july_ola_raw."""
+    """Map, coerce, and validate rows for portal_ola_raw."""
     if src.empty:
         return pd.DataFrame()
 
@@ -370,7 +370,7 @@ def _build_raw_df(src: pd.DataFrame, week_start, week_end) -> pd.DataFrame:
 
 
 def _build_incentive_df(src: pd.DataFrame, week_start, week_end) -> pd.DataFrame:
-    """Map, coerce, and validate rows for july_ola_incentive."""
+    """Map, coerce, and validate rows for portal_ola_incentive."""
     if src.empty:
         return pd.DataFrame()
 
