@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from app.api.auth import router as auth_router
 from app.api.drivers import router as drivers_router
 from app.api.operators import router as operators_router
 from app.api.hisaabs import router as hisaabs_router
-from app.api.payments import router as payments_router, create_cashfree_order
+from app.api.payments import router as payments_router, create_cashfree_order, cashfree_webhook
 from app.api.tickets import router as tickets_router
 from app.api.notifications import router as notifications_router
 from app.api.referrals import router as referrals_router
@@ -58,6 +58,12 @@ app.include_router(audit_router, prefix=api_prefix)
 @app.post("/api/create-order", response_model=CreateOrderResponse, tags=["Payments & Cashfree"])
 def root_create_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
     return create_cashfree_order(req, db)
+
+# Direct root webhook aliases for Cashfree
+@app.post("/api/webhook", tags=["Payments & Cashfree"])
+@app.post("/api/webhook/cashfree", tags=["Payments & Cashfree"])
+async def root_cashfree_webhook(request: Request, db: Session = Depends(get_db)):
+    return await cashfree_webhook(request, db)
 
 @app.get("/api/health")
 def health_check():

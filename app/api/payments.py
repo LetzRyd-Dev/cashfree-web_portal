@@ -793,12 +793,20 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
             db.refresh(payment)
 
         if payment and is_success and payment.status != "SUCCESS":
-            payment.status = "SUCCESS"
-            payment.cf_payment_id = cf_payment_id or f"cf_pay_{uuid.uuid4().hex[:8]}"
-            payment.completed_at = datetime.now(timezone.utc)
-            payment.payment_mode = payment_mode
-            cascade_result = _apply_payment_success(payment, db)
-            db.commit()
+            # Re-fetch with row lock to prevent race condition with concurrent webhook
+            locked_payment = db.query(AppPayments).filter(AppPayments.app_payment_id == payment.app_payment_id).with_for_update().first()
+            if locked_payment and locked_payment.status != "SUCCESS":
+                locked_payment.status = "SUCCESS"
+                locked_payment.cf_payment_id = cf_payment_id or f"cf_pay_{uuid.uuid4().hex[:8]}"
+                locked_payment.completed_at = datetime.now(timezone.utc)
+                locked_payment.payment_mode = payment_mode
+                if paid_amount > 0:
+                    locked_payment.amount = paid_amount
+                cascade_result = _apply_payment_success(locked_payment, db)
+                db.commit()
+                payment = locked_payment
+            else:
+                cascade_result = {"note": "Already processed previously by webhook"}
         elif payment and payment.status == "SUCCESS":
             cascade_result = {"note": "Already processed previously"}
         elif payment and not is_success:
@@ -857,6 +865,7 @@ def get_payment_history(payer_id: Optional[int] = None, payer_type: Optional[str
 # ENDPOINT: Cashfree Webhook (server-side, fires on real transactions)
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/webhook/cashfree")
+@router.post("/webhook")
 async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Receives server-side webhook from Cashfree on payment events.
