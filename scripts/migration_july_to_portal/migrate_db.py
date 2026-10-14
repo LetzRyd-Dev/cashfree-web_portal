@@ -22,8 +22,8 @@ import psycopg2
 from pathlib import Path
 
 ENV_URLS = {
-    "dev": "postgresql://letzryd_dev_user:LetzRydDevPass2026%21@34.93.205.164:5432/letzryd_dev",
-    "prod": "postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres",
+    "dev": os.environ.get("DEV_DATABASE_URL", "postgresql://letzryd_dev_user@34.93.205.164:5432/letzryd_dev"),
+    "prod": os.environ.get("PROD_DATABASE_URL", os.environ.get("DATABASE_URL", "postgresql://postgres@35.200.196.113:5432/postgres")),
 }
 
 DIR = Path(__file__).parent

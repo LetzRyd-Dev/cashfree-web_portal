@@ -1,17 +1,18 @@
+import os
 import psycopg2
 import io
 import time
 import sys
 
-PROD_HOST = "35.200.196.113"
-PROD_DB = "postgres"
-PROD_USER = "postgres"
-PROD_PASS = "8S5]U3@L^Xz)\\FH}"
+PROD_HOST = os.environ.get("PROD_DB_HOST", "35.200.196.113")
+PROD_DB = os.environ.get("PROD_DB_NAME", "postgres")
+PROD_USER = os.environ.get("PROD_DB_USER", "postgres")
+PROD_PASS = os.environ.get("PROD_DB_PASS", os.environ.get("DB_PASS", ""))
 
-DEV_HOST = "34.93.205.164"
-SNAPSHOT_DB = "letzryd_prod_snapshot"
-DEV_USER = "letzryd_dev_user"
-DEV_PASS = "LetzRydDevPass2026!"
+DEV_HOST = os.environ.get("DEV_DB_HOST", "34.93.205.164")
+SNAPSHOT_DB = os.environ.get("SNAPSHOT_DB_NAME", "letzryd_prod_snapshot")
+DEV_USER = os.environ.get("DEV_DB_USER", "letzryd_dev_user")
+DEV_PASS = os.environ.get("DEV_DB_PASS", "")
 
 start_time = time.time()
 print("==================================================")

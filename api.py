@@ -59,7 +59,7 @@ def init_db_pool():
         port=os.environ.get("DB_PORT", "5432"),
         dbname=os.environ.get("DB_NAME", "postgres"),
         user=os.environ.get("DB_USER", "postgres"),
-        password=os.environ.get("DB_PASS", "8S5]U3@L^Xz)\\FH}"),
+        password=os.environ.get("DB_PASS", ""),
     )
 
 db_pool = init_db_pool()

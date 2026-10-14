@@ -30,7 +30,7 @@ gcloud run jobs deploy "${JOB_NAME}" \
   --memory=2Gi \
   --cpu=2 \
   --max-retries=2 \
-  --set-env-vars="OLA_PHONE_NUMBER=7483731338,DATABASE_URL=postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres,SMTP_HOST=smtp.gmail.com,SMTP_PORT=587,SMTP_USER=dhanush@infinityanalyticsconsulting.com,SMTP_PASSWORD=odrp bflw njnd didj,ALERT_TO_EMAIL=dhanushaisolutions@gmail.com,OLA_EMAIL=dhanushaisolutions@gmail.com,GMAIL_IMAP_USER=dhanush@infinityanalyticsconsulting.com,GMAIL_IMAP_PASSWORD=odrp bflw njnd didj"
+  --set-env-vars="OLA_PHONE_NUMBER=${OLA_PHONE_NUMBER:-7483731338},DATABASE_URL=${DATABASE_URL},SMTP_HOST=${SMTP_HOST:-smtp.gmail.com},SMTP_PORT=${SMTP_PORT:-587},SMTP_USER=${SMTP_USER},SMTP_PASSWORD=${SMTP_PASSWORD},ALERT_TO_EMAIL=${ALERT_TO_EMAIL},OLA_EMAIL=${OLA_EMAIL},GMAIL_IMAP_USER=${GMAIL_IMAP_USER},GMAIL_IMAP_PASSWORD=${GMAIL_IMAP_PASSWORD}"
 
 echo "=== STAGE 5: Create or Update Cloud Scheduler Trigger ==="
 gcloud scheduler jobs create http "${SCHEDULER_NAME}" \

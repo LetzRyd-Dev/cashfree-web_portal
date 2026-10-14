@@ -1571,17 +1571,26 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   };
 
   const handleReturnToSettle = () => {
+    isCancelledRef.current = true;
     setPaymentState('form');
     setPaymentSessionId('');
     setCurrentOrderId('');
+    setPayError('');
   };
 
   // Verify real order with backend (Only triggers success if truly verified by Cashfree)
   const handleVerifyOrder = async (targetOrderId?: string) => {
     const checkId = targetOrderId || currentOrderId;
     if (!checkId) return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
-      const res = await fetch(`${BACKEND_URL}/api/payments/verify/${checkId}`);
+      const res = await fetch(`${BACKEND_URL}/api/payments/verify/${checkId}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       if (!res.ok) return;
       const data = await res.json();
       if (data?.is_success || data?.status === 'SUCCESS') {
@@ -1589,8 +1598,12 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         onConfirmPayment(verifiedAmount, selectedTarget);
         handlePaymentSuccess();
       }
-    } catch (e) {
-      console.warn('Verification check:', e);
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        console.warn('Verification check:', e);
+      }
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 

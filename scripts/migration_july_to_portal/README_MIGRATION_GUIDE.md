@@ -55,13 +55,13 @@ Target Instance: `34.93.205.164:5432/letzryd_dev`
 
 ```bash
 # 1. Connect and execute Script 01 (Rename & Bridge Views)
-psql "postgresql://letzryd_dev_user:LetzRydDevPass2026%21@34.93.205.164:5432/letzryd_dev" -f 01_rename_tables_and_create_bridge_views.sql
+psql "postgresql://letzryd_dev_user:<DEV_PASSWORD>@34.93.205.164:5432/letzryd_dev" -f 01_rename_tables_and_create_bridge_views.sql
 
 # 2. Execute Script 02 (Procedures, Views & Triggers)
-psql "postgresql://letzryd_dev_user:LetzRydDevPass2026%21@34.93.205.164:5432/letzryd_dev" -f 02_update_views_and_routines.sql
+psql "postgresql://letzryd_dev_user:<DEV_PASSWORD>@34.93.205.164:5432/letzryd_dev" -f 02_update_views_and_routines.sql
 
 # 3. Run Verification Suite
-psql "postgresql://letzryd_dev_user:LetzRydDevPass2026%21@34.93.205.164:5432/letzryd_dev" -f 03_verify_migration.sql
+psql "postgresql://letzryd_dev_user:<DEV_PASSWORD>@34.93.205.164:5432/letzryd_dev" -f 03_verify_migration.sql
 ```
 
 **What to verify in DEV:**

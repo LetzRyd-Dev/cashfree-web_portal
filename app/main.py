@@ -20,7 +20,7 @@ from app.schemas.app_schemas import CreateOrderRequest, CreateOrderResponse
 
 # In production: disable Swagger UI (/docs), ReDoc (/redoc), and OpenAPI schema (/openapi.json)
 # to prevent API enumeration by malicious actors.
-_is_production = settings.ENVIRONMENT.lower() == "production"
+_is_production = (settings.ENVIRONMENT.lower() == "production") or (settings.CASHFREE_ENV.upper() == "PRODUCTION")
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
