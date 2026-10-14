@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   X, Sparkles, Copy, Send, ReceiptIndianRupee, FileWarning, Award, CheckCircle, 
@@ -15,8 +15,19 @@ interface ReferralModalProps {
 }
 
 export const ReferralModal: React.FC<ReferralModalProps> = ({ onClose, driverCode, onCopy, t }) => {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -74,6 +85,14 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !description.trim()) return;
@@ -81,7 +100,10 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/60 backdrop-blur-sm overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -162,8 +184,19 @@ interface TicketDetailModalProps {
 }
 
 export const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ ticket, onClose, t }) => {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -219,6 +252,14 @@ interface NotificationModalProps {
 }
 
 export const NotificationModal: React.FC<NotificationModalProps> = ({ onClose, notifications, onMarkAllRead, t }) => {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const getIcon = (iconName: string) => {
     switch (iconName) {
       case 'ReceiptIndianRupee': return <ReceiptIndianRupee className="w-4 h-4 text-green" />;
@@ -230,7 +271,10 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({ onClose, n
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -312,6 +356,14 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
   const [isDrivable, setIsDrivable] = useState(false);
   const [incidentSubmitted, setIncidentSubmitted] = useState(false);
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const handleIncidentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!location.trim()) return;
@@ -329,7 +381,10 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/65 backdrop-blur-sm overflow-y-auto">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-3 bg-black/65 backdrop-blur-sm overflow-y-auto"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -516,6 +571,14 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   const scrollToSection = (sectionId: string, sectionKey: 'about' | 'contact' | 'refund' | 'terms' | 'privacy') => {
@@ -538,7 +601,10 @@ export const CompanyServicesLegalModal: React.FC<CompanyServicesLegalModalProps>
   };
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center p-2.5 bg-black/60 backdrop-blur-xs overflow-hidden">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="absolute inset-0 z-50 flex items-center justify-center p-2.5 bg-black/60 backdrop-blur-xs overflow-hidden"
+    >
       <div
         ref={cardRef}
         onScroll={(e) => { e.currentTarget.scrollTop = 0; }}

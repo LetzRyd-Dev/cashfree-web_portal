@@ -62,6 +62,8 @@ def root_create_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
 # Direct root webhook aliases for Cashfree
 @app.post("/api/webhook", tags=["Payments & Cashfree"])
 @app.post("/api/webhook/cashfree", tags=["Payments & Cashfree"])
+@app.post("/api/payments/webhook", tags=["Payments & Cashfree"])
+@app.post("/payments/webhook", tags=["Payments & Cashfree"])
 async def root_cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     return await cashfree_webhook(request, db)
 

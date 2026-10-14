@@ -1163,10 +1163,13 @@ export default function App() {
                         </span>
                         <input
                           type="tel"
-                          maxLength={10}
+                          maxLength={15}
                           value={phoneInput}
                           onChange={(e) => {
-                            setPhoneInput(e.target.value);
+                            let raw = e.target.value.replace(/\D/g, '');
+                            if (raw.startsWith('91') && raw.length > 10) raw = raw.slice(2);
+                            if (raw.startsWith('0') && raw.length > 10) raw = raw.slice(1);
+                            setPhoneInput(raw.slice(0, 10));
                             if (phoneError) setPhoneError(null);
                           }}
                           className={`h-11 w-full rounded-lg border bg-surface px-3.5 font-sans text-sm font-medium text-text outline-none transition-all ${
@@ -1377,7 +1380,7 @@ export default function App() {
                       <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs font-sans text-xs text-left space-y-0.5">
                         <div className="flex items-center justify-between">
                           <h2 className="font-extrabold text-text text-sm flex items-center gap-1.5">
-                            {t('home.greeting', 'Hi')}, {userName.split(' ')[0]} 👋
+                            {t('home.greeting', 'Hi')}, {userName?.trim() ? userName.trim().split(' ')[0] : (t('common.partner', 'Partner'))} 👋
                           </h2>
                           {loginType === 'driver' && (
                             !driverVehicle?.number || driverVehicle.number === 'Unassigned' || driverVehicle.number.toLowerCase() === 'unassigned' || !driverVehicle.number.trim() ? (
@@ -1685,7 +1688,7 @@ export default function App() {
                                   </span>
                                   <div className="flex items-center gap-2 text-[10px] font-sans">
                                     <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                      {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar || driverUser.depositAmount).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                      {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                                     </span>
                                   </div>
                                 </div>
@@ -1892,7 +1895,7 @@ export default function App() {
                                 </span>
                                 <div className="flex items-center gap-2 text-[10px] font-sans">
                                   <span className="bg-green-50 text-green-700 border border-green-200/70 px-2.5 py-0.5 rounded-full font-bold">
-                                    {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar ?? driverUser.depositAmount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar || driverUser.depositAmount) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
+                                    {t('home.paid', 'Paid')}: ₹{(driverUser.depositPaidSoFar ?? 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPaidSoFar ?? 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}
                                   </span>
                                   <span className={`px-2.5 py-0.5 rounded-full font-bold border ${(driverUser.depositPending || 0) > 0 ? 'bg-amber-50 text-amber-700 border-amber-200/70' : 'bg-green-50 text-green-700 border-green-200/70'}`}>
                                     {t('home.pending', 'Pending')}: ₹{(driverUser.depositPending || 0).toLocaleString('en-IN', { minimumFractionDigits: (driverUser.depositPending || 0) % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}

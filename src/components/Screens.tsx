@@ -1351,6 +1351,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   const [currentOrderId, setCurrentOrderId] = useState<string>('');
   const [countdown, setCountdown] = useState<number>(3);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
+  const isCancelledRef = useRef<boolean>(false);
   const [cashfreeMode, setCashfreeMode] = useState<string>(
     (import.meta.env.VITE_CASHFREE_MODE || 'production').toLowerCase()
   );
@@ -1362,6 +1363,13 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       }
     }).catch(() => {});
   }, []);
+
+  // Sync customAmount to activeComponentDue when full payment is selected
+  useEffect(() => {
+    if (paymentOption === 'full') {
+      setCustomAmount(activeComponentDue.toFixed(2));
+    }
+  }, [activeComponentDue, paymentOption]);
 
   // Mount Cashfree's official inline checkout to flush session and avoid stale cache
   useEffect(() => {
@@ -1381,17 +1389,12 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                 }
               }).then((result: any) => {
                 console.log('[Cashfree] checkout result:', result);
-                // result.paymentDetails = success, result.error = user dropped / failed
-                // Always call verify — backend will determine actual status from Cashfree API
                 if (result && result.paymentDetails) {
-                  // Definite success signal
                   handleVerifyOrder();
                 } else if (result && result.error) {
-                  // User dropped or failed — still verify to pick up any partial success
                   console.warn('[Cashfree] Payment error/drop:', result.error);
                   handleVerifyOrder();
                 } else if (result) {
-                  // Unknown shape — verify anyway
                   handleVerifyOrder();
                 }
               }).catch((err: any) => {
@@ -1418,9 +1421,16 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       };
 
       if (!initCashfreeCheckout()) {
+        let attempts = 0;
+        const maxAttempts = 40; // 10 seconds at 250ms interval
         const interval = setInterval(() => {
+          attempts++;
           if (initCashfreeCheckout()) {
             clearInterval(interval);
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setPayError("Cashfree checkout SDK failed to load. Please disable ad-blockers or try again.");
+            setPaymentState('form');
           }
         }, 250);
         return () => clearInterval(interval);
@@ -1454,6 +1464,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
   // Trigger Real Cashfree Order Creation and render checkout inside mobile layout
   const handleCashfreePayment = async () => {
+    isCancelledRef.current = false;
     setPaymentSessionId('');
     setCurrentOrderId('');
     setPayLoading(true);
@@ -1532,6 +1543,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       const sessionData = await res.json();
 
       if (sessionData && (sessionData.payment_session_id || sessionData.paymentSessionId)) {
+        if (isCancelledRef.current) return;
         const sessionId = sessionData.payment_session_id || sessionData.paymentSessionId;
         const ordId = sessionData.order_id || sessionData.orderId || generatedOrderId;
         setPaymentSessionId(sessionId);
@@ -1544,8 +1556,10 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
         throw new Error('Could not create Cashfree session. Please verify backend credentials.');
       }
     } catch (err: any) {
-      setPayError(err?.message || t('settle.apiError', 'Could not connect to payment server.'));
-      setPaymentState('form');
+      if (!isCancelledRef.current) {
+        setPayError(err?.message || t('settle.apiError', 'Could not connect to payment server.'));
+        setPaymentState('form');
+      }
     } finally {
       setPayLoading(false);
     }
@@ -1773,7 +1787,10 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       <div className="space-y-4 text-left font-sans">
         <div className="flex items-center gap-3 border-b border-border/60 pb-2.5">
           <button
-            onClick={() => setPaymentState('form')}
+            onClick={() => {
+              isCancelledRef.current = true;
+              setPaymentState('form');
+            }}
             className="w-9 h-9 rounded-xl border border-border bg-surface flex items-center justify-center text-text-muted hover:text-text cursor-pointer transition-colors shrink-0"
           >
             <ChevronLeft className="w-4 h-4" />

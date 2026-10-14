@@ -15,6 +15,7 @@ engine = create_engine(
     pool_timeout=30,
     connect_args={
         "connect_timeout": 10,
+        "options": "-c lock_timeout=5000ms",
         "keepalives": 1,
         "keepalives_idle": 30,
         "keepalives_interval": 10,
