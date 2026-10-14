@@ -190,6 +190,15 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     elif oh.paid_amount > 0:
                         oh.payment_status = "partial"
 
+                    if updated["hisaab"] is None:
+                        updated["hisaab"] = {
+                            "app_hisaab_id": oh.app_hisaab_id,
+                            "paid_amount": oh.paid_amount,
+                            "current_period_os": oh.current_period_os,
+                            "to_collect": oh.to_collect,
+                            "payment_status": oh.payment_status,
+                        }
+
                     # Update driver lw_os or cw_os
                     driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - oh_pay), 2)
                     if oh.week_number < active_week_num or oh.is_locked:
@@ -205,7 +214,8 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                     rem_cash = round(max(0.0, rem_cash - oh_pay), 2)
 
             # Tier 3: Pay pending security deposit (if not already handled in targeted deposit flow)
-            if rem_cash > 0 and target_comp != "deposit":
+            # Only cascade to deposit if target_comp is 'auto' (or other non-hisaab flow)
+            if rem_cash > 0 and target_comp not in ("deposit", "hisaab"):
                 dep_pending = round(float(driver.deposit_pending or 0), 2)
                 total_req = round(float(driver.deposit_total_req or 5000.0), 2)
                 dep_credit = round(min(dep_pending, rem_cash), 2)
@@ -213,7 +223,27 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 driver.deposit_pending = round(max(0.0, total_req - float(driver.deposit_paid)), 2)
                 rem_cash = round(max(0.0, rem_cash - dep_credit), 2)
 
-            # Tier 4: Any remaining surplus becomes driver advance credit
+            # Tier 4: Pay down any lingering driver operating debts not backed by a hisaab row
+            if rem_cash > 0 and float(driver.cw_to_collect or 0) > 0:
+                cw_debt = round(float(driver.cw_to_collect or 0), 2)
+                cw_pay = round(min(cw_debt, rem_cash), 2)
+                driver.cw_to_collect = round(max(0.0, cw_debt - cw_pay), 2)
+                driver.cw_os = round(max(0.0, float(driver.cw_os or 0) - cw_pay), 2)
+                driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - cw_pay), 2)
+                rem_cash = round(max(0.0, rem_cash - cw_pay), 2)
+
+            if rem_cash > 0 and float(driver.lw_os or 0) > 0:
+                lw_debt = round(float(driver.lw_os or 0), 2)
+                lw_pay = round(min(lw_debt, rem_cash), 2)
+                driver.lw_os = round(max(0.0, lw_debt - lw_pay), 2)
+                driver.cumulative_owed = round(max(0.0, float(driver.cumulative_owed or 0) - lw_pay), 2)
+                if driver.lw_os <= 0:
+                    driver.lw_status = "paid"
+                else:
+                    driver.lw_status = "partial"
+                rem_cash = round(max(0.0, rem_cash - lw_pay), 2)
+
+            # Tier 5: Any remaining true surplus becomes driver advance credit
             if rem_cash > 0:
                 driver.cw_to_collect = 0.0
                 driver.cw_os = round(float(driver.cw_os or 0) - rem_cash, 2)
@@ -268,7 +298,6 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 AppDrivers.cw_to_collect > 0
             ).order_by(AppDrivers.app_driver_id).all()
 
-            rem_for_debt = paid_amount
             for d in fleet_drivers_with_debt:
                 if rem_for_debt <= 0:
                     break
@@ -889,9 +918,13 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     payment_data = data_dict.get("payment") or payload.get("payment") or {}
 
     order_id = order_data.get("order_id")
+    event_type = payload.get("type", "")
     payment_status = payment_data.get("payment_status", "")
-    if payload.get("type") == "PAYMENT_SUCCESS_WEBHOOK":
+    if event_type == "PAYMENT_SUCCESS_WEBHOOK":
         payment_status = "SUCCESS"
+    elif event_type in ("PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK"):
+        if not payment_status:
+            payment_status = "FAILED"
 
     if order_id and payment_status == "SUCCESS":
         payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
@@ -908,5 +941,12 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
                 payment.amount = float(payment_data.get("payment_amount"))
             # Cascade update
             _apply_payment_success(payment, db)
+    elif order_id and (event_type in ("PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK") or payment_status in ("FAILED", "USER_DROPPED", "CANCELLED")):
+        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
+        if payment and payment.status not in ("SUCCESS", "FAILED"):
+            payment.status = "FAILED"
+            payment.completed_at = datetime.now(timezone.utc)
+            payment.raw_response = payload
+            db.commit()
 
     return {"status": "OK"}

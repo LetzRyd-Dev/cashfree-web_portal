@@ -19,15 +19,24 @@ OPERATOR_PHONE_ALIASES = {
 }
 
 def clean_phone_number(raw_phone: str) -> str:
-    """Strip country codes, spaces, dashes and non-numeric chars."""
+    """Strip country codes (+91, 0091, 91), leading zeroes, spaces, dashes and non-numeric chars."""
     if not raw_phone:
         return ""
-    cleaned = re.sub(r"[^\d]", "", str(raw_phone))
-    if cleaned.startswith("91") and len(cleaned) == 12:
-        cleaned = cleaned[2:]
-    elif cleaned.startswith("0") and len(cleaned) == 11:
-        cleaned = cleaned[1:]
-    return cleaned
+    digits = re.sub(r"[^\d]", "", str(raw_phone))
+    if not digits:
+        return ""
+    # Strip leading 00 (international call prefix) e.g. 0091...
+    if digits.startswith("00"):
+        digits = digits.lstrip("0")
+    # If starts with 91 and total length >= 12, strip country code 91
+    if digits.startswith("91") and len(digits) >= 12:
+        digits = digits[2:]
+    # Strip any leading trunk 0 (e.g. 09876543210 or leftover after 91)
+    digits = digits.lstrip("0")
+    # If at least 10 digits remain and starts with standard Indian mobile prefix (6-9), keep last 10 digits
+    if len(digits) > 10 and digits[-10] in "6789":
+        digits = digits[-10:]
+    return digits
 
 LEGACY_DRIVER_ID_MAP = {
     157: 1,  # Vivek

@@ -4730,3 +4730,40 @@ CREATE TRIGGER trg_sync_dropoff_from_portal
 BEFORE INSERT OR UPDATE ON public.portal_vehicle_dropoffs
 FOR EACH ROW
 EXECUTE FUNCTION public.fn_sync_dropoff_from_portal();
+
+
+CREATE OR REPLACE PROCEDURE public.sp_sync_all_sequences()
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    r RECORD;
+    v_max BIGINT;
+    v_last BIGINT;
+    v_fixed INT := 0;
+BEGIN
+    FOR r IN 
+        SELECT 
+            s.relname AS seq_name,
+            t.relname AS tbl_name,
+            a.attname AS col_name
+        FROM pg_class s
+        JOIN pg_depend d ON d.objid = s.oid
+        JOIN pg_class t ON t.oid = d.refobjid
+        JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+        WHERE s.relkind = 'S'
+          AND t.relkind = 'r'
+          AND s.relnamespace = 'public'::regnamespace
+    LOOP
+        BEGIN
+            EXECUTE format('SELECT COALESCE(MAX(%I), 1) FROM public.%I', r.col_name, r.tbl_name) INTO v_max;
+            EXECUTE format('SELECT last_value FROM public.%I', r.seq_name) INTO v_last;
+            IF v_last < v_max THEN
+                EXECUTE format('SELECT setval(%L, %s, true)', r.seq_name, v_max);
+                v_fixed := v_fixed + 1;
+            END IF;
+        EXCEPTION WHEN OTHERS THEN
+            NULL;
+        END;
+    END LOOP;
+END;
+$$;

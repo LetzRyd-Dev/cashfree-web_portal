@@ -44,7 +44,7 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
     # Gross Earnings
     total_gross = round(uber_rev + ola_rev + rapido_rev, 2)
     total_incentives = round(uber_inc + ola_inc + rapido_inc, 2)
-    total_cash_collected = round(uber_cash + ola_cash + rapido_cash, 2)
+    total_cash_collected = round(abs(uber_cash) + abs(ola_cash) + abs(rapido_cash), 2)
     total_trip_km = round(uber_km + ola_km + rapido_km, 2)
     
     # TDS (1% of Gross Earnings for Individual Drivers)
@@ -60,6 +60,7 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
     accident_charge = float(data.get("accident_charge") or 0.0)
     other_adjustment = float(data.get("other_adjustment") or 0.0)  # Rent-offs reduce deductions
     prev_os = float(data.get("previous_outstanding") or 0.0)
+    paid_amount = float(data.get("paid_amount") or data.get("amount_paid_during_week") or 0.0)
     
     # Dead Mile Calculation
     gps_total_km = float(data.get("gps_total_km") or 0.0)
@@ -75,7 +76,7 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Net Outstanding Balance Calculation
     current_period_os = round(total_deductions + total_cash_collected - total_gross - total_incentives, 2)
-    total_due = round(current_period_os + prev_os, 2)
+    total_due = round((current_period_os + prev_os) - paid_amount, 2)
     
     to_collect = max(0.0, total_due)
     to_pay = max(0.0, -total_due)
