@@ -544,7 +544,8 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
     # Configure proper return_url to redirect back to LetzRyd Driver Portal upon payment completion
     return_url = req.return_url
     if not return_url:
-        default_frontend = os.getenv("FRONTEND_URL", "http://localhost:3002")
+        default_fallback = "https://letzryd-portal-925756819101.asia-south1.run.app" if settings.CASHFREE_ENV.upper() == "PRODUCTION" else "http://localhost:3002"
+        default_frontend = os.getenv("FRONTEND_URL", default_fallback)
         return_url = f"{default_frontend.rstrip('/')}/?order_id={{order_id}}"
     elif "{order_id}" not in return_url:
         return_url = f"{return_url.rstrip('/')}/?order_id={{order_id}}"
@@ -583,10 +584,22 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
                 cf_ord_id = cf_data.get("order_id", order_id)
             else:
                 err_msg = cf_data.get("message") or cf_data.get("error") or str(cf_data)
-                print(f"[WARN] Cashfree Payment Gateway order error ({cf_res.status_code}): {err_msg}. Using fallback session.")
+                print(f"[ERROR] Cashfree Payment Gateway order error ({cf_res.status_code}): {err_msg}")
+                if settings.CASHFREE_ENV.upper() == "PRODUCTION":
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Cashfree Payment Gateway error: {err_msg}"
+                    )
                 session_id = f"session_lr_{uuid.uuid4().hex}"
+        except HTTPException:
+            raise
         except Exception as e:
-            print(f"[WARN] Cashfree connection error: {e}. Using fallback session.")
+            print(f"[ERROR] Cashfree connection error: {e}")
+            if settings.CASHFREE_ENV.upper() == "PRODUCTION":
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Cashfree Gateway communication failure: {str(e)}"
+                )
             session_id = f"session_lr_{uuid.uuid4().hex}"
     else:
         # Development / Test fallback session
