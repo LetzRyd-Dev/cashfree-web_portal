@@ -3,6 +3,9 @@ import hmac
 import hashlib
 import base64
 import json
+import time
+import collections
+import threading
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -19,6 +22,30 @@ import requests
 from app.config import settings
 
 router = APIRouter(prefix="/payments", tags=["Payments & Cashfree"])
+
+# ─────────────────────────────────────────────────────────────────────────────
+# In-memory sliding-window rate limiter (no external dependency)
+# Limits create-order to 10 requests per 60 seconds per IP address.
+# ─────────────────────────────────────────────────────────────────────────────
+_rate_limit_lock = threading.Lock()
+_ip_timestamps: dict = {}  # {ip: deque([ts, ...])}
+_RATE_LIMIT_MAX = 10
+_RATE_LIMIT_WINDOW = 60  # seconds
+
+def _check_rate_limit(ip: str) -> bool:
+    """Returns True if request is allowed, False if rate limit exceeded."""
+    now = time.monotonic()
+    with _rate_limit_lock:
+        if ip not in _ip_timestamps:
+            _ip_timestamps[ip] = collections.deque()
+        dq = _ip_timestamps[ip]
+        # Remove timestamps older than window
+        while dq and now - dq[0] > _RATE_LIMIT_WINDOW:
+            dq.popleft()
+        if len(dq) >= _RATE_LIMIT_MAX:
+            return False
+        dq.append(now)
+        return True
 
 
 def get_active_week_number(db: Session) -> int:
@@ -509,8 +536,16 @@ def initiate_payment(req: InitiatePaymentRequest, db: Session = Depends(get_db))
 # ENDPOINT: Create a real Cashfree PG order → returns payment_session_id
 # ─────────────────────────────────────────────────────────────────────────────
 @router.post("/create-order", response_model=CreateOrderResponse)
-def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
+def create_cashfree_order(req: CreateOrderRequest, request: Request, db: Session = Depends(get_db)):
     """Creates a real Cashfree PG order and returns live session ID with fallback."""
+    # Rate limit: max 10 orders per IP per minute to prevent bot abuse
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate_limit(client_ip):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many payment requests. Please wait a moment and try again."
+        )
+
     try:
         amt = round(float(req.amount), 2)
     except (ValueError, TypeError):
@@ -519,10 +554,16 @@ def create_cashfree_order(req: CreateOrderRequest, db: Session = Depends(get_db)
             detail="Payment amount must be a valid number"
         )
 
-    if amt <= 0:
+    if amt < 1.0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment amount must be greater than zero"
+            detail="Minimum payment amount is ₹1.00"
+        )
+
+    if amt > 50000.0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum single payment is ₹50,000. Please contact support for larger amounts."
         )
 
     order_id = f"ORDER_LR_{int(datetime.now(timezone.utc).timestamp())}_{uuid.uuid4().hex[:8].upper()}"
@@ -939,8 +980,13 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
             payment.payment_mode = payment_mode
             if payment_data.get("payment_amount"):
                 payment.amount = float(payment_data.get("payment_amount"))
-            # Cascade update
+            # Cascade update → _apply_payment_success calls db.commit() internally
             _apply_payment_success(payment, db)
+        elif payment and payment.status == "SUCCESS":
+            # Already processed (e.g. verify-order ran first) — idempotent OK
+            pass
+        elif not payment:
+            print(f"[WARN] Webhook SUCCESS for unknown order {order_id} — no payment record found")
     elif order_id and (event_type in ("PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK") or payment_status in ("FAILED", "USER_DROPPED", "CANCELLED")):
         payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
         if payment and payment.status not in ("SUCCESS", "FAILED"):

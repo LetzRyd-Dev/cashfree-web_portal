@@ -18,18 +18,31 @@ from app.api.referrals import router as referrals_router
 from app.api.audit import router as audit_router
 from app.schemas.app_schemas import CreateOrderRequest, CreateOrderResponse
 
+# In production: disable Swagger UI (/docs), ReDoc (/redoc), and OpenAPI schema (/openapi.json)
+# to prevent API enumeration by malicious actors.
+_is_production = settings.ENVIRONMENT.lower() == "production"
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
-    description="Complete Backend API for LetzRyd Partner App (Drivers, Operators, Hisaabs, Payments, Tickets, Notifications, Referrals, Audit Logs)"
+    description="Complete Backend API for LetzRyd Partner App (Drivers, Operators, Hisaabs, Payments, Tickets, Notifications, Referrals, Audit Logs)",
+    docs_url=None if _is_production else "/docs",
+    redoc_url=None if _is_production else "/redoc",
+    openapi_url=None if _is_production else "/openapi.json",
 )
 
-# CORS Setup - allows Vercel, Cloud Run, localhost, 127.0.0.1
+# CORS Setup
+# Production: restrict to the official LetzRyd portal origin only.
+# Development/Sandbox: allow all origins for easy local/preview testing.
+_PROD_ORIGINS = [
+    "https://letzryd-portal-925756819101.asia-south1.run.app",
+    "https://letzryd.com",
+    "https://www.letzryd.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_PROD_ORIGINS if _is_production else ["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -56,8 +69,8 @@ app.include_router(audit_router, prefix=api_prefix)
 
 # Direct root endpoint alias for Cashfree checkout
 @app.post("/api/create-order", response_model=CreateOrderResponse, tags=["Payments & Cashfree"])
-def root_create_order(req: CreateOrderRequest, db: Session = Depends(get_db)):
-    return create_cashfree_order(req, db)
+def root_create_order(req: CreateOrderRequest, request: Request, db: Session = Depends(get_db)):
+    return create_cashfree_order(req, request, db)
 
 # Direct root webhook aliases for Cashfree
 @app.post("/api/webhook", tags=["Payments & Cashfree"])

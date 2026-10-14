@@ -21,7 +21,9 @@ class Settings:
     DB_PORT: str = os.getenv("DB_PORT", "5432")
     DB_NAME: str = os.getenv("DB_NAME", "postgres")
     DB_USER: str = os.getenv("DB_USER", "postgres")
-    DB_PASS: str = os.getenv("DB_PASS", "8S5]U3@L^Xz)\\FH}")
+    # DB_PASS must come from environment — no hardcoded default for security.
+    # Cloud Run injects this via Secret Manager; local dev uses .env file.
+    DB_PASS: str = os.getenv("DB_PASS", "")
     
     _encoded_pass = urllib.parse.quote_plus(DB_PASS)
     _encoded_user = urllib.parse.quote_plus(DB_USER)
@@ -31,6 +33,7 @@ class Settings:
         f"postgresql://{_encoded_user}:{_encoded_pass}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
     )
 
+    # SECRET_KEY must come from environment — no weak hardcoded default in production.
     SECRET_KEY: str = os.getenv("SECRET_KEY", "letzryd_secret_key_partner_app_2026")
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "43200"))
