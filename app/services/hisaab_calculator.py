@@ -64,12 +64,19 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
     
     # Dead Mile Calculation
     gps_total_km = float(data.get("gps_total_km") or 0.0)
-    free_allowance_pct = float(data.get("gps_free_dead_pct") or 0.20)  # 20% free dead miles allowance
+    raw_val = data.get("gps_free_dead_pct")
+    raw_dead_pct = float(raw_val) if raw_val is not None else 20.0
+    if raw_dead_pct > 1.0:
+        free_allowance_pct = raw_dead_pct / 100.0
+    else:
+        free_allowance_pct = max(0.0, raw_dead_pct)
     penalty_rate = float(data.get("gps_penalty_rate") or 3.0)  # ₹3 per excess dead KM
     
     ideal_allowance = round(total_trip_km * (1.0 + free_allowance_pct), 2)
-    dead_km = max(0.0, round(gps_total_km - ideal_allowance, 2))
-    dead_penalty = round(dead_km * penalty_rate, 2)
+    total_dead_km = max(0.0, round(gps_total_km - total_trip_km, 2))
+    excess_dead_km = max(0.0, round(gps_total_km - ideal_allowance, 2))
+    dead_penalty = round(excess_dead_km * penalty_rate, 2)
+    gps_dead_pct = round((total_dead_km / total_trip_km) * 100.0, 2) if total_trip_km > 0 else 0.0
     
     # Summary Totals
     total_deductions = round(vehicle_rent + maintenance_charge + tds_amount + challan_amount + accident_charge + dead_penalty - other_adjustment, 2)
@@ -93,7 +100,8 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
         "accident_charge": accident_charge,
         "other_adjustment": other_adjustment,
         "gps_total_km": gps_total_km,
-        "gps_dead_km": dead_km,
+        "gps_dead_km": total_dead_km,
+        "gps_dead_pct": gps_dead_pct,
         "gps_dead_penalty": dead_penalty,
         "total_deductions": total_deductions,
         "current_period_os": current_period_os,
@@ -101,5 +109,5 @@ def calculate_hisaab_breakdown(data: Dict[str, Any]) -> Dict[str, Any]:
         "total_due": total_due,
         "to_collect": to_collect,
         "to_pay": to_pay,
-        "status": "to_collect" if to_collect > 0 else "settled_pay"
+        "status": "to_collect" if to_collect > 0 else ("settled" if to_pay == 0 else "settled_pay")
     }

@@ -1315,6 +1315,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     hasDepositDue ? 'deposit' : 'hisaab';
 
   const [selectedTarget, setSelectedTarget] = useState<'auto' | 'hisaab' | 'deposit'>(initialTarget);
+  const isFleetDisabled = isFleetManaged && selectedTarget !== 'deposit';
 
   const activeComponentDue = selectedTarget === 'auto'
     ? totalDueAmount
@@ -1413,9 +1414,16 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                     redirectTarget: '_modal'
                   }).then((r: any) => {
                     if (r) handleVerifyOrder();
-                  }).catch(() => {});
+                  }).catch(() => {
+                    setPaymentState('form');
+                    setPayLoading(false);
+                    setPayError('Checkout was closed or blocked. Please try again.');
+                  });
                 } catch (modalErr) {
                   console.error('Cashfree modal checkout error:', modalErr);
+                  setPaymentState('form');
+                  setPayLoading(false);
+                  setPayError('Could not initialize payment checkout. Please retry.');
                 }
               });
             }
@@ -1466,10 +1474,11 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     }
   };
 
-  const activePayAmount = parseFloat(customAmount) || 0;
+  const cleanAmountStr = String(customAmount).replace(/,/g, '').trim();
+  const activePayAmount = parseFloat(cleanAmountStr) || 0;
   const isAdvanceInvalid = paymentOption === 'advance' && (activePayAmount < 1.0 || activePayAmount <= activeComponentDue || activePayAmount > 50000);
   const isPartInvalid = paymentOption === 'part' && (activePayAmount < 1.0 || activePayAmount >= activeComponentDue || activePayAmount > 50000);
-  const isFullInvalid = paymentOption === 'full' && (activePayAmount < 1.0 || activePayAmount > 50000);
+  const isFullInvalid = paymentOption === 'full' && activeComponentDue > 0 && (activePayAmount < 1.0 || activePayAmount > 50000);
 
   // Trigger Real Cashfree Order Creation and render checkout inside mobile layout
   const handleCashfreePayment = async () => {
@@ -1993,10 +2002,10 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           <div className="grid grid-cols-3 gap-2">
             <button
-              onClick={() => !isFleetManaged && selectPaymentOption('full')}
-              disabled={isFleetManaged}
+              onClick={() => !isFleetDisabled && selectPaymentOption('full')}
+              disabled={isFleetDisabled}
               className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
-                isFleetManaged
+                isFleetDisabled
                   ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
                   : paymentOption === 'full'
                   ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
@@ -2006,10 +2015,10 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               {t('settle.full', 'Full')}
             </button>
             <button
-              onClick={() => !isFleetManaged && selectPaymentOption('part')}
-              disabled={isFleetManaged}
+              onClick={() => !isFleetDisabled && selectPaymentOption('part')}
+              disabled={isFleetDisabled}
               className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
-                isFleetManaged
+                isFleetDisabled
                   ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
                   : paymentOption === 'part'
                   ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
@@ -2019,10 +2028,10 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               {t('settle.partPay', 'Part Pay')}
             </button>
             <button
-              onClick={() => !isFleetManaged && selectPaymentOption('advance')}
-              disabled={isFleetManaged}
+              onClick={() => !isFleetDisabled && selectPaymentOption('advance')}
+              disabled={isFleetDisabled}
               className={`h-11 rounded-xl border text-xs font-bold transition-all flex items-center justify-center ${
-                isFleetManaged
+                isFleetDisabled
                   ? 'bg-bg border-border text-text-dim opacity-50 cursor-not-allowed'
                   : paymentOption === 'advance'
                   ? 'bg-primary/10 border-primary text-primary shadow-xs cursor-pointer'
@@ -2038,13 +2047,19 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
               {t('settle.amountToPay', 'AMOUNT TO PAY (₹)')}
             </label>
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={customAmount}
-              disabled={isFleetManaged || paymentOption === 'full'}
+              disabled={isFleetDisabled || paymentOption === 'full'}
               readOnly={paymentOption === 'full'}
-              onChange={(e) => setCustomAmount(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value.replace(/,/g, '').trim();
+                if (val === '' || /^\d*\.?\d{0,2}$/.test(val)) {
+                  setCustomAmount(val);
+                }
+              }}
               className={`h-10 w-full rounded-lg border px-3 font-mono text-xl font-extrabold text-center outline-none transition-colors shadow-2xs ${
-                isFleetManaged
+                isFleetDisabled
                   ? 'bg-gray-100 border-border text-text-dim cursor-not-allowed opacity-60'
                   : paymentOption === 'full'
                   ? (isFullInvalid ? 'bg-red-50/50 border-red-300 focus:border-red-500 text-red-600' : 'bg-white/80 border-primary/30 cursor-not-allowed text-primary')
@@ -2055,7 +2070,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             />
           </div>
 
-          {paymentOption === 'advance' && isAdvanceInvalid && !isFleetManaged && (
+          {paymentOption === 'advance' && isAdvanceInvalid && !isFleetDisabled && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
               {activePayAmount < 1.0
                 ? '⚠️ Minimum payment amount is ₹1.00.'
@@ -2065,7 +2080,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             </p>
           )}
 
-          {paymentOption === 'part' && isPartInvalid && !isFleetManaged && (
+          {paymentOption === 'part' && isPartInvalid && !isFleetDisabled && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
               {activePayAmount < 1.0
                 ? '⚠️ Minimum payment amount is ₹1.00.'
@@ -2075,7 +2090,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             </p>
           )}
 
-          {paymentOption === 'full' && isFullInvalid && !isFleetManaged && (
+          {paymentOption === 'full' && isFullInvalid && !isFleetDisabled && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
               {activePayAmount < 1.0
                 ? '⚠️ Minimum payment amount is ₹1.00.'
@@ -2083,8 +2098,15 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             </p>
           )}
 
+          {activeComponentDue === 0 && paymentOption === 'full' && !isFleetDisabled && (
+            <div className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 mt-1 flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>{t('settle.allDuesCleared', 'All dues are settled! You have no outstanding payments.')}</span>
+            </div>
+          )}
+
           {/* Payment Method Selection */}
-          {!isFleetManaged && (
+          {!isFleetDisabled && (
             <div className="space-y-1.5 pt-1">
               <label className="font-sans text-[11px] font-bold text-text-muted uppercase tracking-wider block">
                 {t('settle.paymentMethod', 'PAYMENT METHOD')}
@@ -2169,7 +2191,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
             <p className="text-xs text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-2">{payError}</p>
           )}
 
-          {isFleetManaged ? (
+          {isFleetDisabled ? (
             <div className="mt-3 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-center space-y-1.5 font-sans">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700">
                 <ShieldCheck className="w-4 h-4 text-amber-600" />
@@ -2596,6 +2618,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
       emergencyName,
       emergencyRelation,
       emergencyPhone,
+      bloodGroup,
       address
     });
     setIsEditing(false);
@@ -2933,16 +2956,19 @@ interface OperatorScreenProps {
 export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, onPayFleetDeposit, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const totalVehicles = fleet.vehicles.length;
-  const totalToPay = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
-  const totalToCollect = fleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
+  const vehiclesList = fleet.vehicles || [];
+  const totalVehicles = vehiclesList.length;
+  const totalToPay = vehiclesList.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
+  const totalToCollect = vehiclesList.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
 
-  const vehicleFleetList = fleet.vehicles.filter(
+  const cleanQuery = searchQuery.replace(/\s+/g, '').toLowerCase();
+  const vehicleFleetList = vehiclesList.filter(
     (v) =>
-      v.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.make.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      v.driverName.toLowerCase().includes(searchQuery.toLowerCase())
+      (v.number || '').replace(/\s+/g, '').toLowerCase().includes(cleanQuery) ||
+      (v.number || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.model || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.make || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.driverName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatCurrency = (val: number) => {
@@ -3180,7 +3206,7 @@ export const OperatorVehicleScreen: React.FC<OperatorVehicleScreenProps> = ({
       </div>
 
       <HisaabScreen
-        weeks={vehicle.hisaabWeeks}
+        weeks={vehicle?.hisaabWeeks || []}
         weekIndex={weekIndex}
         onPrevWeek={onPrevWeek}
         onNextWeek={onNextWeek}

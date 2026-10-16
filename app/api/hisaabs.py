@@ -150,7 +150,7 @@ def get_operator_hisaabs(operator_id: Union[int, str], db: Session = Depends(get
     op_code = op.operator_code if op else str(target_op_id)
     data = []
     for r in rows:
-        w_num = r['week_number']
+        w_num = r['week_number'] or 0
         h_no = f"HIS-OP-2026-{w_num:03d}-{op_code}"
         to_pay_val = float(r['to_pay'] or 0.0)
         to_collect_val = float(r['to_collect'] or 0.0)
@@ -249,6 +249,8 @@ def _map_hisaab(h: AppHisaabs) -> HisaabBreakdownResponse:
     return HisaabBreakdownResponse(
         app_hisaab_id=h.app_hisaab_id,
         app_driver_id=h.app_driver_id,
+        app_operator_id=h.app_operator_id or 0,
+        is_fleet_managed=bool(h.app_operator_id and h.app_operator_id > 0),
         hisaab_number=h.hisaab_number or "",
         week_number=h.week_number or 0,
         period_start=h.period_start,

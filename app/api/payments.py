@@ -240,9 +240,8 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
                     rem_cash = round(max(0.0, rem_cash - oh_pay), 2)
 
-            # Tier 3: Pay pending security deposit (if not already handled in targeted deposit flow)
-            # Only cascade to deposit if target_comp is 'auto' (or other non-hisaab flow)
-            if rem_cash > 0 and target_comp not in ("deposit", "hisaab"):
+            # Tier 3: Pay pending security deposit before advance
+            if rem_cash > 0 and target_comp != "deposit":
                 dep_pending = round(float(driver.deposit_pending or 0), 2)
                 total_req = round(float(driver.deposit_total_req or 5000.0), 2)
                 dep_credit = round(min(dep_pending, rem_cash), 2)
@@ -272,6 +271,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             # Tier 5: Any remaining true surplus becomes driver advance credit
             if rem_cash > 0:
+                driver.cumulative_owed = 0.0
                 driver.cw_to_collect = 0.0
                 driver.cw_os = round(float(driver.cw_os or 0) - rem_cash, 2)
                 driver.cw_to_pay = round(float(driver.cw_to_pay or 0) + rem_cash, 2)
@@ -322,7 +322,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             fleet_drivers_with_debt = db.query(AppDrivers).filter(
                 op_filter,
-                AppDrivers.cw_to_collect > 0
+                (AppDrivers.cw_to_collect > 0) | (AppDrivers.lw_os > 0) | (AppDrivers.cumulative_owed > 0)
             ).order_by(AppDrivers.app_driver_id).all()
 
             for d in fleet_drivers_with_debt:
@@ -332,6 +332,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 d_paid = round(min(d_due, rem_for_debt), 2)
                 d.cw_to_collect = round(max(0.0, d_due - d_paid), 2)
                 d.cw_os = round(max(0.0, float(d.cw_os or 0) - d_paid), 2)
+                d.cumulative_owed = round(max(0.0, float(d.cumulative_owed or 0) - d_paid), 2)
                 if d.cw_to_collect <= 0:
                     d.lw_status = "paid"
                 else:
@@ -362,6 +363,14 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                         elif dh.paid_amount > 0:
                             dh.payment_status = "partial"
                         rem_h_paid = round(max(0.0, rem_h_paid - h_pay), 2)
+
+                if rem_for_debt > 0 and float(d.lw_os or 0) > 0:
+                    lw_pay = round(min(float(d.lw_os), rem_for_debt), 2)
+                    d.lw_os = round(max(0.0, float(d.lw_os) - lw_pay), 2)
+                    d.cumulative_owed = round(max(0.0, float(d.cumulative_owed or 0) - lw_pay), 2)
+                    if d.lw_os <= 0:
+                        d.lw_status = "paid"
+                    rem_for_debt = round(max(0.0, rem_for_debt - lw_pay), 2)
 
                 rem_for_debt = round(max(0.0, rem_for_debt - d_paid), 2)
 
@@ -623,7 +632,13 @@ def create_cashfree_order(req: CreateOrderRequest, request: Request, db: Session
         default_frontend = os.getenv("FRONTEND_URL", default_fallback)
         return_url = f"{default_frontend.rstrip('/')}/?order_id={{order_id}}"
     elif "{order_id}" not in return_url:
-        return_url = f"{return_url.rstrip('/')}/?order_id={{order_id}}"
+        if "?" in return_url:
+            sep = "" if (return_url.endswith("?") or return_url.endswith("&")) else "&"
+        else:
+            sep = "?"
+        return_url = f"{return_url}{sep}order_id={{order_id}}"
+
+    cf_phone = clean_phone if (clean_phone and len(clean_phone) == 10 and clean_phone.isdigit()) else "9999999999"
 
     cf_payload = {
         "order_id": order_id,
@@ -631,7 +646,7 @@ def create_cashfree_order(req: CreateOrderRequest, request: Request, db: Session
         "order_currency": "INR",
         "customer_details": {
             "customer_id": f"CUST_{payer_id}_{uuid.uuid4().hex[:6]}",
-            "customer_phone": clean_phone or "9999999999",
+            "customer_phone": cf_phone,
             "customer_name": req.driverName or "LetzRyd Partner"
         },
         "order_meta": {
@@ -976,7 +991,7 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     order_data = data_dict.get("order") or payload.get("order") or {}
     payment_data = data_dict.get("payment") or payload.get("payment") or {}
 
-    order_id = order_data.get("order_id")
+    order_id = order_data.get("order_id") or data_dict.get("order_id") or payload.get("order_id")
     event_type = payload.get("type", "")
     payment_status = payment_data.get("payment_status", "")
     terminal_events = {

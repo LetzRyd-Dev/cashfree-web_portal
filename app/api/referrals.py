@@ -6,7 +6,7 @@ from typing import Optional
 from app.database import get_db
 from app.models.app_models import AppReferralLeads, AppDrivers, AppOperators
 from app.schemas.app_schemas import SubmitReferralRequest, ReferralResponse
-from app.services.helpers import resolve_driver, resolve_operator
+from app.services.helpers import resolve_driver, resolve_operator, clean_phone_number
 
 router = APIRouter(prefix="/referrals", tags=["Referrals"])
 
@@ -47,7 +47,7 @@ def list_referrals(
             "referral_code_used": r.referral_code_used,
             "lead_name": r.lead_name,
             "lead_phone": r.lead_phone,
-            "lead_city": r.lead_city,
+            "lead_city": getattr(r, "lead_city", None),
             "status": r.status or "submitted",
             "reward_amount": float(r.reward_amount or 0.0),
             "reward_credited": r.reward_credited or False,
@@ -83,12 +83,20 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         else:
             reward_amt = 2000.00
 
+    if not req.lead_name or not req.lead_name.strip():
+        raise HTTPException(status_code=400, detail="Lead name cannot be empty")
     clean_lead_phone = clean_phone_number(req.lead_phone)
-    if not clean_lead_phone:
-        clean_lead_phone = req.lead_phone.strip()[:15]
+    if not clean_lead_phone or len(clean_lead_phone) < 10:
+        raise HTTPException(status_code=400, detail="A valid 10-digit mobile number is required for referral lead")
 
     # Idempotency check: if user already referred this phone, return existing record
-    chk_filter = (AppReferralLeads.referred_by_driver_id == ref_driver_id) if ref_driver_id else (AppReferralLeads.referred_by_op_id == ref_op_id)
+    if ref_driver_id is not None:
+        chk_filter = (AppReferralLeads.referred_by_driver_id == ref_driver_id)
+    elif ref_op_id is not None:
+        chk_filter = (AppReferralLeads.referred_by_op_id == ref_op_id)
+    else:
+        raise HTTPException(status_code=400, detail="Invalid referrer: driver or operator not found")
+
     existing_lead = db.query(AppReferralLeads).filter(
         AppReferralLeads.lead_phone == clean_lead_phone,
         chk_filter
@@ -99,8 +107,8 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
             lead_name=existing_lead.lead_name,
             lead_phone=existing_lead.lead_phone,
             status=existing_lead.status,
-            reward_amount=float(existing_lead.reward_amount),
-            reward_credited=existing_lead.reward_credited
+            reward_amount=float(existing_lead.reward_amount or 0.0),
+            reward_credited=existing_lead.reward_credited or False
         )
 
     now = datetime.now(timezone.utc)
@@ -119,15 +127,20 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         created_at=now,
         updated_at=now
     )
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
+    try:
+        db.add(lead)
+        db.commit()
+        db.refresh(lead)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to record referral: {e}")
+
     return ReferralResponse(
         app_referral_id=lead.app_referral_id,
         lead_name=lead.lead_name,
         lead_phone=lead.lead_phone,
         status=lead.status,
-        reward_amount=float(lead.reward_amount),
-        reward_credited=lead.reward_credited
+        reward_amount=float(lead.reward_amount or 0.0),
+        reward_credited=lead.reward_credited or False
     )
 

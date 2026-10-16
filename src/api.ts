@@ -256,7 +256,8 @@ export async function verifyOTPBackend(phone: string, otp: string, userType: str
 }
 
 export async function getDriverByPhone(phone: string): Promise<any> {
-  return apiCall(`/api/drivers/by-phone/${phone}`);
+  const clean = (phone || '').replace(/\D/g, '').slice(-10);
+  return apiCall(`/api/drivers/by-phone/${clean || phone}`);
 }
 
 export async function getOperatorFleet(operatorId: number): Promise<any> {
@@ -264,7 +265,8 @@ export async function getOperatorFleet(operatorId: number): Promise<any> {
 }
 
 export async function getOperatorByPhone(phone: string): Promise<any> {
-  return apiCall(`/api/operators/by-phone/${phone}`);
+  const clean = (phone || '').replace(/\D/g, '').slice(-10);
+  return apiCall(`/api/operators/by-phone/${clean || phone}`);
 }
 
 export async function getDriverHisaabs(driverId: number): Promise<any[]> {

@@ -250,6 +250,7 @@ export default function App() {
   const [operatorVehicleWeekIndex, setOperatorVehicleWeekIndex] = useState(0);
   const [settleTargetComponent, setSettleTargetComponent] = useState<'auto' | 'hisaab' | 'deposit'>('auto');
   const [settleInitialAmount, setSettleInitialAmount] = useState<number | undefined>(undefined);
+  const processedOrdersRef = useRef<Set<string>>(new Set());
 
   // Data Collections
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -261,7 +262,7 @@ export default function App() {
   const [driverRentalPlan, setDriverRentalPlan] = useState<RentalPlan>(() => savedSession?.driverRentalPlan || RENTAL_PLAN_DATA);
 
   // Active Vehicle Selection for Operator View
-  const [selectedVehicleNumber, setSelectedVehicleNumber] = useState<string | null>(() => operatorFleet.vehicles[0]?.number || null);
+  const [selectedVehicleNumber, setSelectedVehicleNumber] = useState<string | null>(() => operatorFleet?.vehicles?.[0]?.number || null);
 
   // Active Emergency SOS Alarm
   const [sosActivated, setSosActivated] = useState(false);
@@ -639,7 +640,7 @@ export default function App() {
               setOperatorFleet(prev => ({
                 ...prev,
                 vehicles: mapped.map(mv => {
-                  const existing = prev.vehicles.find(ev => ev.number.replace(/\s+/g, '') === mv.number.replace(/\s+/g, ''));
+                  const existing = (prev.vehicles || []).find(ev => ev.number.replace(/\s+/g, '') === mv.number.replace(/\s+/g, ''));
                   return existing?.hisaabWeeks?.length ? { ...mv, hisaabWeeks: existing.hisaabWeeks } : mv;
                 }),
                 depositTotalRequired: fleetData.deposit_total_req ?? prev.depositTotalRequired,
@@ -690,6 +691,8 @@ export default function App() {
     setCurrentScreen(screen);
     if (screen !== 'settle') {
       setSettleInitialAmount(undefined);
+    } else {
+      setDriverWeekIndex(0);
     }
   };
 
@@ -819,7 +822,7 @@ export default function App() {
     navigateTo('operatorVehicle');
 
     const cleanNum = number.replace(/\s+/g, '');
-    const targetVeh = operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === cleanNum);
+    const targetVeh = (operatorFleet.vehicles || []).find(v => v.number.replace(/\s+/g, '') === cleanNum);
     if (targetVeh) {
       try {
         let hisaabs: any[] = [];
@@ -833,7 +836,7 @@ export default function App() {
           const mapped = hisaabs.map(mapHisaabToWeek);
           setOperatorFleet(prev => ({
             ...prev,
-            vehicles: prev.vehicles.map(v => 
+            vehicles: (prev.vehicles || []).map(v => 
               v.number.replace(/\s+/g, '') === cleanNum
                 ? { ...v, hisaabWeeks: mapped }
                 : v
@@ -992,7 +995,7 @@ export default function App() {
           }
         }
 
-        const updatedVehicles = operatorFleet.vehicles.map(v => {
+        const updatedVehicles = (operatorFleet.vehicles || []).map(v => {
           if (remainingCash <= 0 || v.currentWeekOs <= 0 || targetComp === 'deposit') return v;
           const payToV = Math.min(v.currentWeekOs, remainingCash);
           remainingCash -= payToV;
@@ -1035,8 +1038,9 @@ export default function App() {
 
     // 2. Also query backend API to sync with DB if reachable
     try {
+      const cleanUserPhone = (driverUser.phone || '').replace(/\D/g, '').slice(-10);
       if (loginType === 'driver') {
-        const driverProfile = await getDriverByPhone(driverUser.phone).catch(() => null);
+        const driverProfile = await getDriverByPhone(cleanUserPhone).catch(() => null);
         if (driverProfile) {
           const hisaabs = await getDriverHisaabs(driverProfile.app_driver_id).catch(() => null);
           setDriverUser(mapDriverToUser(driverProfile));
@@ -1045,14 +1049,26 @@ export default function App() {
           if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
         }
       } else if (loginType === 'operator') {
-        const opProfile = await getOperatorByPhone(driverUser.phone).catch(() => null);
+        const opProfile = await getOperatorByPhone(cleanUserPhone).catch(() => null);
         if (opProfile) {
-          const [fleet, hisaabs] = await Promise.all([
+          const [fleetData, hisaabs] = await Promise.all([
             getOperatorFleet(opProfile.app_operator_id).catch(() => null),
             getOperatorHisaabs(opProfile.app_operator_id).catch(() => null),
           ]);
           setDriverUser(mapOperatorToUser(opProfile));
-          if (fleet) setOperatorFleet(fleet);
+          if (fleetData?.vehicles) {
+            const mapped = mapFleetDataToVehicles(fleetData);
+            setOperatorFleet(prev => ({
+              ...prev,
+              vehicles: mapped.map(mv => {
+                const existing = (prev.vehicles || []).find(ev => ev.number.replace(/\s+/g, '') === mv.number.replace(/\s+/g, ''));
+                return existing?.hisaabWeeks?.length ? { ...mv, hisaabWeeks: existing.hisaabWeeks } : mv;
+              }),
+              depositTotalRequired: fleetData.deposit_total_req ?? prev.depositTotalRequired,
+              depositPaidSoFar: fleetData.deposit_paid ?? prev.depositPaidSoFar,
+              depositPending: fleetData.deposit_pending ?? prev.depositPending,
+            }));
+          }
           if (hisaabs && hisaabs.length > 0) setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
         }
       }
@@ -1069,6 +1085,8 @@ export default function App() {
     const searchParams = new URLSearchParams(window.location.search);
     const orderId = searchParams.get('order_id');
     if (orderId) {
+      if (processedOrdersRef.current.has(orderId)) return;
+      processedOrdersRef.current.add(orderId);
       setIsLoggedIn(true);
       setCurrentScreen('settle');
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -1120,13 +1138,14 @@ export default function App() {
     }
   }, []);
 
-  const handleUpdateContact = async (details: { emergencyContact: string; emergencyName?: string; emergencyRelation?: string; emergencyPhone?: string; address: string }) => {
+  const handleUpdateContact = async (details: { emergencyContact: string; emergencyName?: string; emergencyRelation?: string; emergencyPhone?: string; bloodGroup?: string; address: string }) => {
     setDriverUser(prev => ({
       ...prev,
       emergencyContact: details.emergencyContact,
       emergencyName: details.emergencyName || prev.emergencyName,
       emergencyRelation: details.emergencyRelation || prev.emergencyRelation,
       emergencyPhone: details.emergencyPhone || prev.emergencyPhone,
+      bloodGroup: details.bloodGroup || prev.bloodGroup,
       address: details.address
     }));
 
@@ -1145,6 +1164,7 @@ export default function App() {
           emergency_name: details.emergencyName,
           emergency_relation: details.emergencyRelation,
           emergency_phone: details.emergencyPhone,
+          blood_group: details.bloodGroup,
           address: details.address,
         });
       }
@@ -1161,7 +1181,7 @@ export default function App() {
   };
 
   const selectedVehicleObj = selectedVehicleNumber
-    ? operatorFleet.vehicles.find(v => v.number.replace(/\s+/g, '') === selectedVehicleNumber.replace(/\s+/g, '')) || operatorFleet.vehicles.find(v => v.number === selectedVehicleNumber) || null
+    ? (operatorFleet.vehicles || []).find(v => v.number.replace(/\s+/g, '') === selectedVehicleNumber.replace(/\s+/g, '')) || (operatorFleet.vehicles || []).find(v => v.number === selectedVehicleNumber) || null
     : null;
 
   const initials = driverUser.initials || (loginType === 'operator' ? 'OP' : 'DR');
@@ -1169,8 +1189,8 @@ export default function App() {
   const isFleetDriver = Boolean(driverUser.isFleetDriver || driverUser.operatorName);
   const isFleetManaged = isFleetDriver && loginType === 'driver';
   const hasHisaabData = hisaabWeeks.length > 0;
-  const activeWeek = hasHisaabData ? hisaabWeeks[0] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[0] || null) : null);
-  const prevWeek = hasHisaabData && hisaabWeeks.length > 1 ? hisaabWeeks[1] : (loginType === 'operator' ? (operatorFleet.vehicles[0]?.hisaabWeeks[1] || null) : null);
+  const activeWeek = hasHisaabData ? hisaabWeeks[0] : (loginType === 'operator' ? (operatorFleet.vehicles?.[0]?.hisaabWeeks?.[0] || null) : null);
+  const prevWeek = hasHisaabData && hisaabWeeks.length > 1 ? hisaabWeeks[1] : (loginType === 'operator' ? (operatorFleet.vehicles?.[0]?.hisaabWeeks?.[1] || null) : null);
 
   const formatTimestamp = (tsStr?: string) => {
     if (!tsStr) return '28-Jul-2026, 02:15 PM';
@@ -1606,7 +1626,7 @@ export default function App() {
                                     <span>{t('home.incentiveTracker', 'Weekly Incentive Goal')}</span>
                                   </span>
                                   <span className="font-bold text-primary text-[11px] bg-primary/10 px-2 py-0.5 rounded-md shrink-0 whitespace-nowrap">
-                                    ₹{driverUser.weeklyIncentiveReward.toLocaleString('en-IN')} {t('home.bonus', 'Bonus')}
+                                    ₹{(driverUser.weeklyIncentiveReward ?? 1500).toLocaleString('en-IN')} {t('home.bonus', 'Bonus')}
                                   </span>
                                 </div>
 
@@ -1625,7 +1645,7 @@ export default function App() {
                                     {remaining > 0 ? (
                                       <>
                                         <strong className="text-text font-bold whitespace-nowrap">{remaining} {t('home.tripsRemaining', 'trips remaining')}</strong>{' '}
-                                        <span className="text-text-muted">{t('home.toUnlockBonus', `to unlock ₹${driverUser.weeklyIncentiveReward.toLocaleString('en-IN')} bonus`)}</span>
+                                        <span className="text-text-muted">{t('home.toUnlockBonus', `to unlock ₹${(driverUser.weeklyIncentiveReward ?? 1500).toLocaleString('en-IN')} bonus`)}</span>
                                       </>
                                     ) : (
                                       <span className="text-green font-bold">🎉 {t('home.goalAchieved', 'Incentive Goal Achieved!')}</span>
@@ -1691,7 +1711,7 @@ export default function App() {
                               ? activeWeek.grossEarnings
                               : (activeWeek ? ((activeWeek.platforms?.uber?.revenue || 0) + (activeWeek.platforms?.ola?.revenue || 0) + (activeWeek.platforms?.rapido?.revenue || 0) + (activeWeek.platforms?.uber?.toll || 0) + (activeWeek.platforms?.ola?.toll || 0) + (activeWeek.platforms?.rapido?.toll || 0)) : (operatorFleet?.cw_fleet_gross_earnings || 0));
                             const totalTrips = activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : (operatorFleet?.cw_fleet_trips || 0);
-                            const totalVehicles = operatorFleet.vehicles.length || operatorFleet.totalVehicles || 0;
+                            const totalVehicles = (operatorFleet.vehicles || []).length || operatorFleet.totalVehicles || 0;
 
                             return (
                               <div className="flex justify-between items-center gap-2 pt-0.5">
@@ -1763,7 +1783,7 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KM')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{operatorFleet.vehicles.length || 22}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">{(operatorFleet.vehicles || []).length || 22}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('operator.cars', 'Total Cars')}</p>
                             </div>
                             <div className="px-1">
@@ -1781,7 +1801,12 @@ export default function App() {
                         (() => {
                           const targetWeek = activeWeek || prevWeek;
                           const targetWeekIdx = 0;
-                          if (isFleetDriver && !targetWeek) {
+                          const depTotal = driverUser.depositTotalRequired || driverUser.depositAmount || 5000;
+                          const depPaid = driverUser.depositPaidSoFar || 0;
+                          const depPending = driverUser.depositPending !== undefined ? driverUser.depositPending : Math.max(0, depTotal - depPaid);
+                          const isFullPaid = depPending <= 0;
+
+                          if (isFleetDriver && !targetWeek && isFullPaid) {
                             return (
                               <div className="bg-surface border border-border/80 rounded-2xl p-3.5 shadow-xs text-left space-y-2.5 font-sans">
                                 <div className="flex justify-between items-center text-xs border-b border-border/60 pb-2">
@@ -2054,8 +2079,8 @@ export default function App() {
                               ? activeWeek.cashCollected
                               : (activeWeek ? (Math.abs(activeWeek.platforms?.uber?.cashCollection || 0) + Math.abs(activeWeek.platforms?.ola?.cashCollection || 0) + Math.abs(activeWeek.platforms?.rapido?.cashCollection || 0)) : 0);
 
-                            const fleetSumToCollect = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
-                            const fleetSumToPay = operatorFleet.vehicles.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
+                            const fleetSumToCollect = (operatorFleet.vehicles || []).reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
+                            const fleetSumToPay = (operatorFleet.vehicles || []).reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
                             const totalToCollect = (activeWeek && activeWeek.toCollect !== undefined && activeWeek.toCollect !== null)
                               ? activeWeek.toCollect
                               : fleetSumToCollect;
@@ -2229,7 +2254,7 @@ export default function App() {
                       onPrevWeek={() => setDriverWeekIndex(prev => Math.min(prev + 1, hisaabWeeks.length - 1))}
                       onNextWeek={() => setDriverWeekIndex(prev => Math.max(prev - 1, 0))}
                       loginType={loginType}
-                      fleetVehicles={operatorFleet.vehicles}
+                      fleetVehicles={operatorFleet.vehicles || []}
                       onPayClick={() => navigateTo('settle')}
                       t={t}
                       isFleetManaged={isFleetManaged}
@@ -2254,7 +2279,7 @@ export default function App() {
                     const pendingDep = loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0);
                     const challanAmt = loginType === 'operator' ? 0 : (currentH?.challan || 0);
 
-                    const fleetNetOs = operatorFleet.vehicles.reduce((sum, v) => sum + v.currentWeekOs, 0);
+                    const fleetNetOs = (operatorFleet.vehicles || []).reduce((sum, v) => sum + v.currentWeekOs, 0);
                     const opNetDue = currentH
                       ? Math.max(0, (currentH.toCollect ?? 0) - (currentH.toPay ?? 0))
                       : Math.max(0, fleetNetOs);
@@ -2320,7 +2345,7 @@ export default function App() {
                     <OperatorVehicleScreen
                       vehicle={selectedVehicleObj}
                       weekIndex={operatorVehicleWeekIndex}
-                      onPrevWeek={() => setOperatorVehicleWeekIndex(prev => Math.min(prev + 1, selectedVehicleObj.hisaabWeeks.length - 1))}
+                      onPrevWeek={() => setOperatorVehicleWeekIndex(prev => Math.min(prev + 1, Math.max(0, (selectedVehicleObj?.hisaabWeeks?.length || 1) - 1)))}
                       onNextWeek={() => setOperatorVehicleWeekIndex(prev => Math.max(prev - 1, 0))}
                       onBack={() => navigateTo('operator')}
                       t={t}

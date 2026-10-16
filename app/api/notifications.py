@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, or_
 from typing import List, Optional
 
 from app.database import get_db
@@ -52,15 +53,19 @@ def get_notifications(
 
         if target_type:
             query = query.filter(
-                (AppNotifications.target_id.in_(target_ids) & (AppNotifications.target_type == target_type))
-                | ((AppNotifications.target_type == target_type) & (AppNotifications.target_id.is_(None)))
-                | (AppNotifications.target_type == 'all')
+                or_(
+                    and_(AppNotifications.target_id.in_(target_ids), AppNotifications.target_type == target_type),
+                    and_(AppNotifications.target_type == target_type, AppNotifications.target_id.is_(None)),
+                    AppNotifications.target_type == 'all'
+                )
             )
         else:
             query = query.filter(
-                AppNotifications.target_id.in_(target_ids)
-                | (AppNotifications.target_id.is_(None))
-                | (AppNotifications.target_type == 'all')
+                or_(
+                    AppNotifications.target_id.in_(target_ids),
+                    AppNotifications.target_id.is_(None),
+                    AppNotifications.target_type == 'all'
+                )
             )
     elif target_type is not None:
         query = query.filter(

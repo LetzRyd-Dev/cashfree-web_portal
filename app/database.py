@@ -8,10 +8,10 @@ from app.config import settings
 # SQLAlchemy Engine & Session
 engine = create_engine(
     settings.DATABASE_URL,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=5,
+    max_overflow=10,
     pool_pre_ping=True,
-    pool_recycle=1800,
+    pool_recycle=300,
     pool_timeout=30,
     connect_args={
         "connect_timeout": 10,

@@ -1734,6 +1734,7 @@ export const TRANSLATIONS_EN: Record<string, string> = {
   "payment.status": "Status:",
   "payment.successVerified": "SUCCESS (VERIFIED)",
   "payment.backToSettle": "Back to Settle Page",
+  "sos.incidentLogged": "Incident report logged with central dispatcher and priority ticket created!",
 };
 
 export const TRANSLATIONS_HI: Record<string, string> = {
@@ -2206,6 +2207,7 @@ export const TRANSLATIONS_HI: Record<string, string> = {
   "payment.status": "स्थिति:",
   "payment.successVerified": "सफल (सत्यापित)",
   "payment.backToSettle": "निपटान पृष्ठ पर वापस जाएं",
+  "sos.incidentLogged": "घटना रिपोर्ट केंद्रीय प्रेषक के पास दर्ज की गई और प्राथमिकता टिकट बनाया गया!",
 };
 
 export const TRANSLATIONS_MR: Record<string, string> = {
@@ -2678,6 +2680,7 @@ export const TRANSLATIONS_MR: Record<string, string> = {
   "payment.status": "स्थिती:",
   "payment.successVerified": "यशस्वी (सत्यापित)",
   "payment.backToSettle": "सेटल पृष्ठावर परत जा",
+  "sos.incidentLogged": "घटनेचा अहवाल केंद्रीय नियंत्रकाकडे नोंदवला गेला आणि प्राधान्य तिकीट तयार केले गेले!",
 };
 
 export const TRANSLATIONS_TE: Record<string, string> = {
@@ -3150,6 +3153,7 @@ export const TRANSLATIONS_TE: Record<string, string> = {
   "payment.status": "స్థితి:",
   "payment.successVerified": "విజయవంతం (ధృవీకరించబడింది)",
   "payment.backToSettle": "సెటిల్ పేజీకి తిరిగి వెళ్లండి",
+  "sos.incidentLogged": "కేంద్ర డిస్పాచర్‌కు సంఘటన నివేదిక సమర్పించబడింది మరియు ప్రాధాన్యత టిక్కెట్ సృష్టించబడింది!",
 };
 
 export const TRANSLATIONS_KN: Record<string, string> = {
@@ -3622,4 +3626,5 @@ export const TRANSLATIONS_KN: Record<string, string> = {
   "payment.status": "ಸ್ಥಿತಿ:",
   "payment.successVerified": "ಯಶಸ್ವಿ (ದೃಢೀಕರಿಸಲಾಗಿದೆ)",
   "payment.backToSettle": "ಸೆಟಲ್ ಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
+  "sos.incidentLogged": "ಘಟನೆ ವರದಿಯನ್ನು ಕೇಂದ್ರ ರವಾನೆದಾರರಿಗೆ ದಾಖಲಿಸಲಾಗಿದೆ ಮತ್ತು ಆದ್ಯತೆಯ ಟಿಕೆಟ್ ರಚಿಸಲಾಗಿದೆ!",
 };

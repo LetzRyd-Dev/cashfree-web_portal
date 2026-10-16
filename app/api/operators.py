@@ -42,7 +42,7 @@ def update_operator_profile(
         op.contact_person_name = req.contact_person_name.strip()
     if req.address is not None:
         op.address = req.address.strip()
-    if req.email is not None:
+    if hasattr(op, "email") and req.email is not None:
         op.email = req.email.strip()
     if req.upi_id is not None:
         op.upi_id = req.upi_id.strip()
@@ -57,8 +57,11 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
     if not op:
         raise HTTPException(status_code=404, detail="Operator not found")
     
+    op_ids = [op.app_operator_id]
+    if op.operator_id and op.operator_id != op.app_operator_id:
+        op_ids.append(op.operator_id)
     drivers = db.query(AppDrivers).filter(
-        AppDrivers.operator_id == op.app_operator_id
+        AppDrivers.operator_id.in_(op_ids)
     ).order_by(AppDrivers.app_driver_id).all()
 
     vehicles = []
@@ -152,7 +155,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
                 if len(hisaabs) > existing_v.hisaab_count:
                     vehicles[idx] = veh_obj
     op_hisaabs = db.query(AppHisaabs).filter(
-        AppHisaabs.app_operator_id == op.app_operator_id
+        AppHisaabs.app_operator_id.in_(op_ids)
     ).order_by(AppHisaabs.week_number.desc()).all()
 
     latest_week = week_number if week_number is not None else max([h.week_number for h in op_hisaabs], default=40)
@@ -207,8 +210,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
             v.status = "active"
             v.hisaab_count = max(v.hisaab_count, len(items))
         else:
-            v.current_week_os = 0.0
-            v.status = "idle"
+            v.status = "idle" if v.current_week_os == 0.0 else "active"
 
     # Add any remaining vehicles that ran in the current active week
     for clean_key, items in week_hisaabs_by_v.items():
@@ -262,9 +264,9 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
         cw_to_collect = sum(v.current_week_os for v in vehicles if v.current_week_os > 0)
         cw_gross = sum(float(d.cw_gross_earnings or 0.0) for d in drivers) if drivers else float(op.cw_fleet_gross_earnings or 0.0)
         cw_trips = sum(int(d.cw_trips or 0) for d in drivers) if drivers else int(op.cw_fleet_trips or 0)
-    total_veh = len(vehicles) if vehicles else max(len(drivers), (op.total_vehicles or 0))
-    active_veh = len([v for v in vehicles if v.status == "active"]) if vehicles else max(len([d for d in drivers if d.is_active]), (op.active_vehicles or 0))
-    idle_veh = len([v for v in vehicles if v.status == "idle"]) if vehicles else max(0, total_veh - active_veh)
+    total_veh = max(len(vehicles), len(drivers), (op.total_vehicles or 0))
+    active_veh = len([v for v in vehicles if v.status == "active"])
+    idle_veh = max(0, total_veh - active_veh)
 
     # Address resolution: if missing, check if operator exists in app_drivers
     address = op.address
@@ -315,7 +317,12 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
 @router.get("/{operator_id}/fleet")
 def get_operator_fleet(operator_id: Union[int, str], db: Session = Depends(get_db)):
     op = resolve_operator(str(operator_id), db)
-    target_op_id = op.app_operator_id if op else (int(operator_id) if str(operator_id).isdigit() else operator_id)
+    if op:
+        target_op_id = op.app_operator_id
+    elif str(operator_id).isdigit():
+        target_op_id = int(operator_id)
+    else:
+        return {"operator_id": operator_id, "fleet_count": 0, "hisaabs": []}
     hisaabs = db.query(AppHisaabs).filter(AppHisaabs.app_operator_id == target_op_id).all()
     mapped = [
         {
