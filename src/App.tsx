@@ -247,6 +247,7 @@ export default function App() {
   const [driverWeekIndex, setDriverWeekIndex] = useState(0);
   const [operatorVehicleWeekIndex, setOperatorVehicleWeekIndex] = useState(0);
   const [settleTargetComponent, setSettleTargetComponent] = useState<'auto' | 'hisaab' | 'deposit'>('auto');
+  const [settleInitialAmount, setSettleInitialAmount] = useState<number | undefined>(undefined);
 
   // Data Collections
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -655,6 +656,7 @@ export default function App() {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     } catch (e) {}
     setIsLoggedIn(false);
+    setLoginType('driver');
     setOtpSent(false);
     setPhoneInput('');
     setOtpInput('');
@@ -662,16 +664,30 @@ export default function App() {
     setCurrentScreen('home');
     setSosActivated(false);
     setDriverWeekIndex(0);
+    setOperatorVehicleWeekIndex(0);
     setSelectedVehicleNumber(null);
+    setSettleTargetComponent('auto');
+    setSettleInitialAmount(undefined);
+    setDriverUser(USER_DATA);
+    setDriverVehicle(VEHICLE_DATA);
+    setDriverRentalPlan(RENTAL_PLAN_DATA);
+    setOperatorFleet(OPERATOR_FLEET_DATA);
+    setHisaabWeeks(HISAAB_WEEKS_DATA);
+    setTickets([]);
+    setNotifications(INITIAL_NOTIFICATIONS);
+    setIsNotifOpen(false);
+    setIsNewTicketOpen(false);
+    setIsSosModalOpen(false);
+    setIsLegalModalOpen(false);
+    setSelectedTicket(null);
     triggerToast('Signed out successfully', 'info');
   };
 
   const navigateTo = (screen: string) => {
     setPrevScreen(currentScreen);
     setCurrentScreen(screen);
-    if (screen === 'settle') {
-      setDriverWeekIndex(0);
-      setOperatorVehicleWeekIndex(0);
+    if (screen !== 'settle') {
+      setSettleInitialAmount(undefined);
     }
   };
 
@@ -1010,26 +1026,33 @@ export default function App() {
       setIsLoggedIn(true);
       setCurrentScreen('settle');
       window.history.replaceState({}, document.title, window.location.pathname);
+      const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const verifyUrls = [
         `${BACKEND_URL}/api/payments/verify/${orderId}`,
         `/api/payments/verify/${orderId}`,
-        `http://127.0.0.1:8000/api/payments/verify/${orderId}`,
-        `http://localhost:8000/api/payments/verify/${orderId}`,
+        ...(isLocalHost ? [
+          `http://127.0.0.1:8000/api/payments/verify/${orderId}`,
+          `http://localhost:8000/api/payments/verify/${orderId}`,
+        ] : []),
       ].filter(Boolean);
 
       const doVerify = async () => {
         let isVerified = false;
         let verifiedAmt = 0;
         let verifiedTarget: string | undefined = undefined;
+        let lastStatus = '';
         for (const url of verifyUrls) {
           try {
             const res = await fetch(url);
             if (res.ok) {
               const data = await res.json();
+              lastStatus = data?.status || '';
               if (data?.is_success || data?.status === 'SUCCESS') {
                 verifiedAmt = Number(data?.amount || data?.paid_amount || data?.data?.[0]?.payment_amount || 0);
                 verifiedTarget = data?.target_component || (data?.payment_type === 'deposit' ? 'deposit' : undefined);
                 isVerified = true;
+                break;
+              } else if (data?.status === 'PENDING' || data?.status === 'FAILED' || data?.status === 'CANCELLED') {
                 break;
               }
             }
@@ -1039,6 +1062,10 @@ export default function App() {
         }
         if (isVerified && verifiedAmt > 0) {
           await handleConfirmPayment(verifiedAmt, verifiedTarget);
+        } else if (lastStatus === 'PENDING') {
+          triggerToast('Payment is pending bank confirmation. Dues will update shortly.', 'info');
+        } else if (lastStatus === 'FAILED' || lastStatus === 'CANCELLED') {
+          triggerToast('Payment was cancelled or was not completed.', 'error');
         }
         setIsLoggedIn(true);
         setCurrentScreen('settle');
@@ -1767,6 +1794,7 @@ export default function App() {
                                       <button
                                         onClick={() => {
                                           setSettleTargetComponent('deposit');
+                                          setSettleInitialAmount(undefined);
                                           navigateTo('settle');
                                         }}
                                         className="px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[10.5px] font-bold transition-colors cursor-pointer"
@@ -1777,6 +1805,7 @@ export default function App() {
                                         <button
                                           onClick={() => {
                                             setSettleTargetComponent('deposit');
+                                            setSettleInitialAmount(2000);
                                             navigateTo('settle');
                                           }}
                                           className="px-2.5 py-1 rounded-lg bg-bg hover:bg-surface border border-border/80 text-text text-[10.5px] font-bold transition-colors cursor-pointer"
@@ -1788,6 +1817,7 @@ export default function App() {
                                         <button
                                           onClick={() => {
                                             setSettleTargetComponent('deposit');
+                                            setSettleInitialAmount(1000);
                                             navigateTo('settle');
                                           }}
                                           className="px-2.5 py-1 rounded-lg bg-bg hover:bg-surface border border-border/80 text-text text-[10.5px] font-bold transition-colors cursor-pointer"
@@ -1800,6 +1830,7 @@ export default function App() {
                                     <button
                                       onClick={() => {
                                         setSettleTargetComponent('deposit');
+                                        setSettleInitialAmount(undefined);
                                         navigateTo('settle');
                                       }}
                                       className="w-full py-2.5 rounded-xl bg-primary hover:bg-primary-hover font-sans text-xs font-bold text-white shadow-xs cursor-pointer transition-all flex items-center justify-center gap-2"
@@ -2185,6 +2216,7 @@ export default function App() {
                         hisaabId={currentH?.app_hisaab_id}
                         payerType={loginType}
                         targetComponent={settleTargetComponent}
+                        initialAmount={settleInitialAmount}
                         onCopyUpi={handleCopyUpiId}
                         onConfirmPayment={handleConfirmPayment}
                         onBack={() => navigateTo(loginType === 'operator' ? 'operator' : hisaabWeeks.length > 0 ? 'hisaab' : 'home')}

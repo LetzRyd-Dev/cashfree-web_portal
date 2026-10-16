@@ -240,8 +240,8 @@ class PaymentResponse(BaseSchema):
 class CreateOrderRequest(BaseSchema):
     amount: Union[float, str]
     driverName: Optional[str] = "Driver"
-    driverPhone: Optional[str] = "9999999999"
-    driverId: Optional[Union[str, int]] = "driver_001"
+    driverPhone: Optional[str] = None
+    driverId: Optional[Union[str, int]] = None
     weekRange: Optional[str] = ""
     app_hisaab_id: Optional[int] = None      # Link payment to specific hisaab
     payer_type: Optional[str] = "driver"     # driver | operator

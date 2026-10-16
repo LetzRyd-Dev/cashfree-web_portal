@@ -1340,7 +1340,7 @@ BEGIN
             INSERT INTO public.app_drivers (
                 driver_id, full_name, phone, initials, driver_code, aadhar_number, dob, address,
                 joined_date, emergency_name, emergency_relation, emergency_phone, dl_number, dl_expiry,
-                deposit_total_req, deposit_paid, deposit_pending, upi_id, is_active, last_synced_at
+                deposit_total_req, deposit_paid, deposit_pending, operator_id, upi_id, is_active, last_synced_at
             ) VALUES (
                 NEW.id,
                 TRIM(COALESCE(NEW.driver_name, 'Driver')),
@@ -1364,9 +1364,9 @@ BEGIN
                     WHEN EXTRACT(YEAR FROM NEW.dl_expiry_date) NOT BETWEEN 2000 AND 2099 THEN NULL
                     ELSE NEW.dl_expiry_date
                 END,
-                COALESCE(NEW.security_deposit, 5000.00),
+                COALESCE(NULLIF(NEW.security_deposit, 0.00), 5000.00),
                 0.00,
-                COALESCE(NEW.security_deposit, 5000.00),
+                COALESCE(NULLIF(NEW.security_deposit, 0.00), 5000.00),
                 0,
                 COALESCE(NULLIF(TRIM(NEW.upi_id), ''), v_clean_phone || '@upi'),
                 CASE WHEN NEW.is_deleted = TRUE THEN FALSE ELSE TRUE END,

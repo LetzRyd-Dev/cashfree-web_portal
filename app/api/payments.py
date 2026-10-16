@@ -576,17 +576,22 @@ def create_cashfree_order(req: CreateOrderRequest, request: Request, db: Session
         payer_type = "operator"
         payer_id = req.operator_id
 
-    # Resolve driver ID if possible (fail-safe)
+    # Resolve payer ID if possible (fail-safe)
     db_accessible = True
     clean_phone = clean_phone_number(req.driverPhone or "")
-    if clean_phone and not req.operator_id:
+    if clean_phone:
         try:
-            driver = resolve_driver(clean_phone, db)
-            if driver:
-                payer_id = driver.app_driver_id
+            if payer_type == "operator":
+                op = resolve_operator(clean_phone, db)
+                if op:
+                    payer_id = op.app_operator_id
+            else:
+                driver = resolve_driver(clean_phone, db)
+                if driver:
+                    payer_id = driver.app_driver_id
         except Exception as e:
             db_accessible = False
-            print(f"[WARN] DB driver resolution skipped (database unreachable): {e}")
+            print(f"[WARN] DB payer resolution skipped (database unreachable): {e}")
 
     # Check if driver is managed by a fleet operator
     if payer_type == "driver" and db_accessible:
@@ -843,9 +848,14 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
     try:
         if not payment and is_success and paid_amount > 0:
             if customer_phone:
-                d_match = resolve_driver(customer_phone, db)
-                if d_match:
-                    payer_id = d_match.app_driver_id
+                if payer_type == "operator":
+                    op_match = resolve_operator(customer_phone, db)
+                    if op_match:
+                        payer_id = op_match.app_operator_id
+                else:
+                    d_match = resolve_driver(customer_phone, db)
+                    if d_match:
+                        payer_id = d_match.app_driver_id
             payment = AppPayments(
                 payment_type="collection",
                 payer_type=payer_type,
@@ -876,22 +886,28 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
                 db.commit()
                 payment = locked_payment
             else:
+                db.rollback()  # Release row lock immediately
                 cascade_result = {"note": "Already processed previously by webhook"}
         elif payment and payment.status == "SUCCESS":
             cascade_result = {"note": "Already processed previously"}
         elif payment and not is_success:
             terminal_statuses = ["FAILED", "CANCELLED", "USER_DROPPED"]
-            if any(p.get("payment_status") in terminal_statuses for p in payments_data):
-                payment.status = "FAILED"
+            has_failed_payment = any(p.get("payment_status") in terminal_statuses for p in payments_data)
+            cf_order_status = ord_data.get("order_status") if (ord_res and ord_res.status_code == 200) else None
+            is_order_terminal = cf_order_status in ("EXPIRED", "CANCELLED", "TERMINATED")
+            if has_failed_payment or is_order_terminal:
+                payment.status = "CANCELLED" if cf_order_status == "CANCELLED" else "FAILED"
                 db.commit()
     except Exception as e:
         db.rollback()
-        print(f"[WARN] DB update during verify skipped: {e}")
+        print(f"[ERROR] DB update during verify failed: {e}")
+        is_success = False
+        cascade_result = {"error": str(e)}
 
     return {
         "order_id": order_id,
         "is_success": is_success,
-        "status": "SUCCESS" if is_success else ("FAILED" if (payment and payment.status == "FAILED") else "PENDING"),
+        "status": "SUCCESS" if is_success else ("CANCELLED" if (payment and payment.status == "CANCELLED") else ("FAILED" if (payment and payment.status == "FAILED") else "PENDING")),
         "payment_mode": payment_mode,
         "cf_payment_id": cf_payment_id or (payment.cf_payment_id if payment else None),
         "amount": paid_amount,
@@ -961,38 +977,55 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     order_id = order_data.get("order_id")
     event_type = payload.get("type", "")
     payment_status = payment_data.get("payment_status", "")
+    terminal_events = {
+        "PAYMENT_FAILED_WEBHOOK": "FAILED",
+        "PAYMENT_USER_DROPPED_WEBHOOK": "USER_DROPPED",
+        "PAYMENT_CANCELLED_WEBHOOK": "CANCELLED",
+        "ORDER_EXPIRED_WEBHOOK": "EXPIRED",
+        "ORDER_TERMINATED_WEBHOOK": "TERMINATED",
+    }
     if event_type == "PAYMENT_SUCCESS_WEBHOOK":
         payment_status = "SUCCESS"
-    elif event_type in ("PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK"):
+    elif event_type in terminal_events:
         if not payment_status:
-            payment_status = "FAILED"
+            payment_status = terminal_events[event_type]
 
-    if order_id and payment_status == "SUCCESS":
-        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
-        if payment and payment.status != "SUCCESS":
-            payment.status = "SUCCESS"
-            payment.completed_at = datetime.now(timezone.utc)
-            payment.raw_response = payload
-            cf_payment_id = str(payment_data.get("cf_payment_id", ""))
-            if cf_payment_id:
-                payment.cf_payment_id = cf_payment_id
-            payment_mode = payment_data.get("payment_group", "Cashfree")
-            payment.payment_mode = payment_mode
-            if payment_data.get("payment_amount"):
-                payment.amount = float(payment_data.get("payment_amount"))
-            # Cascade update → _apply_payment_success calls db.commit() internally
-            _apply_payment_success(payment, db)
-        elif payment and payment.status == "SUCCESS":
-            # Already processed (e.g. verify-order ran first) — idempotent OK
-            pass
-        elif not payment:
-            print(f"[WARN] Webhook SUCCESS for unknown order {order_id} — no payment record found")
-    elif order_id and (event_type in ("PAYMENT_FAILED_WEBHOOK", "PAYMENT_USER_DROPPED_WEBHOOK") or payment_status in ("FAILED", "USER_DROPPED", "CANCELLED")):
-        payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
-        if payment and payment.status not in ("SUCCESS", "FAILED"):
-            payment.status = "FAILED"
-            payment.completed_at = datetime.now(timezone.utc)
-            payment.raw_response = payload
-            db.commit()
+    try:
+        if order_id and payment_status == "SUCCESS":
+            payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
+            if payment and payment.status != "SUCCESS":
+                payment.status = "SUCCESS"
+                payment.completed_at = datetime.now(timezone.utc)
+                payment.raw_response = payload
+                cf_payment_id = str(payment_data.get("cf_payment_id", ""))
+                if cf_payment_id:
+                    payment.cf_payment_id = cf_payment_id
+                payment_mode = payment_data.get("payment_group", "Cashfree")
+                payment.payment_mode = payment_mode
+                if payment_data.get("payment_amount"):
+                    payment.amount = float(payment_data.get("payment_amount"))
+                # Cascade update → _apply_payment_success calls db.commit() internally
+                _apply_payment_success(payment, db)
+            elif payment and payment.status == "SUCCESS":
+                # Already processed (e.g. verify-order ran first) — release lock and exit
+                db.rollback()
+            elif not payment:
+                db.rollback()
+                print(f"[WARN] Webhook SUCCESS for unknown order {order_id} — no payment record found")
+        elif order_id and (
+            event_type in terminal_events 
+            or payment_status in ("FAILED", "USER_DROPPED", "CANCELLED", "EXPIRED", "TERMINATED")
+        ):
+            payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).with_for_update().first()
+            if payment and payment.status not in ("SUCCESS", "FAILED", "CANCELLED", "EXPIRED"):
+                payment.status = "CANCELLED" if payment_status in ("CANCELLED", "EXPIRED", "TERMINATED") else "FAILED"
+                payment.completed_at = datetime.now(timezone.utc)
+                payment.raw_response = payload
+                db.commit()
+            else:
+                db.rollback()
+    except Exception as e:
+        db.rollback()
+        print(f"[ERROR] Exception in cashfree_webhook for order {order_id}: {e}")
 
     return {"status": "OK"}

@@ -72,7 +72,10 @@ def resolve_driver(phone_or_id: str, db: Session) -> Optional[AppDrivers]:
                 
         # 3. Direct phone match (10 digits)
         if len(clean) == 10:
-            driver = db.query(AppDrivers).filter(AppDrivers.phone == clean).first()
+            driver = db.query(AppDrivers).filter(
+                (AppDrivers.phone == clean) |
+                (func.right(func.regexp_replace(AppDrivers.phone, '[^0-9]', '', 'g'), 10) == clean)
+            ).first()
             if driver:
                 return driver
 
@@ -170,7 +173,10 @@ def resolve_operator(phone_or_id: str, db: Session) -> Optional[AppOperators]:
 
         # 3. Direct phone match (10 digits)
         if len(clean) == 10:
-            op = db.query(AppOperators).filter(AppOperators.phone == clean).first()
+            op = db.query(AppOperators).filter(
+                (AppOperators.phone == clean) |
+                (func.right(func.regexp_replace(AppOperators.phone, '[^0-9]', '', 'g'), 10) == clean)
+            ).first()
             if op:
                 return op
 

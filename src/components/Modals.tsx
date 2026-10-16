@@ -117,7 +117,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
           <X className="w-4 h-4" />
         </button>
 
-        <h3 className="font-sans text-lg font-bold text-text mb-3">{t('support.newTicket', 'Raise Support Ticket')}</h3>
+        <h3 className="font-sans text-base font-bold text-text mb-3 pr-10">{t('support.newTicket', 'Raise Support Ticket')}</h3>
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex flex-col gap-1">
@@ -389,29 +389,33 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-surface border border-red-200/80 rounded-2xl w-full max-w-sm p-4 shadow-2xl relative text-left font-sans space-y-3.5 my-auto max-h-[92%] overflow-y-auto no-scrollbar"
+        className="bg-surface border border-red-200/80 rounded-2xl w-full max-w-sm shadow-2xl relative text-left font-sans my-auto max-h-[92%] flex flex-col overflow-hidden"
       >
-        <button
-          onClick={onClose}
-          className="absolute top-3.5 right-3.5 w-7 h-7 rounded-lg border border-border bg-bg flex items-center justify-center text-text-muted hover:text-text cursor-pointer transition-colors"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-
-        {/* HEADER */}
-        <div className="flex items-center gap-2.5 pr-7 border-b border-border/60 pb-2.5">
-          <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200 font-bold">
-            🚨
+        {/* PINNED HEADER */}
+        <div className="flex items-center justify-between p-4 border-b border-border/60 shrink-0 bg-surface">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200 font-bold">
+              🚨
+            </div>
+            <div>
+              <h3 className="font-sans text-sm font-extrabold text-red-700 leading-tight">
+                {t('sos.title', 'Emergency SOS Safety Center')}
+              </h3>
+              <p className="font-sans text-[10px] text-text-muted mt-0.5">
+                {t('sos.controlHub', 'LetzRyd Central Control Hub (24x7)')}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-sans text-sm font-extrabold text-red-700 leading-tight">
-              {t('sos.title', 'Emergency SOS Safety Center')}
-            </h3>
-            <p className="font-sans text-[10px] text-text-muted mt-0.5">
-              {t('sos.controlHub', 'LetzRyd Central Control Hub (24x7)')}
-            </p>
-          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg border border-border bg-bg flex items-center justify-center text-text-muted hover:text-text cursor-pointer transition-colors shrink-0"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
+
+        {/* SCROLLABLE BODY */}
+        <div className="p-4 overflow-y-auto space-y-3.5 no-scrollbar">
 
         {/* ACTIVE SOS STATE */}
         {isActivated ? (
@@ -544,6 +548,7 @@ export const EmergencySosModal: React.FC<EmergencySosModalProps> = ({
             </div>
           </div>
         )}
+        </div>
       </motion.div>
     </div>
   );

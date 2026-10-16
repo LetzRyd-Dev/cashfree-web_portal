@@ -1267,9 +1267,10 @@ interface SettleScreenProps {
   driverName?: string;
   driverPhone?: string;
   driverId?: string;
-  hisaabId?: number;        // NEW: links payment to specific hisaab in DB
-  payerType?: 'driver' | 'operator';  // NEW: driver vs operator payment
-  targetComponent?: 'auto' | 'hisaab' | 'deposit'; // NEW: target component selection
+  hisaabId?: number;        // links payment to specific hisaab in DB
+  payerType?: 'driver' | 'operator';  // driver vs operator payment
+  targetComponent?: 'auto' | 'hisaab' | 'deposit'; // target component selection
+  initialAmount?: number;   // pre-filled quick amount selection
   onCopyUpi: () => void;
   onConfirmPayment: (paidAmt?: number, targetComponent?: string) => void;
   onBack: () => void;
@@ -1292,6 +1293,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   hisaabId,
   payerType = 'driver',
   targetComponent = 'auto',
+  initialAmount,
   onCopyUpi,
   onConfirmPayment,
   onBack,
@@ -1320,8 +1322,11 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     ? (pastWeekAmount + challansAmount)
     : pendingDeposit;
 
-  const [paymentOption, setPaymentOption] = useState<'full' | 'part' | 'advance'>('full');
-  const [customAmount, setCustomAmount] = useState<string>(activeComponentDue.toFixed(2));
+  const isPartInitial = initialAmount !== undefined && initialAmount < activeComponentDue;
+  const [paymentOption, setPaymentOption] = useState<'full' | 'part' | 'advance'>(isPartInitial ? 'part' : 'full');
+  const [customAmount, setCustomAmount] = useState<string>(
+    initialAmount !== undefined ? initialAmount.toFixed(2) : activeComponentDue.toFixed(2)
+  );
   const [payLoading, setPayLoading] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -1364,12 +1369,15 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
     }).catch(() => {});
   }, []);
 
-  // Sync customAmount to activeComponentDue when full payment is selected
+  // Sync customAmount to initialAmount or activeComponentDue
   useEffect(() => {
-    if (paymentOption === 'full') {
+    if (initialAmount !== undefined && initialAmount < activeComponentDue) {
+      setPaymentOption('part');
+      setCustomAmount(initialAmount.toFixed(2));
+    } else if (paymentOption === 'full') {
       setCustomAmount(activeComponentDue.toFixed(2));
     }
-  }, [activeComponentDue, paymentOption]);
+  }, [initialAmount, activeComponentDue]);
 
   // Mount Cashfree's official inline checkout to flush session and avoid stale cache
   useEffect(() => {
@@ -1459,8 +1467,9 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
   };
 
   const activePayAmount = parseFloat(customAmount) || 0;
-  const isAdvanceInvalid = paymentOption === 'advance' && activePayAmount <= activeComponentDue;
-  const isPartInvalid = paymentOption === 'part' && (activePayAmount <= 0 || activePayAmount >= activeComponentDue);
+  const isAdvanceInvalid = paymentOption === 'advance' && (activePayAmount < 1.0 || activePayAmount <= activeComponentDue || activePayAmount > 50000);
+  const isPartInvalid = paymentOption === 'part' && (activePayAmount < 1.0 || activePayAmount >= activeComponentDue || activePayAmount > 50000);
+  const isFullInvalid = paymentOption === 'full' && (activePayAmount < 1.0 || activePayAmount > 50000);
 
   // Trigger Real Cashfree Order Creation and render checkout inside mobile layout
   const handleCashfreePayment = async () => {
@@ -1495,11 +1504,14 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       };
 
       // Call backend endpoint with automatic fallback across relative & direct host paths
+      const isLocalHost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       const endpointsToTry = [
         `${BACKEND_URL}/api/create-order`,
         '/api/create-order',
-        'http://127.0.0.1:8000/api/create-order',
-        'http://localhost:8000/api/create-order',
+        ...(isLocalHost ? [
+          'http://127.0.0.1:8000/api/create-order',
+          'http://localhost:8000/api/create-order',
+        ] : []),
         `${BACKEND_URL}/api/payments/create-order`,
         '/api/payments/create-order',
       ].filter(Boolean);
@@ -2035,7 +2047,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
                 isFleetManaged
                   ? 'bg-gray-100 border-border text-text-dim cursor-not-allowed opacity-60'
                   : paymentOption === 'full'
-                  ? 'bg-white/80 border-primary/30 cursor-not-allowed text-primary'
+                  ? (isFullInvalid ? 'bg-red-50/50 border-red-300 focus:border-red-500 text-red-600' : 'bg-white/80 border-primary/30 cursor-not-allowed text-primary')
                   : isAdvanceInvalid || isPartInvalid
                   ? 'bg-red-50/50 border-red-300 focus:border-red-500 text-red-600'
                   : 'bg-white border-primary/50 focus:border-2 focus:border-primary text-primary'
@@ -2045,15 +2057,29 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
           {paymentOption === 'advance' && isAdvanceInvalid && !isFleetManaged && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              ⚠️ {t('settle.advanceError', 'Advance payment must be greater than total due')} (₹{activeComponentDue.toLocaleString('en-IN', { minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).
+              {activePayAmount < 1.0
+                ? '⚠️ Minimum payment amount is ₹1.00.'
+                : activePayAmount > 50000
+                ? '⚠️ Maximum payment per transaction is ₹50,000.'
+                : `⚠️ ${t('settle.advanceError', 'Advance payment must be greater than total due')} (₹${activeComponentDue.toLocaleString('en-IN', { minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}).`}
             </p>
           )}
 
           {paymentOption === 'part' && isPartInvalid && !isFleetManaged && (
             <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
-              {activePayAmount <= 0
-                ? '⚠️ Part payment amount must be greater than ₹0.'
+              {activePayAmount < 1.0
+                ? '⚠️ Minimum payment amount is ₹1.00.'
+                : activePayAmount > 50000
+                ? '⚠️ Maximum payment per transaction is ₹50,000.'
                 : `⚠️ ${t('settle.partError', 'Part payment must be less than total due')} (₹${activeComponentDue.toLocaleString('en-IN', { minimumFractionDigits: activeComponentDue % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}). ${t('settle.useFullPay', 'Use Full Pay for full settlement.')}`}
+            </p>
+          )}
+
+          {paymentOption === 'full' && isFullInvalid && !isFleetManaged && (
+            <p className="text-[11px] text-red-600 font-semibold bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 mt-1">
+              {activePayAmount < 1.0
+                ? '⚠️ Minimum payment amount is ₹1.00.'
+                : '⚠️ Maximum payment per transaction is ₹50,000.'}
             </p>
           )}
 
@@ -2157,7 +2183,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           ) : (
             <button
               onClick={handleCashfreePayment}
-              disabled={payLoading || activePayAmount <= 0 || isAdvanceInvalid || isPartInvalid}
+              disabled={payLoading || activePayAmount < 1.0 || activePayAmount > 50000 || isAdvanceInvalid || isPartInvalid || isFullInvalid}
               className="w-full h-11 rounded-xl bg-primary hover:bg-primary-hover text-white font-sans text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer shadow-sm hover:shadow transition-all active:scale-[0.99] disabled:opacity-50 mt-2.5 uppercase tracking-wide"
             >
               {payLoading ? (
