@@ -607,10 +607,27 @@ export default function App() {
     }
   }, [isLoggedIn, loginType, phoneInput, driverUser, driverVehicle, driverRentalPlan, operatorFleet, hisaabWeeks, currentScreen]);
 
-  // Auto-refresh active operator fleet on mount or session restore to ensure live deduplicated data
+  // Auto-refresh active driver profile or operator fleet on mount / session restore to ensure live data
   useEffect(() => {
-    if (isLoggedIn && loginType === 'operator' && phoneInput) {
-      const cleanPhone = phoneInput.replace('+91', '').replace(/[\s-]/g, '').trim();
+    if (!isLoggedIn) return;
+    const rawPhone = phoneInput || driverUser.phone;
+    const cleanPhone = (rawPhone || '').replace('+91', '').replace(/[\s-]/g, '').trim();
+    if (!cleanPhone) return;
+
+    if (loginType === 'driver') {
+      getDriverByPhone(cleanPhone).then(driverProfile => {
+        if (driverProfile?.app_driver_id) {
+          setDriverUser(mapDriverToUser(driverProfile));
+          setDriverVehicle(mapDriverToVehicle(driverProfile));
+          setDriverRentalPlan(mapDriverToRentalPlan(driverProfile));
+          getDriverHisaabs(driverProfile.app_driver_id).then(hisaabs => {
+            if (hisaabs && hisaabs.length > 0) {
+              setHisaabWeeks(hisaabs.map(mapHisaabToWeek));
+            }
+          }).catch(console.warn);
+        }
+      }).catch(console.warn);
+    } else if (loginType === 'operator') {
       getOperatorByPhone(cleanPhone).then(opProfile => {
         if (opProfile?.app_operator_id) {
           getOperatorFleet(opProfile.app_operator_id).then(fleetData => {
@@ -2117,8 +2134,8 @@ export default function App() {
                       t={t}
                       isFleetManaged={isFleetManaged}
                       operatorName={driverUser.operatorName}
-                      depositAgreed={loginType === 'operator' ? ((operatorFleet.depositPaidSoFar ?? 0) + (operatorFleet.depositPending ?? 0)) : ((driverUser.depositPaidSoFar || driverUser.depositAmount || 0) + (driverUser.depositPending || 0))}
-                      depositPaid={loginType === 'operator' ? (operatorFleet.depositPaidSoFar ?? 0) : (driverUser.depositPaidSoFar || driverUser.depositAmount || 0)}
+                      depositAgreed={loginType === 'operator' ? ((operatorFleet.depositPaidSoFar ?? 0) + (operatorFleet.depositPending ?? 0)) : (driverUser.depositTotalRequired ?? ((driverUser.depositPaidSoFar ?? 0) + (driverUser.depositPending ?? 0)) ?? 5000)}
+                      depositPaid={loginType === 'operator' ? (operatorFleet.depositPaidSoFar ?? 0) : (driverUser.depositPaidSoFar ?? 0)}
                       depositPending={loginType === 'operator' ? (operatorFleet.depositPending ?? 0) : (driverUser.depositPending ?? 0)}
                     />
                   )}
