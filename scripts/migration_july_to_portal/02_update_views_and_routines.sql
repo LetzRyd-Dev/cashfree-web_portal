@@ -1110,9 +1110,9 @@ BEGIN
                                    THEN EXCLUDED.vehicle_reg_number 
                                    ELSE app_drivers.vehicle_reg_number 
                                  END,
-            deposit_total_req  = EXCLUDED.deposit_total_req,
-            deposit_paid        = EXCLUDED.deposit_paid,
-            deposit_pending     = EXCLUDED.deposit_pending,
+            deposit_total_req  = COALESCE(app_drivers.deposit_total_req, EXCLUDED.deposit_total_req),
+            deposit_paid        = COALESCE(app_drivers.deposit_paid, EXCLUDED.deposit_paid),
+            deposit_pending     = COALESCE(app_drivers.deposit_pending, EXCLUDED.deposit_pending),
             cumulative_owed    = EXCLUDED.cumulative_owed,
             last_synced_at     = NOW()
         RETURNING 1
@@ -1151,9 +1151,9 @@ BEGIN
         ON CONFLICT (phone) DO UPDATE SET
             company_name       = EXCLUDED.company_name,
             operator_code      = EXCLUDED.operator_code,
-            deposit_total_req  = EXCLUDED.deposit_total_req,
-            deposit_paid        = EXCLUDED.deposit_paid,
-            deposit_pending     = EXCLUDED.deposit_pending,
+            deposit_total_req  = COALESCE(app_operators.deposit_total_req, EXCLUDED.deposit_total_req),
+            deposit_paid        = COALESCE(app_operators.deposit_paid, EXCLUDED.deposit_paid),
+            deposit_pending     = COALESCE(app_operators.deposit_pending, EXCLUDED.deposit_pending),
             last_synced_at     = NOW()
         RETURNING 1
     )

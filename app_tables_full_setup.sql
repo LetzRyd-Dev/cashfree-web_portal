@@ -824,9 +824,9 @@ BEGIN
             WHEN EXTRACT(YEAR FROM p.dl_expiry_date) NOT BETWEEN 2000 AND 2099 THEN NULL
             ELSE p.dl_expiry_date
         END,
-        COALESCE(p.security_deposit, 5000.00),
+        COALESCE(NULLIF(p.security_deposit, 0.00), 5000.00),
         0.00,
-        COALESCE(p.security_deposit, 5000.00),
+        COALESCE(NULLIF(p.security_deposit, 0.00), 5000.00),
         COALESCE(NULLIF(TRIM(p.upi_id), ''), clean_phone || '@upi'),
         RIGHT(REGEXP_REPLACE(COALESCE(p.account_number, '0000'), '[^0-9]', '', 'g'), 4),
         CASE WHEN p.is_deleted = TRUE THEN FALSE ELSE TRUE END,
@@ -918,9 +918,9 @@ BEGIN
         TRIM(COALESCE(p.driver_name, 'Fleet Operator')),
         UPPER(SUBSTRING(TRIM(COALESCE(p.driver_name, 'OP')), 1, 2)),
         COALESCE(NULLIF(TRIM(p.permanent_address), ''), NULLIF(TRIM(p.present_address), '')),
-        COALESCE(p.security_deposit, 10000.00),
+        COALESCE(NULLIF(p.security_deposit, 0.00), 10000.00),
         0.00,
-        COALESCE(p.security_deposit, 10000.00),
+        COALESCE(NULLIF(p.security_deposit, 0.00), 10000.00),
         COALESCE(NULLIF(TRIM(p.upi_id), ''), clean_phone || '@upi'),
         RIGHT(REGEXP_REPLACE(COALESCE(p.account_number, '0000'), '[^0-9]', '', 'g'), 4),
         CASE WHEN p.is_deleted = TRUE THEN FALSE ELSE TRUE END,
