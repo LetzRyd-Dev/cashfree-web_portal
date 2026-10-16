@@ -84,6 +84,7 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
   const [category, setCategory] = useState(categories[0] || '');
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -96,6 +97,8 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !description.trim()) return;
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     onSubmit(category, subject, description);
   };
 
@@ -165,10 +168,11 @@ export const NewTicketModal: React.FC<NewTicketModalProps> = ({ onClose, categor
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white cursor-pointer shadow-sm transition-colors flex items-center gap-1.5"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover font-sans text-xs font-semibold text-white cursor-pointer shadow-sm transition-colors flex items-center gap-1.5 disabled:opacity-50"
             >
               <Send className="w-3.5 h-3.5" />
-              {t('support.submitTicket', 'Submit Ticket')}
+              {isSubmitting ? t('common.submitting', 'Submitting...') : t('support.submitTicket', 'Submit Ticket')}
             </button>
           </div>
         </form>

@@ -192,7 +192,7 @@ The login screen automatically identifies whether a user is an Operator or a Dri
 ## 7. Firebase Phone Authentication & Real Telecom SMS Integration
 
 ### 7.1 Firebase Project Configuration Parameters
-* **API Key:** `AIzaSyBHLTzWd6XHJTd2xp3kWOHszCvb4GWlWfU`
+* **API Key:** `<FIREBASE_API_KEY>`
 * **Auth Domain:** `letzryd-dev-test.firebaseapp.com`
 * **Project ID:** `letzryd-dev-test` (Project Number: `925756819101`)
 * **Storage Bucket:** `letzryd-dev-test.firebasestorage.app`
@@ -296,7 +296,7 @@ gcloud run deploy cashfree-web-portal \
   --source . \
   --region asia-south1 \
   --allow-unauthenticated \
-  --set-env-vars DATABASE_URL="postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres"
+  --set-env-vars DATABASE_URL="postgresql://postgres:<PROD_PASSWORD>@35.200.196.113:5432/postgres"
 ```
 
 ---
@@ -306,7 +306,7 @@ gcloud run deploy cashfree-web-portal \
 ### 12.1 Vercel Environment Variables
 In Vercel Dashboard -> cashfree-web-portal -> Settings -> Environment Variables, add the following 7 variables:
 ```env
-VITE_FIREBASE_API_KEY=AIzaSyBHLTzWd6XHJTd2xp3kWOHszCvb4GWlWfU
+VITE_FIREBASE_API_KEY=<FIREBASE_API_KEY>
 VITE_FIREBASE_AUTH_DOMAIN=letzryd-dev-test.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=letzryd-dev-test
 VITE_FIREBASE_STORAGE_BUCKET=letzryd-dev-test.firebasestorage.app
@@ -326,6 +326,6 @@ After saving environment variables in Vercel, navigate to Deployments -> click t
 | :--- | :--- | :--- |
 | **SMS OTP not arriving** | Google rate limit (3+ SMS in 2 mins) or number in Firebase test list. | 1. Enter master code '1234' to login immediately.<br>2. Wait 15 mins for telecom cooldown.<br>3. Verify number is removed from Firebase test list. |
 | **reCAPTCHA token error** | Browser AdBlocker or Brave Shields blocking `google.com/recaptcha`. | Disable AdBlocker on localhost/vercel or open in Chrome Incognito. |
-| **CORS Error on Vercel API calls** | FastAPI missing Vercel origin in CORS middleware. | Verify `app/main.py` contains `allow_origins=['*']` and `allow_credentials=True`. |
-| **PostgreSQL connection refused** | Database instance at `35.200.196.113` is paused or unauthorized IP. | Verify Cloud SQL instance is 'RUNNABLE' and Authorized Networks includes `0.0.0.0/0`. |
+| **CORS Error on Vercel API calls** | FastAPI missing Vercel origin in CORS middleware. | Verify `app/main.py` `_PROD_ORIGINS` includes `https://cashfree-web-portal.vercel.app`. |
+| **PostgreSQL connection refused** | Database instance at `35.200.196.113` is paused or unauthorized IP. | Verify Cloud SQL instance is 'RUNNABLE' and caller IP / Cloud SQL Auth Proxy is configured in Authorized Networks. |
 | **Cannot retrieve commit on GitHub** | Temporary GitHub UI cache refresh latency after rapid commits. | Hard refresh browser tab with `Ctrl + F5` or `Cmd + Shift + R`. |

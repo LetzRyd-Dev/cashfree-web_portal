@@ -62,22 +62,46 @@ def create_ticket(req: CreateTicketRequest, db: Session = Depends(get_db)):
         except (ValueError, TypeError):
             target_id = 0
 
+    category = (req.category or "").strip()
+    if not category:
+        raise HTTPException(status_code=400, detail="Ticket category cannot be empty")
+    if len(category) > 50:
+        raise HTTPException(status_code=400, detail="Ticket category cannot exceed 50 characters")
+
+    subject = (req.subject or "").strip()
+    if not subject:
+        raise HTTPException(status_code=400, detail="Ticket subject cannot be empty")
+    if len(subject) > 255:
+        raise HTTPException(status_code=400, detail="Ticket subject cannot exceed 255 characters")
+
+    priority = (req.priority or "medium").strip().lower()
+    if len(priority) > 10:
+        raise HTTPException(status_code=400, detail="Ticket priority cannot exceed 10 characters")
+
+    creator_type = (req.creator_type or "driver").strip().lower()
+    if len(creator_type) > 10:
+        raise HTTPException(status_code=400, detail="Creator type cannot exceed 10 characters")
+
     now = datetime.now(timezone.utc)
     ticket_no = f"TKT-2026-{now.strftime('%H%M%S')}-{uuid.uuid4().hex[:4].upper()}"
     ticket = AppSupportTickets(
         ticket_number=ticket_no,
-        creator_type=req.creator_type,
+        creator_type=creator_type,
         creator_id=target_id,
-        category=req.category,
-        subject=req.subject,
+        category=category,
+        subject=subject,
         description=req.description,
-        priority=req.priority or "medium",
+        priority=priority,
         status="open",
         created_at=now
     )
     db.add(ticket)
-    db.commit()
-    db.refresh(ticket)
+    try:
+        db.commit()
+        db.refresh(ticket)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create support ticket")
     return _map_ticket(ticket)
 
 @router.get("/{ticket_id}", response_model=TicketResponse)
@@ -148,10 +172,17 @@ def update_ticket_status(ticket_id: str, req: UpdateTicketRequest, db: Session =
         ticket.resolution_note = req.resolution_note
 
     if req.priority is not None:
-        ticket.priority = req.priority.strip().lower()
+        p_val = req.priority.strip().lower()
+        if len(p_val) > 10:
+            raise HTTPException(status_code=400, detail="Ticket priority cannot exceed 10 characters")
+        ticket.priority = p_val
 
-    db.commit()
-    db.refresh(ticket)
+    try:
+        db.commit()
+        db.refresh(ticket)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update ticket")
     return _map_ticket(ticket)
 
 def _map_ticket(t: AppSupportTickets) -> TicketResponse:

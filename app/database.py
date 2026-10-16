@@ -26,18 +26,26 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+import threading
+
 _psycopg_pool = None
+_pool_lock = threading.Lock()
 
 def get_raw_pool():
     global _psycopg_pool
     if _psycopg_pool is None:
-        _psycopg_pool = pool.ThreadedConnectionPool(1, 20, dsn=settings.DATABASE_URL, connect_timeout=10)
+        with _pool_lock:
+            if _psycopg_pool is None:
+                _psycopg_pool = pool.ThreadedConnectionPool(1, 20, dsn=settings.DATABASE_URL, connect_timeout=10)
     return _psycopg_pool
 
 def get_db():
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -46,5 +54,13 @@ def get_raw_db_conn():
     conn = p.getconn()
     try:
         yield conn
+    except Exception:
+        if conn and not conn.closed:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        raise
     finally:
-        p.putconn(conn)
+        if conn:
+            p.putconn(conn, close=bool(conn.closed))

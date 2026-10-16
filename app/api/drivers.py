@@ -56,21 +56,40 @@ def update_driver_profile(
         raise HTTPException(status_code=404, detail="Driver not found")
 
     if req.emergency_name is not None:
-        driver.emergency_name = req.emergency_name.strip()
+        em_name = req.emergency_name.strip()
+        if len(em_name) > 150:
+            raise HTTPException(status_code=400, detail="Emergency contact name cannot exceed 150 characters")
+        driver.emergency_name = em_name
     if req.emergency_relation is not None:
-        driver.emergency_relation = req.emergency_relation.strip()
+        em_rel = req.emergency_relation.strip()
+        if len(em_rel) > 50:
+            raise HTTPException(status_code=400, detail="Emergency relation cannot exceed 50 characters")
+        driver.emergency_relation = em_rel
     if req.emergency_phone is not None:
         clean_em_phone = clean_phone_number(req.emergency_phone)
-        driver.emergency_phone = clean_em_phone or req.emergency_phone.strip()
+        em_phone = clean_em_phone or req.emergency_phone.strip()
+        if len(em_phone) > 15:
+            em_phone = em_phone[-10:]
+        driver.emergency_phone = em_phone
     if req.blood_group is not None:
-        driver.blood_group = req.blood_group.strip().upper()
+        bg = req.blood_group.strip().upper()
+        if len(bg) > 5:
+            raise HTTPException(status_code=400, detail="Blood group cannot exceed 5 characters (e.g. O+, A-, B+)")
+        driver.blood_group = bg
     if req.address is not None:
         driver.address = req.address.strip()
     if req.upi_id is not None:
-        driver.upi_id = req.upi_id.strip()
+        upi = req.upi_id.strip()
+        if len(upi) > 100:
+            raise HTTPException(status_code=400, detail="UPI ID cannot exceed 100 characters")
+        driver.upi_id = upi
 
-    db.commit()
-    db.refresh(driver)
+    try:
+        db.commit()
+        db.refresh(driver)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update driver profile")
     return _map_driver(driver, db)
 
 def _map_driver(driver: AppDrivers, db: Optional[Session] = None) -> DriverProfileResponse:

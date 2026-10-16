@@ -56,16 +56,20 @@ def request_otp(req: OTPRequest, request: Request, db: Session = Depends(get_db)
         expires_at=now + timedelta(minutes=10),
         created_at=now
     )
-    db.add(session)
-    audit = AppAuditLogs(
-        user_type=user_type,
-        user_ref_id=user_id,
-        event_type="OTP_REQUEST",
-        phone=effective_phone,
-        created_at=now
-    )
-    db.add(audit)
-    db.commit()
+    try:
+        db.add(session)
+        audit = AppAuditLogs(
+            user_type=user_type,
+            user_ref_id=user_id,
+            event_type="OTP_REQUEST",
+            phone=effective_phone,
+            created_at=now
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to process OTP request")
 
     resp = {"success": True, "message": f"OTP sent to {effective_phone}"}
     return resp
@@ -155,15 +159,18 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
     }
     token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
-    audit = AppAuditLogs(
-        user_type=actual_user_type,
-        user_ref_id=user_id,
-        event_type="LOGIN_SUCCESS",
-        phone=effective_phone,
-        created_at=now
-    )
-    db.add(audit)
-    db.commit()
+    try:
+        audit = AppAuditLogs(
+            user_type=actual_user_type,
+            user_ref_id=user_id,
+            event_type="LOGIN_SUCCESS",
+            phone=effective_phone,
+            created_at=now
+        )
+        db.add(audit)
+        db.commit()
+    except Exception:
+        db.rollback()
 
     return TokenResponse(
         access_token=token,

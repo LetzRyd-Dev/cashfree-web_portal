@@ -83,11 +83,17 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         else:
             reward_amt = 2000.00
 
-    if not req.lead_name or not req.lead_name.strip():
+    clean_lead_name = (req.lead_name or "").strip()
+    if not clean_lead_name:
         raise HTTPException(status_code=400, detail="Lead name cannot be empty")
+    if len(clean_lead_name) > 150:
+        raise HTTPException(status_code=400, detail="Lead name cannot exceed 150 characters")
+
     clean_lead_phone = clean_phone_number(req.lead_phone)
     if not clean_lead_phone or len(clean_lead_phone) < 10:
         raise HTTPException(status_code=400, detail="A valid 10-digit mobile number is required for referral lead")
+    if len(clean_lead_phone) > 15:
+        clean_lead_phone = clean_lead_phone[-10:]
 
     # Idempotency check: if user already referred this phone, return existing record
     if ref_driver_id is not None:
@@ -116,7 +122,7 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         referred_by_type=req.referred_by_type,
         referred_by_driver_id=ref_driver_id,
         referred_by_op_id=ref_op_id,
-        lead_name=req.lead_name.strip(),
+        lead_name=clean_lead_name,
         lead_phone=clean_lead_phone,
         referral_code_used=referral_code,
         status="submitted",

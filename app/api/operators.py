@@ -39,16 +39,26 @@ def update_operator_profile(
         raise HTTPException(status_code=404, detail="Operator not found")
 
     if req.contact_person_name is not None:
-        op.contact_person_name = req.contact_person_name.strip()
+        cp_name = req.contact_person_name.strip()
+        if len(cp_name) > 150:
+            raise HTTPException(status_code=400, detail="Contact person name cannot exceed 150 characters")
+        op.contact_person_name = cp_name
     if req.address is not None:
         op.address = req.address.strip()
     if hasattr(op, "email") and req.email is not None:
         op.email = req.email.strip()
     if req.upi_id is not None:
-        op.upi_id = req.upi_id.strip()
+        upi = req.upi_id.strip()
+        if len(upi) > 100:
+            raise HTTPException(status_code=400, detail="UPI ID cannot exceed 100 characters")
+        op.upi_id = upi
 
-    db.commit()
-    db.refresh(op)
+    try:
+        db.commit()
+        db.refresh(op)
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update operator profile")
     return _map_operator(op, db)
 
 @router.get("/{operator_id}/fleet-summary", response_model=OperatorFleetResponse)
@@ -158,7 +168,7 @@ def get_operator_fleet_summary(operator_id: Union[int, str], week_number: Option
         AppHisaabs.app_operator_id.in_(op_ids)
     ).order_by(AppHisaabs.week_number.desc()).all()
 
-    latest_week = week_number if week_number is not None else max([h.week_number for h in op_hisaabs], default=40)
+    latest_week = week_number if week_number is not None else max([h.week_number for h in op_hisaabs if h.week_number is not None], default=40)
     week_hisaabs_by_v = {}
     for h in op_hisaabs:
         if h.week_number == latest_week:
@@ -366,7 +376,7 @@ def _map_operator(op: AppOperators, db: Session = None) -> OperatorProfileRespon
             AppHisaabs.app_operator_id == op.app_operator_id
         ).order_by(AppHisaabs.week_number.desc()).all()
         
-        latest_week = max([h.week_number for h in op_hisaabs], default=40)
+        latest_week = max([h.week_number for h in op_hisaabs if h.week_number is not None], default=40)
         latest_hisaabs = [h for h in op_hisaabs if h.week_number == latest_week]
         
         if latest_hisaabs:

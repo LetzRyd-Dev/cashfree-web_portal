@@ -123,11 +123,18 @@ interface ReferralScreenProps {
 export const ReferralScreen: React.FC<ReferralScreenProps> = ({ driverCode, onCopy, onBack, t }) => {
   const [leadName, setLeadName] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [submittedLead, setSubmittedLead] = useState<string | null>(null);
 
   const handleSubmitLead = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!leadName.trim() || !leadPhone.trim()) return;
+    setPhoneError(null);
+    const cleanDigits = leadPhone.replace(/\D/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(cleanDigits)) {
+      setPhoneError('Please enter a valid 10-digit Indian mobile number');
+      return;
+    }
+    if (!leadName.trim()) return;
     setSubmittedLead(leadName.trim());
     setLeadName('');
     setLeadPhone('');
@@ -222,10 +229,16 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({ driverCode, onCo
               type="tel"
               required
               value={leadPhone}
-              onChange={(e) => setLeadPhone(e.target.value)}
+              onChange={(e) => {
+                setLeadPhone(e.target.value);
+                if (phoneError) setPhoneError(null);
+              }}
               placeholder={t('refer.phonePlaceholder', '10-digit Mobile No.')}
-              className="w-full h-9.5 rounded-xl border border-border bg-bg px-3 font-bold text-text text-xs outline-none focus:border-primary font-mono transition-colors"
+              className={`w-full h-9.5 rounded-xl border ${phoneError ? 'border-red-500' : 'border-border'} bg-bg px-3 font-bold text-text text-xs outline-none focus:border-primary font-mono transition-colors`}
             />
+            {phoneError && (
+              <p className="text-[11px] text-red-500 font-semibold mt-1">{phoneError}</p>
+            )}
           </div>
 
           <button
@@ -1355,6 +1368,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
   const [paymentSessionId, setPaymentSessionId] = useState<string>('');
   const [currentOrderId, setCurrentOrderId] = useState<string>('');
+  const [isVerifying, setIsVerifying] = useState<boolean>(false);
   const [countdown, setCountdown] = useState<number>(3);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
   const isCancelledRef = useRef<boolean>(false);
@@ -1601,11 +1615,13 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
 
   // Verify real order with backend (Only triggers success if truly verified by Cashfree)
   const handleVerifyOrder = async (targetOrderId?: string) => {
+    if (isVerifying) return;
     const checkId = targetOrderId || currentOrderId;
     if (!checkId) return;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
+    setIsVerifying(true);
 
     try {
       const res = await fetch(`${BACKEND_URL}/api/payments/verify/${checkId}`, {
@@ -1625,6 +1641,7 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
       }
     } finally {
       clearTimeout(timeoutId);
+      setIsVerifying(false);
     }
   };
 
@@ -1803,10 +1820,11 @@ export const SettleScreen: React.FC<SettleScreenProps> = ({
           </span>
           <button
             onClick={() => handleVerifyOrder()}
-            className="text-[10.5px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5 shadow-xs"
+            disabled={isVerifying}
+            className="text-[10.5px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-3 py-1.5 rounded-lg cursor-pointer transition-all flex items-center gap-1.5 shadow-xs disabled:opacity-50"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Verify Payment Status</span>
+            <span>{isVerifying ? t('common.verifying', 'Verifying...') : t('payment.verifyStatusBtn', 'Verify Payment Status')}</span>
           </button>
         </div>
       </div>
@@ -2919,6 +2937,29 @@ interface RentalScreenProps {
 }
 
 export const RentalScreen: React.FC<RentalScreenProps> = ({ plan, t }) => {
+  if (!plan || !plan.name) {
+    return (
+      <div className="space-y-4 text-left font-sans py-4">
+        <div>
+          <h2 className="font-sans text-base font-bold text-text">
+            {t('rental.title', 'Driver Rental Agreement')}
+          </h2>
+          <p className="font-sans text-xs text-text-muted mt-0.5">
+            {t('rental.termsSubtitle', 'Configured daily rate metrics and settlement terms')}
+          </p>
+        </div>
+        <div className="bg-surface border border-border/80 rounded-2xl p-6 text-center space-y-2">
+          <p className="font-sans text-sm font-bold text-text">
+            {t('rental.noPlanAssigned', 'No Rental Plan Assigned')}
+          </p>
+          <p className="font-sans text-xs text-text-muted">
+            {t('rental.contactOperator', 'Please contact your fleet operator or support desk for vehicle allocation.')}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 text-left font-sans">
       <div>
@@ -2956,7 +2997,7 @@ interface OperatorScreenProps {
 export const OperatorScreen: React.FC<OperatorScreenProps> = ({ fleet, onSelectVehicle, onPayFleetDeposit, t }) => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const vehiclesList = fleet.vehicles || [];
+  const vehiclesList = fleet?.vehicles || [];
   const totalVehicles = vehiclesList.length;
   const totalToPay = vehiclesList.reduce((sum, v) => (v.currentWeekOs < 0 ? sum + Math.abs(v.currentWeekOs) : sum), 0);
   const totalToCollect = vehiclesList.reduce((sum, v) => (v.currentWeekOs > 0 ? sum + v.currentWeekOs : sum), 0);
@@ -3200,8 +3241,8 @@ export const OperatorVehicleScreen: React.FC<OperatorVehicleScreenProps> = ({
           <ArrowLeft className="w-4 h-4" />
         </button>
         <div className="flex-1 min-w-0">
-          <h2 className="font-sans text-base font-bold text-text truncate">{vehicle.driverName} — Hisaab Statement</h2>
-          <p className="font-sans text-xs text-text-muted truncate">Allocated Vehicle: <span className="font-mono font-semibold">{vehicle.number}</span> ({vehicle.model})</p>
+          <h2 className="font-sans text-base font-bold text-text truncate">{vehicle?.driverName || t('common.driver', 'Driver')} — {t('hisaab.statementTitle', 'Hisaab Statement')}</h2>
+          <p className="font-sans text-xs text-text-muted truncate">{t('vehicle.allocatedVehicle', 'Allocated Vehicle')}: <span className="font-mono font-semibold">{vehicle?.number || t('vehicle.noVehicleAssigned', 'Unassigned')}</span> {vehicle?.model ? `(${vehicle.model})` : ''}</p>
         </div>
       </div>
 

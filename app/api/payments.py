@@ -333,10 +333,6 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                 d.cw_to_collect = round(max(0.0, d_due - d_paid), 2)
                 d.cw_os = round(max(0.0, float(d.cw_os or 0) - d_paid), 2)
                 d.cumulative_owed = round(max(0.0, float(d.cumulative_owed or 0) - d_paid), 2)
-                if d.cw_to_collect <= 0:
-                    d.lw_status = "paid"
-                else:
-                    d.lw_status = "partial"
 
                 # Also update that driver's weekly hisaab record(s)
                 d_hisaabs = db.query(AppHisaabs).filter(
@@ -364,15 +360,23 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
                             dh.payment_status = "partial"
                         rem_h_paid = round(max(0.0, rem_h_paid - h_pay), 2)
 
-                if rem_for_debt > 0 and float(d.lw_os or 0) > 0:
-                    lw_pay = round(min(float(d.lw_os), rem_for_debt), 2)
-                    d.lw_os = round(max(0.0, float(d.lw_os) - lw_pay), 2)
+                # Deduct d_paid from rem_for_debt BEFORE applying remaining funds to lw_os
+                rem_for_debt = round(max(0.0, rem_for_debt - d_paid), 2)
+
+                orig_lw = float(d.lw_os or 0)
+                if rem_for_debt > 0 and orig_lw > 0:
+                    lw_pay = round(min(orig_lw, rem_for_debt), 2)
+                    d.lw_os = round(max(0.0, orig_lw - lw_pay), 2)
                     d.cumulative_owed = round(max(0.0, float(d.cumulative_owed or 0) - lw_pay), 2)
-                    if d.lw_os <= 0:
-                        d.lw_status = "paid"
                     rem_for_debt = round(max(0.0, rem_for_debt - lw_pay), 2)
 
-                rem_for_debt = round(max(0.0, rem_for_debt - d_paid), 2)
+                # Set lw_status accurately reflecting remaining last-week debt
+                if float(d.lw_os or 0) <= 0:
+                    d.lw_status = "paid"
+                elif float(d.lw_os or 0) < orig_lw:
+                    d.lw_status = "partial"
+                else:
+                    d.lw_status = "unpaid"
 
             # If rem_for_debt > 0, also settle any operator vehicle hisaabs not covered by driver records
             if rem_for_debt > 0:
@@ -407,7 +411,7 @@ def _apply_payment_success(payment: AppPayments, db: Session) -> dict:
 
             # Operator total fleet debt remaining
             all_op_drivers = db.query(AppDrivers).filter(op_filter).all()
-            driver_debt = sum(float(d.cw_to_collect or 0) for d in all_op_drivers)
+            driver_debt = sum((float(d.cw_to_collect or 0) + float(d.lw_os or 0)) for d in all_op_drivers)
             op_ids = [op.app_operator_id]
             if op.operator_id:
                 op_ids.append(op.operator_id)
@@ -864,30 +868,38 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
 
     try:
         if not payment and is_success and paid_amount > 0:
-            if customer_phone:
-                if payer_type == "operator":
-                    op_match = resolve_operator(customer_phone, db)
-                    if op_match:
-                        payer_id = op_match.app_operator_id
-                else:
-                    d_match = resolve_driver(customer_phone, db)
-                    if d_match:
-                        payer_id = d_match.app_driver_id
-            payment = AppPayments(
-                payment_type="collection",
-                payer_type=payer_type,
-                payer_id=payer_id,
-                payee_type="letzryd",
-                amount=paid_amount,
-                payment_mode=payment_mode,
-                status="INITIATED",
-                cf_order_id=order_id,
-                cf_payment_id=cf_payment_id,
-                initiated_at=datetime.now(timezone.utc)
-            )
-            db.add(payment)
-            db.commit()
-            db.refresh(payment)
+            existing = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
+            if existing:
+                payment = existing
+            else:
+                if customer_phone:
+                    if payer_type == "operator":
+                        op_match = resolve_operator(customer_phone, db)
+                        if op_match:
+                            payer_id = op_match.app_operator_id
+                    else:
+                        d_match = resolve_driver(customer_phone, db)
+                        if d_match:
+                            payer_id = d_match.app_driver_id
+                payment = AppPayments(
+                    payment_type="collection",
+                    payer_type=payer_type,
+                    payer_id=payer_id,
+                    payee_type="letzryd",
+                    amount=paid_amount,
+                    payment_mode=payment_mode,
+                    status="INITIATED",
+                    cf_order_id=order_id,
+                    cf_payment_id=cf_payment_id,
+                    initiated_at=datetime.now(timezone.utc)
+                )
+                db.add(payment)
+                try:
+                    db.commit()
+                    db.refresh(payment)
+                except Exception:
+                    db.rollback()
+                    payment = db.query(AppPayments).filter(AppPayments.cf_order_id == order_id).first()
 
         if payment and is_success and payment.status != "SUCCESS":
             # Re-fetch with row lock to prevent race condition with concurrent webhook
@@ -987,9 +999,13 @@ async def cashfree_webhook(request: Request, db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
 
-    data_dict = payload.get("data", payload)
-    order_data = data_dict.get("order") or payload.get("order") or {}
-    payment_data = data_dict.get("payment") or payload.get("payment") or {}
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload: expected JSON object")
+
+    raw_data = payload.get("data")
+    data_dict = raw_data if isinstance(raw_data, dict) else payload
+    order_data = data_dict.get("order") if isinstance(data_dict.get("order"), dict) else (payload.get("order") if isinstance(payload.get("order"), dict) else {})
+    payment_data = data_dict.get("payment") if isinstance(data_dict.get("payment"), dict) else (payload.get("payment") if isinstance(payload.get("payment"), dict) else {})
 
     order_id = order_data.get("order_id") or data_dict.get("order_id") or payload.get("order_id")
     event_type = payload.get("type", "")

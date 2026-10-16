@@ -98,7 +98,11 @@ def mark_read(notif_id: str, db: Session = Depends(get_db)):
     if not notif:
         return {"success": True, "note": "Notification not found or local"}
     notif.is_read = True
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to mark notification as read")
     return {"success": True}
 
 

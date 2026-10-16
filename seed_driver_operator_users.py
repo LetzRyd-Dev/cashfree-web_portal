@@ -20,7 +20,9 @@ if _env_path.exists():
                 k, v = line.split("=", 1)
                 os.environ.setdefault(k.strip(), v.strip())
 
-db_url = os.environ.get("DATABASE_URL", "postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres")
+db_url = os.environ.get("DATABASE_URL")
+if not db_url:
+    raise RuntimeError("DATABASE_URL environment variable must be set to run seed script.")
 conn = psycopg2.connect(dsn=db_url)
 conn.autocommit = True
 cur = conn.cursor()

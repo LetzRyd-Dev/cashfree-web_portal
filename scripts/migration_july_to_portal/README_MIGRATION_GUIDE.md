@@ -81,13 +81,13 @@ Target Instance: `35.200.196.113:5432/postgres`
 
 ```bash
 # 1. Execute Script 01
-psql "postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres" -f 01_rename_tables_and_create_bridge_views.sql
+psql "postgresql://postgres:<PROD_PASSWORD>@35.200.196.113:5432/postgres" -f 01_rename_tables_and_create_bridge_views.sql
 
 # 2. Execute Script 02
-psql "postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres" -f 02_update_views_and_routines.sql
+psql "postgresql://postgres:<PROD_PASSWORD>@35.200.196.113:5432/postgres" -f 02_update_views_and_routines.sql
 
 # 3. Run Verification Suite
-psql "postgresql://postgres:8S5%5DU3%40L%5EXz%29%5CFH%7D@35.200.196.113:5432/postgres" -f 03_verify_migration.sql
+psql "postgresql://postgres:<PROD_PASSWORD>@35.200.196.113:5432/postgres" -f 03_verify_migration.sql
 ```
 
 ---

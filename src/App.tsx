@@ -1170,6 +1170,8 @@ export default function App() {
       }
     } catch (err) {
       console.warn('Could not persist profile changes to server:', err);
+      triggerToast(t('profile.offlineSaved', 'Profile updated locally (server sync pending)'), 'warning');
+      return;
     }
 
     triggerToast(t('profile.saved', 'Profile updated successfully!'), 'success');
@@ -1772,7 +1774,7 @@ export default function App() {
                           <div className="grid grid-cols-4 divide-x divide-border/70 text-center">
                             <div className="px-1">
                               <p className="font-sans text-base font-black text-text leading-none">
-                                {activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : 1150}
+                                {activeWeek ? ((activeWeek.platforms?.uber?.trips || 0) + (activeWeek.platforms?.ola?.trips || 0) + (activeWeek.platforms?.rapido?.trips || 0) || (activeWeek as any).completedTrips || 0) : (operatorFleet?.cw_fleet_trips || 0)}
                               </p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.trips', 'Trips')}</p>
                             </div>
@@ -1783,7 +1785,7 @@ export default function App() {
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('home.totalKm', 'Total KM')}</p>
                             </div>
                             <div className="px-1">
-                              <p className="font-sans text-base font-black text-text leading-none">{(operatorFleet.vehicles || []).length || 22}</p>
+                              <p className="font-sans text-base font-black text-text leading-none">{(operatorFleet.vehicles || []).length}</p>
                               <p className="font-sans text-[9px] font-bold text-text-muted uppercase tracking-tight mt-1.5">{t('operator.cars', 'Total Cars')}</p>
                             </div>
                             <div className="px-1">

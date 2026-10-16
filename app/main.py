@@ -35,6 +35,9 @@ app = FastAPI(
 # Development/Sandbox: allow all origins for easy local/preview testing.
 _PROD_ORIGINS = [
     "https://letzryd-portal-925756819101.asia-south1.run.app",
+    "https://cashfree-web-portal-925756819101.asia-south1.run.app",
+    "https://dev-cashfree-web-portal-925756819101.asia-south1.run.app",
+    "https://cashfree-web-portal.vercel.app",
     "https://letzryd.com",
     "https://www.letzryd.com",
 ]
