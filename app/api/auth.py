@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_, func
 from datetime import datetime, timedelta, timezone
 import jwt
 
@@ -45,7 +46,7 @@ def request_otp(req: OTPRequest, request: Request, db: Session = Depends(get_db)
     session = AppSessions(
         user_type=user_type,
         user_ref_id=user_id,
-        phone=effective_phone,
+        phone=clean_phone if len(clean_phone) == 10 else effective_phone,
         otp_hash="hashed_1234",
         attempt_count=0,
         is_verified=False,
@@ -90,7 +91,11 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
     # If req_type defaulted to 'driver', check if unverified session was requested as 'operator'
     if req_type == "driver" and operator:
         session_check = db.query(AppSessions).filter(
-            AppSessions.phone == clean_phone,
+            or_(
+                AppSessions.phone == clean_phone,
+                AppSessions.phone == operator.phone,
+                func.right(func.regexp_replace(AppSessions.phone, '[^0-9]', '', 'g'), 10) == clean_phone
+            ),
             AppSessions.is_verified == False
         ).order_by(AppSessions.created_at.desc()).first()
         if session_check and session_check.user_type == "operator":
@@ -119,7 +124,11 @@ def verify_otp(req: OTPVerify, request: Request, db: Session = Depends(get_db)):
 
     is_valid_otp = False
     matched_session = db.query(AppSessions).filter(
-        AppSessions.phone == effective_phone,
+        or_(
+            AppSessions.phone == clean_phone,
+            AppSessions.phone == effective_phone,
+            func.right(func.regexp_replace(AppSessions.phone, '[^0-9]', '', 'g'), 10) == clean_phone
+        ),
         AppSessions.is_verified == False
     ).order_by(AppSessions.created_at.desc()).first()
 

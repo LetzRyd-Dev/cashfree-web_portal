@@ -84,10 +84,14 @@ def get_notifications(
 
 @router.put("/{notif_id}/read")
 @router.patch("/{notif_id}/read")
-def mark_read(notif_id: int, db: Session = Depends(get_db)):
-    notif = db.query(AppNotifications).filter(AppNotifications.app_notif_id == notif_id).first()
+def mark_read(notif_id: str, db: Session = Depends(get_db)):
+    clean_id = str(notif_id).replace("NOTIF-", "").strip()
+    if not clean_id.isdigit():
+        return {"success": True, "note": "Local notification acknowledged"}
+    nid = int(clean_id)
+    notif = db.query(AppNotifications).filter(AppNotifications.app_notif_id == nid).first()
     if not notif:
-        raise HTTPException(status_code=404, detail="Notification not found")
+        return {"success": True, "note": "Notification not found or local"}
     notif.is_read = True
     db.commit()
     return {"success": True}

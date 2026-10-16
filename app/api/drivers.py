@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.app_models import AppDrivers, AppOperators, AppDriverAllocations
-from app.schemas.app_schemas import DriverProfileResponse
+from app.schemas.app_schemas import DriverProfileResponse, UpdateDriverProfileRequest
 from app.services.helpers import clean_phone_number, resolve_driver, resolve_operator
 
 router = APIRouter(prefix="/drivers", tags=["Drivers"])
@@ -42,6 +42,35 @@ def get_driver_by_id(driver_id: Union[int, str], db: Session = Depends(get_db)):
     driver = resolve_driver(str(driver_id), db)
     if not driver:
         raise HTTPException(status_code=404, detail="Driver not found")
+    return _map_driver(driver, db)
+
+@router.patch("/{driver_id}/profile", response_model=DriverProfileResponse)
+@router.put("/{driver_id}/profile", response_model=DriverProfileResponse)
+def update_driver_profile(
+    driver_id: Union[int, str],
+    req: UpdateDriverProfileRequest,
+    db: Session = Depends(get_db)
+):
+    driver = resolve_driver(str(driver_id), db)
+    if not driver:
+        raise HTTPException(status_code=404, detail="Driver not found")
+
+    if req.emergency_name is not None:
+        driver.emergency_name = req.emergency_name.strip()
+    if req.emergency_relation is not None:
+        driver.emergency_relation = req.emergency_relation.strip()
+    if req.emergency_phone is not None:
+        clean_em_phone = clean_phone_number(req.emergency_phone)
+        driver.emergency_phone = clean_em_phone or req.emergency_phone.strip()
+    if req.blood_group is not None:
+        driver.blood_group = req.blood_group.strip().upper()
+    if req.address is not None:
+        driver.address = req.address.strip()
+    if req.upi_id is not None:
+        driver.upi_id = req.upi_id.strip()
+
+    db.commit()
+    db.refresh(driver)
     return _map_driver(driver, db)
 
 def _map_driver(driver: AppDrivers, db: Optional[Session] = None) -> DriverProfileResponse:

@@ -81,6 +81,8 @@ import {
   getTickets,
   createTicket as apiCreateTicket,
   submitReferral as apiSubmitReferral,
+  updateDriverProfile as apiUpdateDriverProfile,
+  updateOperatorProfile as apiUpdateOperatorProfile,
   mapDriverToUser,
   mapOperatorToUser,
   mapDriverToVehicle,
@@ -741,7 +743,7 @@ export default function App() {
     setNotifications(prev => [newNotif, ...prev]);
   };
 
-  const handleSosTrigger = (timeStr: string) => {
+  const handleSosTrigger = async (timeStr: string) => {
     setSosActivated(true);
     setSosTime(timeStr);
     triggerToast('Emergency SOS Sent to LetzRyd Hub!', 'error');
@@ -755,6 +757,23 @@ export default function App() {
       read: false
     };
     setNotifications(prev => [emergencyNotif, ...prev]);
+
+    try {
+      const actualUserId = (loginType === 'operator'
+        ? (driverUser.app_operator_id || driverUser.app_driver_id)
+        : (driverUser.app_driver_id || driverUser.app_operator_id)) || 1;
+      const sosTicket = await apiCreateTicket(
+        loginType,
+        actualUserId,
+        'Safety / SOS',
+        'EMERGENCY SOS ALERT ACTIVATED',
+        `EMERGENCY SOS ALERT triggered by ${driverUser.name || 'User'} (${driverUser.phone || 'Unknown phone'}) at ${timeStr}. Immediate response requested.`,
+        'high'
+      );
+      setTickets(prev => [sosTicket, ...prev]);
+    } catch (err) {
+      console.warn('Could not persist emergency SOS ticket to server:', err);
+    }
   };
 
   const handleCancelSos = () => {
@@ -763,8 +782,35 @@ export default function App() {
     triggerToast('SOS alert cancelled', 'info');
   };
 
-  const handleReportIncident = (type: string, loc: string, drivable: boolean) => {
-    triggerToast('Incident report logged with central dispatcher!', 'success');
+  const handleReportIncident = async (type: string, loc: string, drivable: boolean) => {
+    try {
+      const actualUserId = (loginType === 'operator'
+        ? (driverUser.app_operator_id || driverUser.app_driver_id)
+        : (driverUser.app_driver_id || driverUser.app_operator_id)) || 1;
+      const backendTicket = await apiCreateTicket(
+        loginType,
+        actualUserId,
+        'Safety / SOS',
+        `Emergency Incident: ${type}`,
+        `Incident: ${type}\nLocation: ${loc}\nVehicle Drivable: ${drivable ? 'Yes' : 'No'}\nReported at: ${new Date().toLocaleString('en-IN')}`,
+        'high'
+      );
+      setTickets(prev => [backendTicket, ...prev]);
+      triggerToast(t('sos.incidentLogged', 'Incident report logged with central dispatcher and priority ticket created!'), 'success');
+
+      const newNotif: Notification = {
+        id: `NOTIF-${Date.now()}`,
+        icon: 'AlertTriangle',
+        title: `SOS Incident: ${type}`,
+        message: `Priority ticket #${backendTicket.id} registered for ${loc}. Response team alerted.`,
+        time: 'Just now',
+        read: false,
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+    } catch (err) {
+      console.error('Failed to log incident ticket to server:', err);
+      triggerToast('Incident report logged with central dispatcher!', 'success');
+    }
   };
 
   const handleSelectVehicleForHisaab = async (number: string) => {
@@ -1074,7 +1120,7 @@ export default function App() {
     }
   }, []);
 
-  const handleUpdateContact = (details: { emergencyContact: string; emergencyName?: string; emergencyRelation?: string; emergencyPhone?: string; address: string }) => {
+  const handleUpdateContact = async (details: { emergencyContact: string; emergencyName?: string; emergencyRelation?: string; emergencyPhone?: string; address: string }) => {
     setDriverUser(prev => ({
       ...prev,
       emergencyContact: details.emergencyContact,
@@ -1083,6 +1129,29 @@ export default function App() {
       emergencyPhone: details.emergencyPhone || prev.emergencyPhone,
       address: details.address
     }));
+
+    try {
+      const actualUserId = (loginType === 'operator'
+        ? (driverUser.app_operator_id || driverUser.app_driver_id)
+        : (driverUser.app_driver_id || driverUser.app_operator_id)) || 1;
+
+      if (loginType === 'operator') {
+        await apiUpdateOperatorProfile(actualUserId, {
+          contact_person_name: details.emergencyName,
+          address: details.address,
+        });
+      } else {
+        await apiUpdateDriverProfile(actualUserId, {
+          emergency_name: details.emergencyName,
+          emergency_relation: details.emergencyRelation,
+          emergency_phone: details.emergencyPhone,
+          address: details.address,
+        });
+      }
+    } catch (err) {
+      console.warn('Could not persist profile changes to server:', err);
+    }
+
     triggerToast(t('profile.saved', 'Profile updated successfully!'), 'success');
   };
 

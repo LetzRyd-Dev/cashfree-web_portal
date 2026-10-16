@@ -310,3 +310,19 @@ class ReferralResponse(BaseSchema):
     status: str
     reward_amount: float = 1000.0
     reward_credited: bool = False
+
+# Profile Update Schemas
+class UpdateDriverProfileRequest(BaseSchema):
+    emergency_name: Optional[str] = None
+    emergency_relation: Optional[str] = None
+    emergency_phone: Optional[str] = None
+    blood_group: Optional[str] = None
+    address: Optional[str] = None
+    upi_id: Optional[str] = None
+
+class UpdateOperatorProfileRequest(BaseSchema):
+    contact_person_name: Optional[str] = None
+    address: Optional[str] = None
+    email: Optional[str] = None
+    upi_id: Optional[str] = None
+

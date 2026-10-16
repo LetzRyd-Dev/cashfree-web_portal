@@ -359,3 +359,36 @@ export async function submitReferral(
   });
 }
 
+export async function updateDriverProfile(
+  driverId: number | string,
+  data: {
+    emergency_name?: string;
+    emergency_relation?: string;
+    emergency_phone?: string;
+    blood_group?: string;
+    address?: string;
+    upi_id?: string;
+  }
+): Promise<any> {
+  return apiCall(`/api/drivers/${driverId}/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateOperatorProfile(
+  operatorId: number | string,
+  data: {
+    contact_person_name?: string;
+    address?: string;
+    email?: string;
+    upi_id?: string;
+  }
+): Promise<any> {
+  return apiCall(`/api/operators/${operatorId}/profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+

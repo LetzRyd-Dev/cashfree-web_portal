@@ -83,13 +83,33 @@ def submit_referral(req: SubmitReferralRequest, db: Session = Depends(get_db)):
         else:
             reward_amt = 2000.00
 
+    clean_lead_phone = clean_phone_number(req.lead_phone)
+    if not clean_lead_phone:
+        clean_lead_phone = req.lead_phone.strip()[:15]
+
+    # Idempotency check: if user already referred this phone, return existing record
+    chk_filter = (AppReferralLeads.referred_by_driver_id == ref_driver_id) if ref_driver_id else (AppReferralLeads.referred_by_op_id == ref_op_id)
+    existing_lead = db.query(AppReferralLeads).filter(
+        AppReferralLeads.lead_phone == clean_lead_phone,
+        chk_filter
+    ).first()
+    if existing_lead:
+        return ReferralResponse(
+            app_referral_id=existing_lead.app_referral_id,
+            lead_name=existing_lead.lead_name,
+            lead_phone=existing_lead.lead_phone,
+            status=existing_lead.status,
+            reward_amount=float(existing_lead.reward_amount),
+            reward_credited=existing_lead.reward_credited
+        )
+
     now = datetime.now(timezone.utc)
     lead = AppReferralLeads(
         referred_by_type=req.referred_by_type,
         referred_by_driver_id=ref_driver_id,
         referred_by_op_id=ref_op_id,
-        lead_name=req.lead_name,
-        lead_phone=req.lead_phone,
+        lead_name=req.lead_name.strip(),
+        lead_phone=clean_lead_phone,
         referral_code_used=referral_code,
         status="submitted",
         rides_completed=0,

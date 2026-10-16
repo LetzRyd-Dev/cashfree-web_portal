@@ -789,6 +789,8 @@ def verify_cashfree_order(order_id: str, db: Session = Depends(get_db)):
     payer_id = payment.payer_id if (payment and payment.payer_id) else 1
     payer_type = payment.payer_type if (payment and payment.payer_type) else "driver"
     customer_phone = ""
+    ord_res = None
+    ord_data = {}
 
     cf_headers = {
         "x-client-id": settings.CASHFREE_APP_ID,

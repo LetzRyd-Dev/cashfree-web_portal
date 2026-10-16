@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.app_models import AppOperators, AppDrivers, AppHisaabs, AppDriverAllocations
-from app.schemas.app_schemas import OperatorProfileResponse, OperatorFleetResponse, FleetVehicleResponse, FleetDriverItemResponse
+from app.schemas.app_schemas import OperatorProfileResponse, OperatorFleetResponse, FleetVehicleResponse, FleetDriverItemResponse, UpdateOperatorProfileRequest
 from app.services.helpers import clean_phone_number, resolve_operator
 
 router = APIRouter(prefix="/operators", tags=["Operators"])
@@ -25,6 +25,30 @@ def get_current_operator(phone: str = "9691938866", db: Session = Depends(get_db
         op = db.query(AppOperators).first()
         if not op:
             raise HTTPException(status_code=404, detail="Operator not found")
+    return _map_operator(op, db)
+
+@router.patch("/{operator_id}/profile", response_model=OperatorProfileResponse)
+@router.put("/{operator_id}/profile", response_model=OperatorProfileResponse)
+def update_operator_profile(
+    operator_id: Union[int, str],
+    req: UpdateOperatorProfileRequest,
+    db: Session = Depends(get_db)
+):
+    op = resolve_operator(str(operator_id), db)
+    if not op:
+        raise HTTPException(status_code=404, detail="Operator not found")
+
+    if req.contact_person_name is not None:
+        op.contact_person_name = req.contact_person_name.strip()
+    if req.address is not None:
+        op.address = req.address.strip()
+    if req.email is not None:
+        op.email = req.email.strip()
+    if req.upi_id is not None:
+        op.upi_id = req.upi_id.strip()
+
+    db.commit()
+    db.refresh(op)
     return _map_operator(op, db)
 
 @router.get("/{operator_id}/fleet-summary", response_model=OperatorFleetResponse)
